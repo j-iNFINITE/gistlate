@@ -46,3 +46,40 @@ In-page modal with dark theme:
 - Always destroy/recreate the overlay on SPA navigation
 - Never leave the overlay or styles in the DOM after destroy
 - Settings panel uses `escapeHtml()` on all user-controlled values set via innerHTML
+
+## Live-restyle via CSS custom properties
+
+Overlay styling is driven by `--gl-*` CSS variables set on the container, not
+hardcoded values. `overlay.applyStyle(style)` maps a `SubtitleStyle` →
+`container.style.setProperty('--gl-o-size', ...)` etc. Changing a variable
+repaints instantly with **no JS re-render** — this is what makes the style panel a
+true WYSIWYG editor (every control's `input` event calls `applyStyle(working)`).
+Defaults live in `DEFAULTS.style` and reproduce the baseline look via the CSS
+`var(--x, fallback)`.
+
+## Docked live panel vs modal
+
+- **Settings (API/repo)** = full-backdrop modal (`settings-panel.ts`): blocks the
+  page, fine for text config.
+- **Style panel** (`style-panel.ts`) = compact **docked card** (fixed top-right,
+  ~280px) that must NOT cover the subtitle area, so edits preview on the real
+  on-video subtitles. Keep an in-memory `working` buffer + a `saved` baseline:
+  live-apply `working`; Save persists + advances `saved`; Close reverts to `saved`.
+- When both panels can be open at once, each panel's Save must re-read the other's
+  latest persisted value (`loadSettings()` at save time), not a snapshot taken at
+  open, or it will clobber the other's just-saved data.
+
+## Player control-bar button
+
+`style-button.ts` injects an "Aa" button into `.ytp-right-controls` (next to the
+native settings gear) with a floating-corner fallback and a GM menu command as
+last resort. Self-style the button (don't rely on `.ytp-button`, whose CSS can
+hide text). See quality-guidelines "DOM injection into YouTube's player" for the
+insertBefore/idempotency rules.
+
+## Transient status pill
+
+`status.ts` shows a non-interactive pill on `#movie_player` during a fresh
+(cache-miss) translation only — wired via a `resolveTranslation(..., onTranslating)`
+hook that fires just before `translateAllCues`, so cache hits stay silent. Auto
+-hides terminal states; `destroyStatus()` on SPA nav.
