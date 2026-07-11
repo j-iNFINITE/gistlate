@@ -16,8 +16,11 @@ export default defineConfig({
           'raw.githubusercontent.com',
           '*',
         ],
-        updateURL: 'https://raw.githubusercontent.com/elivthrar/gistlate-pool/main/gistlate.meta.js',
-        downloadURL: 'https://raw.githubusercontent.com/elivthrar/gistlate-pool/main/gistlate.user.js',
+        // Distribution via GitHub Releases (kept separate from the `pool` data
+        // branch). Publish gistlate.user.js / gistlate.meta.js as release assets.
+        // Adjust owner/repo here if your repository differs.
+        updateURL: 'https://github.com/elivthrar/gistlate/releases/latest/download/gistlate.meta.js',
+        downloadURL: 'https://github.com/elivthrar/gistlate/releases/latest/download/gistlate.user.js',
       },
       build: {
         fileName: 'gistlate.user.js',
