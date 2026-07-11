@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseNumbered, fillPrompt } from './prompt'
+import { parseNumbered, fillPrompt, fillSegmentPrompt } from './prompt'
 
 describe('parseNumbered', () => {
   it('parses a well-formed response', () => {
@@ -68,5 +68,23 @@ describe('fillPrompt', () => {
     expect(system).toContain('Count: 3')
     expect(system).toContain('[1] a')
     expect(user).toBe('[1] a\n[2] b\n[3] c')
+  })
+})
+
+describe('fillSegmentPrompt', () => {
+  it('describes the [start-end] output format, target language, and fragment count', () => {
+    const { system } = fillSegmentPrompt(['a', 'b', 'c'], 'zh-Hans')
+    expect(system).toContain('Simplified Chinese')
+    expect(system).toContain('[<start>-<end>]')
+    expect(system).toContain('1 to 3') // cover every fragment from 1 to N
+    const lower = system.toLowerCase()
+    expect(lower).toContain('sentence')
+    expect(lower).toContain('contiguous')
+  })
+
+  it('numbers the fragments in the user message', () => {
+    const { user } = fillSegmentPrompt(['hello', 'world'], 'es')
+    expect(user).toContain('[1] hello')
+    expect(user).toContain('[2] world')
   })
 })

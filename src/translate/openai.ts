@@ -1,5 +1,5 @@
 import { gmFetch } from '../net/gm'
-import { fillPrompt, parseNumbered } from './prompt'
+import { fillPrompt, fillSegmentPrompt, parseNumbered } from './prompt'
 import type { OpenAIConfig } from '../settings'
 
 const NEW_MODELS = new Set([
@@ -98,6 +98,31 @@ export async function translateBatch(
   }
 
   throw lastError ?? new Error('Translation failed after retries')
+}
+
+/**
+ * One-pass segment + translate over the given fragment texts. Returns the raw
+ * model content plus its finish reason; parsing/validation and the truncation →
+ * split decision live in the pipeline (mirrors how `translateRange` owns the
+ * split policy). Uses the same transport as `translateBatch`.
+ */
+export async function segmentBatch(
+  fragTexts: string[],
+  targetLang: string,
+  cfg: OpenAIConfig,
+  apiKey: string,
+  signal?: AbortSignal,
+): Promise<{ content: string; finishReason: string | null }> {
+  const { system, user } = fillSegmentPrompt(fragTexts, targetLang)
+
+  const useResponsesAPI =
+    cfg.baseUrl.includes('api.openai.com') && NEW_MODELS.has(cfg.model)
+
+  const result = useResponsesAPI
+    ? await callResponsesAPI(system, user, cfg, apiKey, signal)
+    : await callChatAPI(system, user, cfg, apiKey, signal)
+
+  return { content: result.content, finishReason: result.finishReason }
 }
 
 async function callChatAPI(

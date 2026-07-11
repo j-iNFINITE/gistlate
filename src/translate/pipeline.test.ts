@@ -33,7 +33,7 @@ function chatOk(content: string, finishReason = 'stop') {
   }
 }
 
-/** Numbered response body ("[1] t1\n[2] t2..." with a shared prefix) for `n` lines. */
+/** Numbered 1:1 response body ("[1] t1\n[2] t2..." with a shared prefix). */
 function numbered(n: number, prefix = 't') {
   const content = Array.from({ length: n }, (_, i) => `[${i + 1}] ${prefix}${i + 1}`).join('\n')
   return chatOk(content)
@@ -49,96 +49,66 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-describe('translateAllCues (one-shot + adaptive fallback)', () => {
-  it('translates the whole cue list in a SINGLE request', async () => {
-    mockGmFetch.mockResolvedValueOnce(chatOk('[1] Hola\n[2] Mundo\n[3] Prueba'))
-
-    const result = await translateAllCues(CUES, 'es', OPENAI_CFG, 'sk-test')
-
-    expect(mockGmFetch).toHaveBeenCalledTimes(1)
-    expect(result).toHaveLength(3)
-    expect(result.map((c) => c.t)).toEqual(['Hola', 'Mundo', 'Prueba'])
-  })
-
+describe('translateAllCues (segment + translate, with 1:1 fallback)', () => {
   it('returns empty for empty cues without calling the API', async () => {
     const result = await translateAllCues([], 'es', OPENAI_CFG, 'sk-test')
     expect(result).toEqual([])
     expect(mockGmFetch).not.toHaveBeenCalled()
   })
 
-  it('splits on truncation (finish_reason=length) and completes the full track', async () => {
+  it('groups fragments into sentence-cues in a SINGLE request', async () => {
+    // 3 fragments → 2 sentences (a merged pair + a single).
+    mockGmFetch.mockResolvedValueOnce(chatOk('[1-2] Hola Mundo\n[3] Prueba'))
+
+    const result = await translateAllCues(CUES, 'es', OPENAI_CFG, 'sk-test')
+
+    expect(mockGmFetch).toHaveBeenCalledTimes(1)
+    expect(result).toHaveLength(2) // fewer cues than fragments
+    expect(result[0]).toEqual({ s: 0, d: 2000, o: 'Hello World', t: 'Hola Mundo' })
+    expect(result[1]).toEqual({ s: 2000, d: 1000, o: 'Test', t: 'Prueba' })
+  })
+
+  it('splits on truncation (finish_reason=length) and covers every fragment', async () => {
     const cues = makeCues(10) // > MIN_SPLIT (8), so the range is splittable
     mockGmFetch
       // whole range truncates → TruncationError → split into two halves of 5
       .mockResolvedValueOnce(chatOk('[1] partial', 'length'))
-      .mockResolvedValueOnce(numbered(5, 'a')) // left half [1..5]
-      .mockResolvedValueOnce(numbered(5, 'b')) // right half [6..10]
+      .mockResolvedValueOnce(chatOk('[1-3] La\n[4-5] Lb')) // left half, fragments 1..5
+      .mockResolvedValueOnce(chatOk('[1-2] Ra\n[3-5] Rb')) // right half, fragments 6..10
 
     const result = await translateAllCues(cues, 'es', OPENAI_CFG, 'sk-test')
 
     expect(mockGmFetch).toHaveBeenCalledTimes(3)
-    expect(result).toHaveLength(10)
+    expect(result).toHaveLength(4) // 4 sentence-cues from 10 fragments
     expect(result.every((c) => c.t && c.t.trim() !== '')).toBe(true)
-    expect(result[0].t).toBe('a1')
-    expect(result[4].t).toBe('a5')
-    expect(result[5].t).toBe('b1')
-    expect(result[9].t).toBe('b5')
+    // Contiguous, gap-free coverage of the whole 0..10_000ms span.
+    expect(result[0]).toEqual({ s: 0, d: 3000, o: 'L1 L2 L3', t: 'La' })
+    expect(result[1]).toEqual({ s: 3000, d: 2000, o: 'L4 L5', t: 'Lb' })
+    expect(result[2]).toEqual({ s: 5000, d: 2000, o: 'L6 L7', t: 'Ra' })
+    expect(result[3]).toEqual({ s: 7000, d: 3000, o: 'L8 L9 L10', t: 'Rb' })
   })
 
-  it('recurses again when a half also truncates', async () => {
-    const cues = makeCues(20) // 20 → 10 + 10; left 10 truncates → 5 + 5
+  it('falls back to 1:1 fragment translation when segmentation stays invalid', async () => {
     mockGmFetch
-      .mockResolvedValueOnce(chatOk('[1] partial', 'length')) // whole 20 truncates
-      .mockResolvedValueOnce(chatOk('[1] partial', 'length')) // left 10 truncates
-      .mockResolvedValueOnce(numbered(5, 'a')) // left-left [1..5]
-      .mockResolvedValueOnce(numbered(5, 'b')) // left-right [6..10]
-      .mockResolvedValueOnce(numbered(10, 'c')) // right 10 [11..20]
-
-    const result = await translateAllCues(cues, 'es', OPENAI_CFG, 'sk-test')
-
-    expect(mockGmFetch).toHaveBeenCalledTimes(5)
-    expect(result).toHaveLength(20)
-    expect(result.every((c) => c.t && c.t.trim() !== '')).toBe(true)
-    expect(result[0].t).toBe('a1')
-    expect(result[10].t).toBe('c1')
-    expect(result[19].t).toBe('c10')
-  })
-
-  it('throws on persistent count mismatch below the split floor (fail-closed, no partial)', async () => {
-    // 3 cues (< MIN_SPLIT): never splits; retries in place then throws.
-    // Permanent bad response: missing slot [2] on every attempt.
-    mockGmFetch.mockResolvedValue(chatOk('[1] Hola\n[3] Prueba'))
+      // 3 segmentation attempts, each covers only fragment 1 of 3 → SegmentationError
+      .mockResolvedValueOnce(chatOk('[1] bad'))
+      .mockResolvedValueOnce(chatOk('[1] bad'))
+      .mockResolvedValueOnce(chatOk('[1] bad'))
+      // fallback 1:1 path (existing translateBatch) succeeds
+      .mockResolvedValueOnce(chatOk('[1] Hola\n[2] Mundo\n[3] Prueba'))
 
     const p = translateAllCues(CUES, 'es', OPENAI_CFG, 'sk-test')
-    const expectation = expect(p).rejects.toThrow(/mismatch|missing/i)
-    await vi.runAllTimersAsync() // drive the retry backoff
-    await expectation
+    await vi.runAllTimersAsync() // drive the segmentation retry backoff
+    const result = await p
+
+    expect(mockGmFetch).toHaveBeenCalledTimes(4)
+    // Fragment-level cues (N of them), each with a translation, originals intact.
+    expect(result).toHaveLength(3)
+    expect(result.map((c) => c.o)).toEqual(['Hello', 'World', 'Test'])
+    expect(result.map((c) => c.t)).toEqual(['Hola', 'Mundo', 'Prueba'])
   })
 
-  it('does NOT split a range at the MIN_SPLIT floor (bounded, no infinite loop)', async () => {
-    const cues = makeCues(8) // == MIN_SPLIT → not splittable
-    mockGmFetch.mockResolvedValue(chatOk('[1] only', 'length')) // always truncates
-
-    await expect(translateAllCues(cues, 'es', OPENAI_CFG, 'sk-test')).rejects.toThrow(
-      /truncat/i,
-    )
-    // Truncation fails fast (no retry); floor blocks the split → exactly one call.
-    expect(mockGmFetch).toHaveBeenCalledTimes(1)
-  })
-
-  it('does NOT split a non-splittable (network) error; retries in place then throws', async () => {
-    const cues = makeCues(10) // > MIN_SPLIT, but the error is not splittable
-    mockGmFetch.mockRejectedValue(new Error('Network error'))
-
-    const p = translateAllCues(cues, 'es', OPENAI_CFG, 'sk-test')
-    const expectation = expect(p).rejects.toThrow('Network error')
-    await vi.runAllTimersAsync()
-    await expectation
-    // 3 retry attempts on the whole range, never split.
-    expect(mockGmFetch).toHaveBeenCalledTimes(3)
-  })
-
-  it('aborts cleanly mid-flight and writes nothing', async () => {
+  it('aborts cleanly mid-flight and does NOT fall back or write', async () => {
     const cues = makeCues(10)
     const ac = new AbortController()
     mockGmFetch.mockImplementationOnce(async () => {
@@ -149,7 +119,7 @@ describe('translateAllCues (one-shot + adaptive fallback)', () => {
     await expect(
       translateAllCues(cues, 'es', OPENAI_CFG, 'sk-test', ac.signal),
     ).rejects.toThrow(/abort/i)
-    // Aborted on the first request; recursion unwinds without further calls.
+    // Aborted on the first request; no retry, no fallback.
     expect(mockGmFetch).toHaveBeenCalledTimes(1)
   })
 })

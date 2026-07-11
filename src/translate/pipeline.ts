@@ -1,11 +1,12 @@
 import type { Cue } from '../subtitles/timedtext'
 import type { OpenAIConfig } from '../settings'
-import { translateBatch, isSplittable } from './openai'
+import { translateBatch, segmentBatch, isSplittable, TruncationError } from './openai'
+import { parseSentences, sentencesToCues, type Sentence } from './segment'
 
 /**
- * Below this many lines we stop splitting and let a genuine failure propagate
- * (fail-closed). Prevents thrashing on tiny ranges that a model still can't
- * satisfy.
+ * Below this many lines/fragments we stop splitting and let a genuine failure
+ * propagate (fail-closed). Prevents thrashing on tiny ranges that a model still
+ * can't satisfy.
  */
 const MIN_SPLIT = 8
 /**
@@ -13,21 +14,21 @@ const MIN_SPLIT = 8
  * model. At depth 6 a whole-video range has already been halved six times.
  */
 const MAX_DEPTH = 6
+/** Retries for a malformed (bad-coverage) segmentation before giving up. */
+const SEGMENT_RETRIES = 2
 
 /**
- * Translate a full set of cues (original text → translated text).
+ * Translate a full set of cues into sentence-level cues.
  *
- * Strategy (one-shot with adaptive fallback):
- * 1. Translate the WHOLE cue list in a single request — full-video context gives
- *    coherent, terminology-consistent output, and the system prompt is sent once
- *    (cheapest). A large-output model (e.g. DeepSeek V4, 384K) needs only this.
- * 2. If the model truncates its output (finish_reason 'length') or returns the
- *    wrong line count, split the range in half and translate each half,
- *    recursively, down to MIN_SPLIT / MAX_DEPTH. This adapts to small-output
- *    models with no hardcoded token caps.
- * 3. Assert every cue gets a non-empty translation.
- * 4. Fail-closed: any unrecoverable failure throws (no partial result); the
- *    caller writes nothing to L1/L2.
+ * Strategy (one-pass segment + translate with a safe fallback):
+ * 1. Ask the model to group consecutive fragments into complete sentences and
+ *    translate each in a single pass (`segmentRange`), validating full 1..N
+ *    coverage. On truncation the range is halved and re-segmented (adaptive).
+ * 2. On any unrecoverable segmentation failure (malformed output, network, or a
+ *    truncation below the split floor) — but NOT on abort — fall back to the
+ *    existing 1:1 fragment translation so the result is never worse than before.
+ * 3. Fail-closed: an unrecoverable failure throws (no partial result); the caller
+ *    writes nothing to L1/L2. Abort propagates without falling back or writing.
  */
 export async function translateAllCues(
   cues: Cue[],
@@ -38,19 +39,110 @@ export async function translateAllCues(
 ): Promise<Cue[]> {
   if (cues.length === 0) return []
 
-  const texts = cues.map((c) => c.o)
-  const translated = await translateRange(texts, targetLang, openaiCfg, apiKey, signal)
+  try {
+    const sentences = await segmentRange(cues, targetLang, openaiCfg, apiKey, signal)
+    return sentencesToCues(cues, sentences)
+  } catch (e) {
+    // Never fall back on abort — the result would be stale and discarded anyway.
+    if (signal?.aborted) throw e
 
-  // Merge translations back into cues and enforce the write-on-success invariant.
-  const out = cues.map((c, i) => ({ ...c, t: translated[i] }))
-  const missing = out.filter((c) => !c.t || c.t.trim() === '')
-  if (missing.length > 0) {
-    throw new Error(
-      `Translation pipeline: ${missing.length} cues have empty translations (first missing: "${missing[0].o}")`,
-    )
+    console.warn('[Gistlate] Sentence segmentation failed; falling back to 1:1', e)
+
+    const texts = cues.map((c) => c.o)
+    const translated = await translateRange(texts, targetLang, openaiCfg, apiKey, signal)
+    const out = cues.map((c, i) => ({ ...c, t: translated[i] }))
+    const missing = out.filter((c) => !c.t || c.t.trim() === '')
+    if (missing.length > 0) {
+      throw new Error(
+        `Translation pipeline: ${missing.length} cues have empty translations (first missing: "${missing[0].o}")`,
+      )
+    }
+    return out
+  }
+}
+
+/**
+ * Segment + translate a fragment range in one request. On a malformed response
+ * (`SegmentationError`) or a transient transport error, retry with backoff up to
+ * `SEGMENT_RETRIES`. On truncation (`finish_reason==='length'`) split the range
+ * in half, segment each half, and offset the right half's indices back into the
+ * full range (a sentence straddling the split may be cut — acceptable). Below the
+ * `MIN_SPLIT` / `MAX_DEPTH` floors, or after exhausting retries, throw so the
+ * caller falls back to 1:1.
+ */
+async function segmentRange(
+  frags: Cue[],
+  targetLang: string,
+  cfg: OpenAIConfig,
+  apiKey: string,
+  signal?: AbortSignal,
+  depth = 0,
+): Promise<Sentence[]> {
+  if (frags.length === 0) return []
+
+  const n = frags.length
+  const fragTexts = frags.map((f) => f.o)
+
+  let lastError: Error | null = null
+
+  for (let attempt = 0; attempt <= SEGMENT_RETRIES; attempt++) {
+    if (signal?.aborted) throw new Error('Translation pipeline aborted')
+
+    try {
+      const { content, finishReason } = await segmentBatch(
+        fragTexts,
+        targetLang,
+        cfg,
+        apiKey,
+        signal,
+      )
+      // Truncation is deterministic for this input — surface it so we split.
+      if (finishReason === 'length') {
+        throw new TruncationError(`Segmentation output truncated for ${n} fragments`)
+      }
+      return parseSentences(content, n)
+    } catch (e) {
+      if (signal?.aborted) throw e
+
+      // Output-size failure: split the fragment range and re-segment each half,
+      // while there is still room to split. Otherwise fail (caller falls back).
+      if (e instanceof TruncationError) {
+        if (n <= MIN_SPLIT || depth >= MAX_DEPTH) throw e
+        return splitAndSegment(frags, targetLang, cfg, apiKey, signal, depth)
+      }
+
+      // Malformed coverage or transient transport error: retry, then give up.
+      lastError = e as Error
+      if (attempt < SEGMENT_RETRIES) {
+        await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt))
+        continue
+      }
+      throw lastError
+    }
   }
 
-  return out
+  throw lastError ?? new Error('Segmentation failed')
+}
+
+/** Halve the fragment range, segment each half, and stitch the indices back. */
+async function splitAndSegment(
+  frags: Cue[],
+  targetLang: string,
+  cfg: OpenAIConfig,
+  apiKey: string,
+  signal: AbortSignal | undefined,
+  depth: number,
+): Promise<Sentence[]> {
+  const mid = Math.ceil(frags.length / 2)
+  const left = await segmentRange(frags.slice(0, mid), targetLang, cfg, apiKey, signal, depth + 1)
+  const right = await segmentRange(frags.slice(mid), targetLang, cfg, apiKey, signal, depth + 1)
+  // Right-half indices are local to its sub-range; shift them into the full range.
+  const offsetRight = right.map((s) => ({
+    ...s,
+    startIdx: s.startIdx + mid,
+    endIdx: s.endIdx + mid,
+  }))
+  return [...left, ...offsetRight]
 }
 
 /**

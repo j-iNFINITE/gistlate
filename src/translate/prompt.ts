@@ -17,13 +17,29 @@ export const USER_PROMPT_TEMPLATE = `Translate to {{Target Language}}:
 
 {{Text}}`
 
+export const SEGMENT_SYSTEM_PROMPT_TEMPLATE = `You are a subtitle segmenter and translator. You receive NUMBERED subtitle fragments from ONE video. They are CONSECUTIVE and often auto-generated (no punctuation), so a single sentence is frequently split across several fragments.
+
+Your job: group consecutive fragments into COMPLETE sentences, then translate each whole sentence into {{Target Language}}.
+
+Output format — ONE line per sentence, nothing else:
+[<start>-<end>] <translation>
+- <start>-<end> = the inclusive fragment numbers the sentence covers. Use [<n>] when a sentence is a single fragment.
+- Ranges MUST be contiguous, non-overlapping, and cover every fragment from 1 to {{N}} exactly once, in order. Do NOT skip, drop, merge across gaps, or reorder fragment numbers.
+- Add natural punctuation. Keep terminology, names, pronouns, and tense consistent across the whole video.
+- Translate faithfully into {{Target Language}}. Output ONLY the sentence lines — no commentary, no echoes of the original fragments, no numbering other than the [<start>-<end>] prefix.`
+
+/** Build the shared numbered `[i] text` block used by every prompt. */
+function numberLines(text: string[]): string {
+  return text.map((t, i) => `[${i + 1}] ${t}`).join('\n')
+}
+
 export function fillPrompt(
   text: string[],
   targetLang: string,
   customPrompt?: string,
 ): { system: string; user: string } {
   const langName_ = langName(targetLang)
-  const numbered = text.map((t, i) => `[${i + 1}] ${t}`).join('\n')
+  const numbered = numberLines(text)
   const count = text.length
 
   if (customPrompt) {
@@ -38,6 +54,30 @@ export function fillPrompt(
     system: SYSTEM_PROMPT_TEMPLATE
       .replaceAll('{{Target Language}}', langName_)
       .replaceAll('{{Segment Count}}', String(count)),
+    user: USER_PROMPT_TEMPLATE
+      .replaceAll('{{Target Language}}', langName_)
+      .replaceAll('{{Text}}', numbered),
+  }
+}
+
+/**
+ * Build the one-pass segment+translate prompt. Same numbered `[i] text` user
+ * message as `fillPrompt`; the system prompt asks the model to group consecutive
+ * fragments into complete sentences and emit `[<start>-<end>] <translation>` lines
+ * covering fragments 1..N exactly once.
+ */
+export function fillSegmentPrompt(
+  fragments: string[],
+  targetLang: string,
+): { system: string; user: string } {
+  const langName_ = langName(targetLang)
+  const numbered = numberLines(fragments)
+  const n = fragments.length
+
+  return {
+    system: SEGMENT_SYSTEM_PROMPT_TEMPLATE
+      .replaceAll('{{Target Language}}', langName_)
+      .replaceAll('{{N}}', String(n)),
     user: USER_PROMPT_TEMPLATE
       .replaceAll('{{Target Language}}', langName_)
       .replaceAll('{{Text}}', numbered),

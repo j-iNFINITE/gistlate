@@ -3,6 +3,7 @@ import { GM_registerMenuCommand } from '$'
 import { loadSettings } from './settings'
 import { interceptTimedtext } from './intercept/netHook'
 import { parseTimedtext, type Cue } from './subtitles/timedtext'
+import { cleanCues } from './subtitles/clean'
 import { findCueAt } from './subtitles/cues'
 import { normalizeLang } from './translate/lang'
 import { getVideoId, onVideoChange, ensureCaptions, getVideoElement } from './youtube'
@@ -114,7 +115,9 @@ interceptTimedtext(({ json, params }) => {
   if (trackKey === handledTrackKey) return
   handledTrackKey = trackKey
 
-  const cues = parseTimedtext(json)
+  // Strip non-speech annotations ([Music], 【音乐】, ♪, …) up front so they never
+  // display and never pollute sentence segmentation. Pure-annotation cues drop.
+  const cues = cleanCues(parseTimedtext(json))
   if (cues.length === 0) return
 
   console.log(`[Gistlate] Captured ${cues.length} cues for video=${videoId} lang=${srcLang}`)
