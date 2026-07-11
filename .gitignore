@@ -1,0 +1,11 @@
+node_modules
+dist
+*.local
+*.user.js
+*.meta.js
+.env
+
+# Local AI-tool configs (not project code)
+.claude/
+.codex/
+.agents/

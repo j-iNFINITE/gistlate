@@ -1,0 +1,24 @@
+{
+  "name": "gistlate",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "compile": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "idb": "^8.0.3"
+  },
+  "devDependencies": {
+    "@types/tampermonkey": "^5.0.5",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vite-plugin-monkey": "^5.0.8",
+    "vitest": "^4.1.5"
+  },
+  "packageManager": "pnpm@11.10.0"
+}
