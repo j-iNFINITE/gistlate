@@ -1,0 +1,65 @@
+name: Release userscript
+
+# Build the userscript on every push to master that touches the code, and
+# publish gistlate.user.js / gistlate.meta.js as assets on a new GitHub Release.
+# The userscript's @updateURL/@downloadURL point at releases/latest/download/...,
+# so Tampermonkey auto-updates to whatever this workflow publishes last.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'src/**'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write # required to create releases/tags
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4 # reads the packageManager field in package.json
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set build version (0.1.<run_number>, must increase for auto-update)
+        run: npm pkg set version="0.1.${{ github.run_number }}"
+
+      - name: Type-check
+        run: pnpm compile
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build userscript
+        run: pnpm build
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1.${{ github.run_number }}
+          name: v0.1.${{ github.run_number }}
+          generate_release_notes: true
+          make_latest: "true"
+          files: |
+            dist/gistlate.user.js
+            dist/gistlate.meta.js
