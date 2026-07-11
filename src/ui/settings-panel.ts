@@ -229,6 +229,8 @@ export function openSettingsPanel(): void {
         repo: ghRepoF.input.value.trim(),
         branch: ghBranchF.input.value.trim() || 'main',
       },
+      // Preserve subtitle style — it is edited only in the style panel.
+      style: settings.style,
     }
     saveSettings(newSettings)
     saveOpenAIKey(oaiKeyF.input.value)

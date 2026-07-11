@@ -10,6 +10,8 @@ import { store } from './core/store'
 import { resolveTranslation } from './core/resolve'
 import { createOverlay, destroyOverlay } from './ui/overlay'
 import { openSettingsPanel } from './ui/settings-panel'
+import { openStylePanel } from './ui/style-panel'
+import { mountStyleButton } from './ui/style-button'
 
 console.log('[Gistlate] Script loaded on YouTube')
 
@@ -25,6 +27,11 @@ console.log('[Gistlate] Settings loaded:', {
 // ── GM menu command → settings panel ────────────────
 GM_registerMenuCommand('Gistlate 设置', () => {
   openSettingsPanel()
+})
+
+// ── GM menu command → live subtitle style panel ─────
+GM_registerMenuCommand('Gistlate 字幕样式', () => {
+  openStylePanel()
 })
 
 // ── Overlay state ─────────────────────────────────────
@@ -80,6 +87,8 @@ const pollInterval = setInterval(() => {
   if (!videoEl) {
     attachTimeListener()
   }
+  // (Re)inject the style button; survives YouTube rebuilding its controls.
+  mountStyleButton()
 }, 1000)
 
 // ── Subtitle interception ─────────────────────────────
