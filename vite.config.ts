@@ -7,7 +7,7 @@ export default defineConfig({
       entry: 'src/main.ts',
       userscript: {
         name: 'Gistlate',
-        namespace: 'https://github.com/elivthrar/gistlate',
+        namespace: 'https://github.com/j-iNFINITE/gistlate',
         description: 'YouTube bilingual subtitles via LLM + GitHub repo reuse',
         match: ['https://www.youtube.com/*'],
         'run-at': 'document-start',
@@ -19,8 +19,8 @@ export default defineConfig({
         // Distribution via GitHub Releases (kept separate from the `pool` data
         // branch). Publish gistlate.user.js / gistlate.meta.js as release assets.
         // Adjust owner/repo here if your repository differs.
-        updateURL: 'https://github.com/elivthrar/gistlate/releases/latest/download/gistlate.meta.js',
-        downloadURL: 'https://github.com/elivthrar/gistlate/releases/latest/download/gistlate.user.js',
+        updateURL: 'https://github.com/j-iNFINITE/gistlate/releases/latest/download/gistlate.meta.js',
+        downloadURL: 'https://github.com/j-iNFINITE/gistlate/releases/latest/download/gistlate.user.js',
       },
       build: {
         fileName: 'gistlate.user.js',
