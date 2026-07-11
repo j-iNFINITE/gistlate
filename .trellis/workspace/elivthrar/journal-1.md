@@ -45,3 +45,41 @@ Built Gistlate as a Tampermonkey userscript (vite-plugin-monkey, vanilla TS): in
 ### Next Steps
 
 - None - task complete
+
+
+## Session 2: Style panel + one-shot translation + status pill
+
+**Date**: 2026-07-11
+**Task**: Style panel + one-shot translation + status pill
+**Branch**: `master`
+
+### Summary
+
+Added a live WYSIWYG subtitle style panel (CSS-variable driven overlay, docked card, control-bar 'Aa' button + floating/GM fallbacks). Rewrote translation to one-shot whole-transcript (full-video context, consistent terminology) with adaptive recursive split fallback on truncation/count-mismatch; removed fixed-40 batching + concurrency pool; tests use fake timers (~14s->1s). Added a transient on-screen translation status pill (translating/done/failed) shown only on cache-miss. trellis-check passed (M1 6/6, M2 6/6); captured Trusted-Types/single-IIFE + YT DOM-injection + CSS-var-restyle lessons into frontend specs.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `79e45cb` | (see git log) |
+| `d240ffc` | (see git log) |
+| `7459dcb` | (see git log) |
+| `2a9e0a1` | (see git log) |
+| `19be82a` | (see git log) |
+| `3fa1726` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

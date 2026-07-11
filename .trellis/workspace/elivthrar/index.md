@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 1
+- **Total Sessions**: 2
 - **Last Active**: 2026-07-11
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~47 | Active |
+| `journal-1.md` | ~85 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 2 | 2026-07-11 | Style panel + one-shot translation + status pill | `79e45cb`, `d240ffc`, `7459dcb`, `2a9e0a1`, `19be82a`, `3fa1726` | `master` |
 | 1 | 2026-07-11 | Gistlate MVP: YouTube bilingual subtitle userscript with LLM + GitHub repo cache | `961826d`, `1f55a9d`, `d7bff34`, `df7732a`, `cfe62c1`, `49ba067`, `409837f`, `c5af631` | `master` |
 <!-- @@@/auto:session-history -->
 
