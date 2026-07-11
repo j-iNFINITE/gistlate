@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/elivthrar/gistlate/pool/schema/video-translation.schema.json",
+  "$id": "https://github.com/j-iNFINITE/gistlate/pool/schema/video-translation.schema.json",
   "title": "Gistlate Video Translation",
   "description": "A single YouTube video's full subtitle track with original and translated text, as written by the Gistlate userscript.",
   "type": "object",
