@@ -25,6 +25,7 @@ export async function resolveTranslation(
   srcLang: string,
   cues: Cue[],
   signal?: AbortSignal,
+  onTranslating?: () => void,
 ): Promise<ResolveResult> {
   const settings = loadSettings()
   const secrets = loadSecrets()
@@ -53,15 +54,14 @@ export async function resolveTranslation(
     }
   }
 
-  // 3. Cache miss — translate everything
+  // 3. Cache miss — translate everything in one shot (adaptive fallback inside).
   console.log(`[Gistlate] Translating ${cues.length} cues: ${key}`)
+  onTranslating?.() // only fires on a genuine translation (not cache hits)
   const translated = await translateAllCues(
     cues,
     tgt,
     settings.openai,
     secrets.openaiKey,
-    40,     // batch size
-    4,      // concurrency
     signal,
   )
 

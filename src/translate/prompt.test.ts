@@ -46,6 +46,14 @@ describe('fillPrompt', () => {
     expect(system).toContain('2 lines')
   })
 
+  it('instructs the model to translate the lines as one coherent transcript', () => {
+    const { system } = fillPrompt(['hello', 'world'], 'es')
+    const lower = system.toLowerCase()
+    expect(lower).toContain('consecutive')
+    expect(lower).toContain('single video')
+    expect(lower).toContain('consistent')
+  })
+
   it('fills user prompt with numbered text', () => {
     const { user } = fillPrompt(['hello', 'world'], 'es')
     expect(user).toContain('[1] hello')
