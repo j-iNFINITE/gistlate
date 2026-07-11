@@ -15,9 +15,9 @@ import type { Cue } from './timedtext'
  */
 export function stripNonSpeech(text: string): string {
   return text
-    .replace(/\[[^\]]*\]/g, ' ')
-    .replace(/【[^】]*】/g, ' ')
-    .replace(/♪/g, ' ')
+    .replace(/\[[^\]]*\]/g, '')
+    .replace(/【[^】]*】/g, '')
+    .replace(/♪/g, '')
     .replace(/\s+/g, ' ')
     .trim()
 }
