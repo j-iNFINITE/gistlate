@@ -229,8 +229,10 @@ export function openSettingsPanel(): void {
         repo: ghRepoF.input.value.trim(),
         branch: ghBranchF.input.value.trim() || 'main',
       },
-      // Preserve subtitle style — it is edited only in the style panel.
-      style: settings.style,
+      // Preserve subtitle style — it is edited only in the style panel. Re-read
+      // at save time so a style saved there while this modal is open (both can be
+      // open at once) is not clobbered by this snapshot.
+      style: loadSettings().style,
     }
     saveSettings(newSettings)
     saveOpenAIKey(oaiKeyF.input.value)
