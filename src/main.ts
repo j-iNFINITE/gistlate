@@ -12,6 +12,7 @@ import { createOverlay, destroyOverlay } from './ui/overlay'
 import { openSettingsPanel } from './ui/settings-panel'
 import { openStylePanel } from './ui/style-panel'
 import { mountStyleButton } from './ui/style-button'
+import { showTranslating, showDone, showError, destroyStatus } from './ui/status'
 
 console.log('[Gistlate] Script loaded on YouTube')
 
@@ -156,7 +157,7 @@ async function triggerTranslation(videoId: string, srcLang: string, cues: Cue[])
 
   try {
     console.log(`[Gistlate] Resolving translation: ${videoId} ${src}→${tgt}`)
-    const result = await resolveTranslation(videoId, src, cues, signal)
+    const result = await resolveTranslation(videoId, src, cues, signal, showTranslating)
 
     // Staleness guard: covers the cache-hit path where resolve returns fast
     // without re-checking the signal after its async lookups.
@@ -166,6 +167,8 @@ async function triggerTranslation(videoId: string, srcLang: string, cues: Cue[])
     }
 
     console.log(`[Gistlate] Translation ready (${result.source})`)
+    // Only flash "done" when we actually translated (the pill was shown).
+    if (result.source === 'fresh') showDone()
     store.setSubtitle(srcLang, result.cues)
     store.setCurrentTime(store.currentTime) // force overlay refresh
   } catch (e) {
@@ -173,6 +176,7 @@ async function triggerTranslation(videoId: string, srcLang: string, cues: Cue[])
       console.log('[Gistlate] Translation aborted (superseded by a newer track)')
     } else {
       console.warn('[Gistlate] Translation failed (will show original only):', e)
+      showError()
     }
     // Allow a retry on the next interception for this video
     if (translatingVideoId === videoId) translatingVideoId = null
@@ -186,6 +190,7 @@ onVideoChange(() => {
   console.log('[Gistlate] Video changed')
   store.reset()
   destroyOverlay()
+  destroyStatus()
   overlay = null // force lazy re-creation for the next track
   translatingVideoId = null // allow the next video to translate
   handledTrackKey = '' // allow the next video's track to be handled
