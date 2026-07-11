@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/elivthrar/gistlate/pool/schema/video-translation.schema.json",
+  "title": "Gistlate Video Translation",
+  "description": "A single YouTube video's full subtitle track with original and translated text, as written by the Gistlate userscript.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["videoId", "src", "tgt", "model", "cues", "createdAt"],
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "Internal cache key `${videoId}|${src}|${tgt}`. Optional; recomputed if absent."
+    },
+    "videoId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "YouTube video ID."
+    },
+    "src": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Source language (BCP-47, normalized). e.g. 'en'."
+    },
+    "tgt": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Target language (BCP-47, normalized). e.g. 'zh-Hans'."
+    },
+    "model": {
+      "type": "string",
+      "description": "LLM model that produced the translation (metadata only)."
+    },
+    "createdAt": {
+      "type": "number",
+      "description": "Unix epoch milliseconds when the artifact was created."
+    },
+    "cues": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Full ordered list of subtitle cues.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["s", "d", "o", "t"],
+        "properties": {
+          "s": { "type": "number", "description": "Start time in milliseconds." },
+          "d": { "type": "number", "description": "Duration in milliseconds." },
+          "o": { "type": "string", "description": "Original text." },
+          "t": { "type": "string", "minLength": 1, "description": "Translated text." }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "key": "example0001|en|zh-Hans",
+  "videoId": "example0001",
+  "src": "en",
+  "tgt": "zh-Hans",
+  "model": "deepseek-chat",
+  "cues": [
+    { "s": 0, "d": 2000, "o": "Hello and welcome.", "t": "你好，欢迎。" },
+    { "s": 2000, "d": 2500, "o": "This is an example pool entry.", "t": "这是一个示例池条目。" }
+  ],
+  "createdAt": 1700000000000
+}

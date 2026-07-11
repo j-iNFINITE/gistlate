@@ -1,0 +1,4 @@
+# This branch is data-only. Ignore stray local files.
+node_modules
+.DS_Store
+*.log
