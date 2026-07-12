@@ -31,6 +31,10 @@ describe('parseBoundaries', () => {
     expect(parseBoundaries('here you go:\n[1] C\n[2] E', 2)).toEqual([false, true])
   })
 
+  it('is order-independent: out-of-order lines fill by fragment number', () => {
+    expect(parseBoundaries('[2] E\n[1] C\n[3] C', 3)).toEqual([false, true, true])
+  })
+
   it('throws when a fragment is missing from the output', () => {
     expect(() => parseBoundaries('[1] E\n[3] E', 3)).toThrow(SegmentationError)
   })
