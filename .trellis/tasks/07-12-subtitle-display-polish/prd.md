@@ -26,9 +26,12 @@ subtitle that **lingers through long silent/music gaps**. Borrowed from
   raise the subtitle so it is not covered; when the controls auto-hide, return to the
   base position. Track YouTube's `ytp-autohide` state on `#movie_player` and apply an
   extra bottom offset while controls are shown.
-- **R3 — Draggable subtitle.** Let the user drag the subtitle to reposition it
-  (vertical at minimum; horizontal optional), and **persist** the position so it
-  applies on reload. Dragging must not permanently block clicking the video.
+- **R3 — Draggable subtitle. [DROPPED]** Attempted (only the text grabbable, video
+  still clickable, persisted via `Settings.style`), but on YouTube the player's
+  transparent click-capture layer sits above the overlay and eats the pointer
+  events, so the grab never fires. Removed cleanly (no `hOffset`, no drag handlers)
+  — the feature is not needed. A future approach would need a higher-z drag handle
+  or intercepting at the player layer.
 - **R4 — Seek sync.** After the user seeks, the overlay must immediately show the cue
   at the new time (no stale line). Force a refresh on `seeked`.
 
@@ -48,8 +51,8 @@ subtitle that **lingers through long silent/music gaps**. Borrowed from
       adjacent close sentences still switch cleanly with no flicker; no overlap.
 - [ ] When the player controls appear, the subtitle moves up and is not hidden
       behind the control bar; when controls auto-hide, it returns to base position.
-- [ ] The subtitle can be dragged to a new position; the position persists across
-      reload; the video can still be clicked/played normally after dragging.
+- [ ] ~~The subtitle can be dragged to a new position~~ **[dropped — blocked by
+      YouTube's click layer; removed cleanly]**
 - [ ] After seeking, the overlay shows the correct cue for the new time immediately.
 - [ ] Build is a single IIFE; tests green; `sentencesToCues` timing has a unit test
       for the gap cap.

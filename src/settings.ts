@@ -33,8 +33,6 @@ export interface SubtitleStyle {
   bgOpacity: number
   /** Vertical offset from player bottom (%). */
   bottomOffset: number
-  /** Horizontal offset from player center (px; +right / -left). Set by dragging. */
-  hOffset: number
   /** Gap between original and translated lines (px). */
   lineGap: number
 }
@@ -74,7 +72,6 @@ export const DEFAULTS: Settings = {
     outline: 2,
     bgOpacity: 0,
     bottomOffset: 10,
-    hOffset: 0,
     lineGap: 0,
   },
 }
@@ -181,7 +178,6 @@ function mergeStyle(stored: unknown): SubtitleStyle {
     outline: typeof s.outline === 'number' ? s.outline : d.outline,
     bgOpacity: typeof s.bgOpacity === 'number' ? s.bgOpacity : d.bgOpacity,
     bottomOffset: typeof s.bottomOffset === 'number' ? s.bottomOffset : d.bottomOffset,
-    hOffset: typeof s.hOffset === 'number' ? s.hOffset : d.hOffset,
     lineGap: typeof s.lineGap === 'number' ? s.lineGap : d.lineGap,
   }
 }
