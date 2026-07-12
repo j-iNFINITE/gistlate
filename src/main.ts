@@ -95,6 +95,7 @@ const pollInterval = setInterval(() => {
 
 // ── Subtitle interception ─────────────────────────────
 let handledTrackKey = ''
+let handledVideoId = ''
 
 interceptTimedtext(({ json, params }) => {
   const rawLang = params.get('lang')
@@ -106,14 +107,18 @@ interceptTimedtext(({ json, params }) => {
   if (!json.events || json.events.length === 0) return
 
   const videoId = getVideoId()
+  // Mid-navigation the watch URL isn't settled yet and getVideoId() is null;
+  // skip until it resolves, or we'd translate + cache under an empty videoId key.
+  if (!videoId) return
   const srcLang = rawLang ?? 'unknown'
-  const trackKey = `${videoId ?? ''}|${srcLang}`
+  const trackKey = `${videoId}|${srcLang}`
 
   // Dedup: YouTube requests the same caption track multiple times. Ignoring
   // repeats is critical — otherwise store.reset() below aborts the in-flight
   // translation started by the first request, and it never completes.
   if (trackKey === handledTrackKey) return
   handledTrackKey = trackKey
+  handledVideoId = videoId
 
   // Strip non-speech annotations ([Music], 【音乐】, ♪, …) up front so they never
   // display and never pollute sentence segmentation. Pure-annotation cues drop.
@@ -133,7 +138,7 @@ interceptTimedtext(({ json, params }) => {
   ensureCaptions()
 
   // Trigger translation (eager, whole-track)
-  triggerTranslation(videoId ?? '', srcLang, cues)
+  triggerTranslation(videoId, srcLang, cues)
 })
 
 let translatingVideoId: string | null = null
@@ -187,9 +192,13 @@ async function triggerTranslation(videoId: string, srcLang: string, cues: Cue[])
 }
 
 // ── SPA navigation ────────────────────────────────────
-// onVideoChange only fires when the videoId actually changes (deduped in
-// youtube.ts), so we don't reset the id cache here — that would defeat dedup.
+// `yt-navigate-finish` can fire AFTER the initial interception already started a
+// translation. If it reports the SAME video we're already handling, do nothing —
+// otherwise we'd abort the in-flight translation and re-translate on the repeat
+// interception. Only a genuinely different (or absent) video resets state.
 onVideoChange(() => {
+  const newId = getVideoId()
+  if (newId && newId === handledVideoId) return
   console.log('[Gistlate] Video changed')
   store.reset()
   destroyOverlay()
@@ -197,6 +206,7 @@ onVideoChange(() => {
   overlay = null // force lazy re-creation for the next track
   translatingVideoId = null // allow the next video to translate
   handledTrackKey = '' // allow the next video's track to be handled
+  handledVideoId = ''
   videoEl = null
   lastCueKey = ''
 })
