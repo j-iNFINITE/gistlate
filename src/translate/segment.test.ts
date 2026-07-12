@@ -1,89 +1,107 @@
 import { describe, it, expect } from 'vitest'
-import { parseSentences, sentencesToCues, SegmentationError, type Sentence } from './segment'
+import {
+  parseBoundaries,
+  groupByBoundaries,
+  sentencesToCues,
+  SegmentationError,
+  type SentenceRange,
+} from './segment'
 import type { Cue } from '../subtitles/timedtext'
 
-describe('parseSentences', () => {
-  it('parses multi- and single-fragment sentences that cover 1..N', () => {
-    const out = '[1-2] first sentence\n[3] second\n[4-5] third sentence'
-    expect(parseSentences(out, 5)).toEqual([
-      { startIdx: 0, endIdx: 1, t: 'first sentence' },
-      { startIdx: 2, endIdx: 2, t: 'second' },
-      { startIdx: 3, endIdx: 4, t: 'third sentence' },
+describe('parseBoundaries', () => {
+  it('parses E/C flags into an end-flag array', () => {
+    expect(parseBoundaries('[1] C\n[2] E\n[3] C\n[4] E', 4)).toEqual([
+      false,
+      true,
+      false,
+      true,
     ])
   })
 
-  it('parses a lone single-fragment sentence', () => {
-    expect(parseSentences('[1] only', 1)).toEqual([{ startIdx: 0, endIdx: 0, t: 'only' }])
+  it('tolerates surrounding whitespace and text after the flag', () => {
+    // Fragment 2 says C, but the last fragment is always forced to end.
+    expect(parseBoundaries('  [1]  E \n[2] C (still going)', 2)).toEqual([true, true])
   })
 
-  it('tolerates a valid partition given out of order (sorts by start)', () => {
-    expect(parseSentences('[3] c\n[1-2] ab', 3)).toEqual([
-      { startIdx: 0, endIdx: 1, t: 'ab' },
-      { startIdx: 2, endIdx: 2, t: 'c' },
+  it('forces the last fragment to end even if the model said C', () => {
+    expect(parseBoundaries('[1] C\n[2] C\n[3] C', 3)).toEqual([false, false, true])
+  })
+
+  it('ignores stray prose lines but still requires full coverage', () => {
+    expect(parseBoundaries('here you go:\n[1] C\n[2] E', 2)).toEqual([false, true])
+  })
+
+  it('throws when a fragment is missing from the output', () => {
+    expect(() => parseBoundaries('[1] E\n[3] E', 3)).toThrow(SegmentationError)
+  })
+
+  it('throws when the output has no parseable boundary lines', () => {
+    expect(() => parseBoundaries('sorry, I cannot do that', 3)).toThrow(SegmentationError)
+  })
+})
+
+describe('groupByBoundaries', () => {
+  it('groups a single fragment into one sentence', () => {
+    expect(groupByBoundaries([true])).toEqual([{ startIdx: 0, endIdx: 0 }])
+  })
+
+  it('splits into contiguous sentences at each end flag', () => {
+    expect(groupByBoundaries([false, true, false, true])).toEqual([
+      { startIdx: 0, endIdx: 1 },
+      { startIdx: 2, endIdx: 3 },
     ])
   })
 
-  it('ignores stray prose lines but still validates coverage', () => {
-    const out = 'Here are the sentences:\n[1-2] hi\n[3] bye'
-    expect(parseSentences(out, 3)).toEqual([
-      { startIdx: 0, endIdx: 1, t: 'hi' },
-      { startIdx: 2, endIdx: 2, t: 'bye' },
-    ])
-  })
-
-  it('rejects a gap between ranges', () => {
-    expect(() => parseSentences('[1] a\n[3] c', 3)).toThrow(SegmentationError)
-  })
-
-  it('rejects overlapping ranges', () => {
-    expect(() => parseSentences('[1-2] a\n[2-3] b', 3)).toThrow(SegmentationError)
-  })
-
-  it('rejects output that does not start at fragment 1', () => {
-    expect(() => parseSentences('[2-3] a', 3)).toThrow(SegmentationError)
-  })
-
-  it('rejects output that ends before fragment N', () => {
-    expect(() => parseSentences('[1-2] a', 3)).toThrow(SegmentationError)
-  })
-
-  it('rejects a reversed / out-of-order range', () => {
-    expect(() => parseSentences('[1] a\n[3-2] b\n[4] c', 4)).toThrow(SegmentationError)
-  })
-
-  it('rejects an empty translation', () => {
-    // "[1]   " matches the shape but trims to an empty translation.
-    expect(() => parseSentences('[1]   \n[2] hello', 2)).toThrow(SegmentationError)
-  })
-
-  it('rejects output with no parseable sentence lines', () => {
-    expect(() => parseSentences('sorry, I cannot do that', 3)).toThrow(SegmentationError)
+  it('treats an all-continue array as one sentence spanning every fragment', () => {
+    expect(groupByBoundaries([false, false, false])).toEqual([{ startIdx: 0, endIdx: 2 }])
   })
 })
 
 describe('sentencesToCues', () => {
-  it('builds sentence-cues with joined originals and correct time spans', () => {
-    const frags: Cue[] = [
-      { s: 0, d: 1000, o: 'Hello' },
-      { s: 1000, d: 1000, o: 'there' },
-      { s: 2000, d: 1500, o: 'world' },
+  // Fragment 2 starts at 900ms — before fragment 1's reported end (0+1000) — a
+  // typical ASR overlap that the next-start time clamp must absorb.
+  const frags: Cue[] = [
+    { s: 0, d: 1000, o: 'Hello' },
+    { s: 900, d: 1000, o: 'there' },
+    { s: 2000, d: 1500, o: 'world' },
+  ]
+
+  it('clamps a non-last sentence end to the next sentence start; last uses raw end', () => {
+    const ranges: SentenceRange[] = [
+      { startIdx: 0, endIdx: 1 },
+      { startIdx: 2, endIdx: 2 },
     ]
-    const sentences: Sentence[] = [
-      { startIdx: 0, endIdx: 1, t: '你好' },
-      { startIdx: 2, endIdx: 2, t: '世界' },
-    ]
-    expect(sentencesToCues(frags, sentences)).toEqual([
-      { s: 0, d: 2000, o: 'Hello there', t: '你好' },
-      { s: 2000, d: 1500, o: 'world', t: '世界' },
-    ])
+    const cues = sentencesToCues(frags, ranges, ['你好', '世界'])
+    // Sentence 0: start 0, end clamped to frags[2].s (2000) → d = 2000
+    // (NOT the raw 900 + 1000 = 1900), so display is gap-free.
+    expect(cues[0]).toEqual({ s: 0, d: 2000, o: 'Hello there', t: '你好' })
+    // Last sentence: raw end = 2000 + 1500 = 3500 → d = 1500.
+    expect(cues[1]).toEqual({ s: 2000, d: 1500, o: 'world', t: '世界' })
   })
 
-  it('collapses whitespace when joining fragment originals', () => {
-    const frags: Cue[] = [
+  it('joins and collapses whitespace across a sentence, single cue', () => {
+    const f: Cue[] = [
       { s: 0, d: 1000, o: 'a  b' },
       { s: 1000, d: 1000, o: ' c ' },
     ]
-    const [cue] = sentencesToCues(frags, [{ startIdx: 0, endIdx: 1, t: 'x' }])
-    expect(cue.o).toBe('a b c')
+    const cues = sentencesToCues(f, [{ startIdx: 0, endIdx: 1 }], ['x'])
+    expect(cues).toHaveLength(1)
+    expect(cues[0].o).toBe('a b c')
+    // Sole (last) sentence uses the raw end: 1000 + 1000 = 2000.
+    expect(cues[0].d).toBe(2000)
+  })
+
+  it('throws when the translation count does not match the range count', () => {
+    const ranges: SentenceRange[] = [
+      { startIdx: 0, endIdx: 0 },
+      { startIdx: 1, endIdx: 1 },
+    ]
+    expect(() => sentencesToCues(frags, ranges, ['only one'])).toThrow(SegmentationError)
+  })
+
+  it('throws on an empty sentence translation (write-on-full-success)', () => {
+    expect(() =>
+      sentencesToCues(frags, [{ startIdx: 0, endIdx: 2 }], ['   ']),
+    ).toThrow(SegmentationError)
   })
 })

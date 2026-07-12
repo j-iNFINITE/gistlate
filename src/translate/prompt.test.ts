@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseNumbered, fillPrompt, fillSegmentPrompt } from './prompt'
+import { parseNumbered, fillPrompt, fillBoundaryPrompt } from './prompt'
 
 describe('parseNumbered', () => {
   it('parses a well-formed response', () => {
@@ -71,19 +71,19 @@ describe('fillPrompt', () => {
   })
 })
 
-describe('fillSegmentPrompt', () => {
-  it('describes the [start-end] output format, target language, and fragment count', () => {
-    const { system } = fillSegmentPrompt(['a', 'b', 'c'], 'zh-Hans')
-    expect(system).toContain('Simplified Chinese')
-    expect(system).toContain('[<start>-<end>]')
+describe('fillBoundaryPrompt', () => {
+  it('describes the E/C boundary output and fragment count, and does not ask to translate', () => {
+    const { system } = fillBoundaryPrompt(['a', 'b', 'c'])
+    expect(system).toContain('[<n>] E')
+    expect(system).toContain('[<n>] C')
     expect(system).toContain('1 to 3') // cover every fragment from 1 to N
     const lower = system.toLowerCase()
     expect(lower).toContain('sentence')
-    expect(lower).toContain('contiguous')
+    expect(lower).toContain('do not translate')
   })
 
   it('numbers the fragments in the user message', () => {
-    const { user } = fillSegmentPrompt(['hello', 'world'], 'es')
+    const { user } = fillBoundaryPrompt(['hello', 'world'])
     expect(user).toContain('[1] hello')
     expect(user).toContain('[2] world')
   })

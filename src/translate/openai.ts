@@ -1,5 +1,5 @@
 import { gmFetch } from '../net/gm'
-import { fillPrompt, fillSegmentPrompt, parseNumbered } from './prompt'
+import { fillPrompt, fillBoundaryPrompt, parseNumbered } from './prompt'
 import type { OpenAIConfig } from '../settings'
 
 const NEW_MODELS = new Set([
@@ -101,19 +101,19 @@ export async function translateBatch(
 }
 
 /**
- * One-pass segment + translate over the given fragment texts. Returns the raw
- * model content plus its finish reason; parsing/validation and the truncation →
- * split decision live in the pipeline (mirrors how `translateRange` owns the
- * split policy). Uses the same transport as `translateBatch`.
+ * Pass 1 — boundary detection. Asks the model, for each fragment, whether it
+ * ends a sentence (`E`) or continues (`C`). Returns the raw model content plus
+ * its finish reason; parsing/validation and the retry/fallback policy live in
+ * the pipeline. Uses the same transport as `translateBatch`. No target language:
+ * the boundary decision is source-side only.
  */
-export async function segmentBatch(
+export async function boundaryBatch(
   fragTexts: string[],
-  targetLang: string,
   cfg: OpenAIConfig,
   apiKey: string,
   signal?: AbortSignal,
 ): Promise<{ content: string; finishReason: string | null }> {
-  const { system, user } = fillSegmentPrompt(fragTexts, targetLang)
+  const { system, user } = fillBoundaryPrompt(fragTexts)
 
   const useResponsesAPI =
     cfg.baseUrl.includes('api.openai.com') && NEW_MODELS.has(cfg.model)

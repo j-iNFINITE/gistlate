@@ -17,16 +17,15 @@ export const USER_PROMPT_TEMPLATE = `Translate to {{Target Language}}:
 
 {{Text}}`
 
-export const SEGMENT_SYSTEM_PROMPT_TEMPLATE = `You are a subtitle segmenter and translator. You receive NUMBERED subtitle fragments from ONE video. They are CONSECUTIVE and often auto-generated (no punctuation), so a single sentence is frequently split across several fragments.
+export const BOUNDARY_SYSTEM_PROMPT_TEMPLATE = `You receive NUMBERED subtitle fragments from ONE video. They are CONSECUTIVE and often auto-generated with NO punctuation, so a single sentence is frequently split across several fragments.
 
-Your job: group consecutive fragments into COMPLETE sentences, then translate each whole sentence into {{Target Language}}.
+For EACH fragment, decide whether it ENDS a sentence.
 
-Output format — ONE line per sentence, nothing else:
-[<start>-<end>] <translation>
-- <start>-<end> = the inclusive fragment numbers the sentence covers. Use [<n>] when a sentence is a single fragment.
-- Ranges MUST be contiguous, non-overlapping, and cover every fragment from 1 to {{N}} exactly once, in order. Do NOT skip, drop, merge across gaps, or reorder fragment numbers.
-- Add natural punctuation. Keep terminology, names, pronouns, and tense consistent across the whole video.
-- Translate faithfully into {{Target Language}}. Output ONLY the sentence lines — no commentary, no echoes of the original fragments, no numbering other than the [<start>-<end>] prefix.`
+Output EXACTLY one line per fragment, nothing else:
+[<n>] E   — fragment <n> ends a sentence (or a clause you would close with 。 . ? or !)
+[<n>] C   — the sentence continues into the next fragment
+
+Cover every fragment from 1 to {{N}} in order, one line each. Do NOT translate. Do NOT merge, split, reorder, drop, or add lines — output ONLY the [<n>] E / [<n>] C lines.`
 
 /** Build the shared numbered `[i] text` block used by every prompt. */
 function numberLines(text: string[]): string {
@@ -61,26 +60,17 @@ export function fillPrompt(
 }
 
 /**
- * Build the one-pass segment+translate prompt. Same numbered `[i] text` user
- * message as `fillPrompt`; the system prompt asks the model to group consecutive
- * fragments into complete sentences and emit `[<start>-<end>] <translation>` lines
- * covering fragments 1..N exactly once.
+ * Build the pass-1 boundary-detection prompt. Same numbered `[i] text` user
+ * message as `fillPrompt`; the system prompt asks the model to tag each fragment
+ * as ending a sentence (`E`) or continuing (`C`), one line per fragment covering
+ * 1..N. No target language — the boundary decision is source-side only.
  */
-export function fillSegmentPrompt(
-  fragments: string[],
-  targetLang: string,
-): { system: string; user: string } {
-  const langName_ = langName(targetLang)
-  const numbered = numberLines(fragments)
+export function fillBoundaryPrompt(fragments: string[]): { system: string; user: string } {
   const n = fragments.length
 
   return {
-    system: SEGMENT_SYSTEM_PROMPT_TEMPLATE
-      .replaceAll('{{Target Language}}', langName_)
-      .replaceAll('{{N}}', String(n)),
-    user: USER_PROMPT_TEMPLATE
-      .replaceAll('{{Target Language}}', langName_)
-      .replaceAll('{{Text}}', numbered),
+    system: BOUNDARY_SYSTEM_PROMPT_TEMPLATE.replaceAll('{{N}}', String(n)),
+    user: numberLines(fragments),
   }
 }
 
