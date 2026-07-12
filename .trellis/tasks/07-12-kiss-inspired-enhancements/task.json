@@ -1,0 +1,30 @@
+{
+  "id": "kiss-inspired-enhancements",
+  "name": "kiss-inspired-enhancements",
+  "title": "kiss-translator-inspired enhancements (translation quality + word-level segmentation + display polish)",
+  "description": "",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "elivthrar",
+  "assignee": "elivthrar",
+  "createdAt": "2026-07-12",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "07-12-translate-context-glossary",
+    "07-12-word-level-segmentation",
+    "07-12-subtitle-display-polish"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}
