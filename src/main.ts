@@ -81,7 +81,13 @@ function attachTimeListener(): void {
 
   timeHandler = () => store.setCurrentTime(v.currentTime * 1000)
   v.addEventListener('timeupdate', timeHandler)
-  v.addEventListener('seeked', timeHandler)
+  // Seek: force an immediate refresh. Reset the dedup key first so updateOverlay
+  // re-renders even when findCueAt returns a cue whose key looks unchanged —
+  // otherwise the overlay could show a stale line right after a jump.
+  v.addEventListener('seeked', () => {
+    lastCueKey = ''
+    store.setCurrentTime(v.currentTime * 1000)
+  })
 }
 
 // Poll for video element since it may not exist at document-start

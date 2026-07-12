@@ -95,6 +95,61 @@ describe('sentencesToCues', () => {
     expect(cues[0].d).toBe(2000)
   })
 
+  it('bridges a small inter-sentence gap to the next sentence start (within tolerance)', () => {
+    // Sentence 0 speech ends at 1000; the next starts 500ms later (< 1200ms
+    // tolerance), so the cue bridges to the next start → no flicker between
+    // adjacent close sentences.
+    const f: Cue[] = [
+      { s: 0, d: 1000, o: 'A' },
+      { s: 1500, d: 1000, o: 'B' },
+    ]
+    const ranges: SentenceRange[] = [
+      { startIdx: 0, endIdx: 0 },
+      { startIdx: 1, endIdx: 1 },
+    ]
+    const cues = sentencesToCues(f, ranges, ['a', 'b'])
+    expect(cues[0].s).toBe(0)
+    expect(cues[0].d).toBe(1500) // bridged to nextStart (1500), not rawEnd (1000)
+    expect(cues[1].d).toBe(1000) // last sentence: raw end
+    // Non-overlapping: end_0 <= start_1.
+    expect(cues[0].s + cues[0].d).toBeLessThanOrEqual(cues[1].s)
+  })
+
+  it('caps a long gap at rawEnd + GAP_TOLERANCE so the subtitle stops lingering', () => {
+    // Sentence 0 speech ends at 1000; the next starts at 5000 (a ~4s music/
+    // silence gap). The cue must disappear ~1.2s after speech (at 2200), NOT
+    // hang on until 5000.
+    const f: Cue[] = [
+      { s: 0, d: 1000, o: 'A' },
+      { s: 5000, d: 1000, o: 'B' },
+    ]
+    const ranges: SentenceRange[] = [
+      { startIdx: 0, endIdx: 0 },
+      { startIdx: 1, endIdx: 1 },
+    ]
+    const cues = sentencesToCues(f, ranges, ['a', 'b'])
+    expect(cues[0].s).toBe(0)
+    expect(cues[0].d).toBe(2200) // rawEnd (1000) + GAP_TOLERANCE (1200)
+    // Non-overlapping, with a genuine empty gap (2200..5000 shows nothing).
+    expect(cues[0].s + cues[0].d).toBeLessThanOrEqual(cues[1].s)
+  })
+
+  it('clamps an overlapping next-start (next starts before this sentence ends)', () => {
+    // Sentence 0 raw end is 2000; the next fragment starts at 1500 (ASR
+    // overlap) → clamp to 1500 so cues never overlap.
+    const f: Cue[] = [
+      { s: 0, d: 2000, o: 'A' },
+      { s: 1500, d: 1000, o: 'B' },
+    ]
+    const ranges: SentenceRange[] = [
+      { startIdx: 0, endIdx: 0 },
+      { startIdx: 1, endIdx: 1 },
+    ]
+    const cues = sentencesToCues(f, ranges, ['a', 'b'])
+    expect(cues[0].d).toBe(1500) // clamped to nextStart (1500), not rawEnd (2000)
+    expect(cues[0].s + cues[0].d).toBeLessThanOrEqual(cues[1].s)
+  })
+
   it('throws when the translation count does not match the range count', () => {
     const ranges: SentenceRange[] = [
       { startIdx: 0, endIdx: 0 },

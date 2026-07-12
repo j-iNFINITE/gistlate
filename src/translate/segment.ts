@@ -84,15 +84,27 @@ export function groupByBoundaries(isEnd: boolean[]): SentenceRange[] {
 }
 
 /**
+ * Max time (ms) a sentence-cue may linger on screen past the end of its own
+ * speech. Bridges tiny inter-sentence gaps (no flicker) while stopping a
+ * subtitle from hanging through a long music/silence gap before the next line.
+ */
+const GAP_TOLERANCE = 1200
+
+/**
  * Convert sentence ranges + their aligned translations into sentence-level
  * `Cue`s. Each cue joins its fragments' originals, carries the full sentence
  * translation, and spans the fragments' time range.
  *
- * Time clamp: a non-last sentence's end is clamped to the NEXT sentence's
- * first-fragment start. ASR fragment durations are estimated and frequently
- * overlap (a later fragment starts before the previous one's reported end);
- * clamping to the next start gives gap-free, non-overlapping sequential display.
- * The last sentence uses its final fragment's raw end.
+ * Time clamp: a non-last sentence's end is capped at
+ * `min(nextSentenceStart, rawEnd + GAP_TOLERANCE)` where `rawEnd = last.s + last.d`.
+ * ASR fragment durations are estimated and frequently overlap (a later fragment
+ * starts before the previous one's reported end), so:
+ * - small gap / overlap → `nextStart` (gap-free, non-overlapping display);
+ * - long gap (music/silence) → `rawEnd + GAP_TOLERANCE`, so the subtitle
+ *   disappears ~1.2s after it is spoken instead of lingering the whole gap.
+ * The last sentence uses its final fragment's raw end. Either way the cue ends
+ * no later than the next sentence's start, so `findCueAt`'s binary search over
+ * non-overlapping cues stays valid.
  *
  * Asserts exactly one translation per range and that every translation is
  * non-empty (write-on-full-success invariant); throws `SegmentationError`
@@ -112,10 +124,11 @@ export function sentencesToCues(
   return ranges.map((r, i) => {
     const first = frags[r.startIdx]
     const last = frags[r.endIdx]
+    const rawEnd = last.s + last.d
     const end =
       i < ranges.length - 1
-        ? frags[ranges[i + 1].startIdx].s // clamp to the next sentence's start
-        : last.s + last.d // last sentence: raw end
+        ? Math.min(frags[ranges[i + 1].startIdx].s, rawEnd + GAP_TOLERANCE)
+        : rawEnd // last sentence: raw end
     const d = Math.max(1, end - first.s)
     const o = frags
       .slice(r.startIdx, r.endIdx + 1)
