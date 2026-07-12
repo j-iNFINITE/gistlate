@@ -1,0 +1,448 @@
+{
+  "key": "b09trDgtaFs|en|zh-Hans",
+  "videoId": "b09trDgtaFs",
+  "src": "en",
+  "tgt": "zh-Hans",
+  "model": "deepseek-v4-flash",
+  "cues": [
+    {
+      "s": 560,
+      "d": 3719,
+      "o": "I'll teach you how to fix a broken joint.",
+      "t": "我会教你如何修复断裂的关节。"
+    },
+    {
+      "s": 4279,
+      "d": 6280,
+      "o": "Plastic Body Research Institute. Hello everyone. This is the director of the Plastic Body Research Institute. You've done it, haven't you? That nasty sound when you hear a snap while you're posing or trying to remove a part. So in this video, I'll explain in detail how to fix a twisted-off joint axis.",
+      "t": "塑料身体研究所。大家好。我是塑料身体研究所的所长。你们遇到过这种情况吧？当你摆姿势或试图拆卸零件时，听到啪的一声那种讨厌的声音。所以在本视频中，我将详细解释如何修复扭断的关节轴。"
+    },
+    {
+      "s": 24560,
+      "d": 34400,
+      "o": "I myself recently had a problem with this old video, where I candy-painted a military-style Za . The painting made the joint axis thicker, so when I tried to move it , it became stiff and creaky. As a result, the joint no longer moved smoothly. I usually play with my candy-painted works , posing them and such, but when I was moving the leg, it snapped, or rather, it slipped and fell onto the desk",
+      "t": "我自己最近就遇到了一个问题，在这段旧视频中，我给一个军式扎古做了糖果涂装。涂装使得关节轴变粗，所以当我试图移动它时，它变得僵硬并发出吱嘎声。结果，关节不再顺畅活动。我通常会摆弄我的糖果涂装作品，摆摆姿势什么的，但当我移动腿部时，它啪的一声断了，或者说，它滑落掉在了桌子上。"
+    },
+    {
+      "s": 58960,
+      "d": 18680,
+      "o": ". So, just like Newton discovered the law of universal gravitation after seeing an apple fall from a tree, when I saw the leg of this military-style Za fall, I thought, \"Ah, that's it. I'll make a video about this.\" I can upload a video, and my military-style Zaku's legs will be restored",
+      "t": "。所以，就像牛顿看到苹果从树上掉落发现万有引力定律一样，当我看到这个军式扎古的腿掉落时，我想：“啊，就是这个。我要做一个关于这个的视频。”我可以上传一个视频，我的军式扎古的腿就能修复了。"
+    },
+    {
+      "s": 77640,
+      "d": 49000,
+      "o": ". Two guns per ship, then. However, if it were just about fixing this, there are videos of other people doing it, and it would be over in an instant, so I'll explain it while adding a little anecdote about why the joints of recent Gunpla are prone to breaking. The overall flow of the video will be: why the joints of recent Gunpla are prone to breaking, introduction of the tools needed for repair , demonstration of the repair method, summary. In reality, the developers of the Bada have made it well, so I don't think the joints will break that often , but just knowing that it can be easily fixed will give you peace of mind, so please watch until the end. Let's get started",
+      "t": "。那么，每船两炮。但是，如果只是修复这个，其他人都做过视频，一下子就结束了，所以我在解释时会顺便讲一个小故事，说明为什么最近的钢普拉关节容易断裂。视频的整体流程是：为什么最近的钢普拉关节容易断裂，介绍修复所需的工具，示范修复方法，总结。实际上，Bada的开发者做得很好，所以我认为关节不会那么容易断裂，但只要知道可以轻松修复，你就会放心，所以请看到最后。开始吧。"
+    },
+    {
+      "s": 126640,
+      "d": 3520,
+      "o": ".",
+      "t": "。"
+    },
+    {
+      "s": 130160,
+      "d": 6200,
+      "o": "First of all, I'll talk a little about why the joints of recent Gunpla are prone to breaking",
+      "t": "首先，我稍微讲一下为什么最近的钢普拉关节容易断裂。"
+    },
+    {
+      "s": 136360,
+      "d": 11159,
+      "o": ". And, when I say \"recent,\" I mean that the joints of recent Gunpla are more prone to breaking than older Gunpla. The reason for this lies in the materials used",
+      "t": "。而且，我所说的“最近”，是指最近的钢普拉的关节比旧钢普拉更容易断裂。原因在于所使用的材料。"
+    },
+    {
+      "s": 147519,
+      "d": 70881,
+      "o": ". Let me talk a little about the plastics used in the past. Older Gundam model kits used a structure where joints were created by passing a shaft through a polycap, and in the case of Master Grade kits, the internal frame was made of ABS, a somewhat hard plastic. However, recent Gundam model kits use reinforced polystyrene, often called KPS, which is a slightly softer material. KPS is probably a modified version of BADA, so it's written as PS on the runners. The ABS material used in the old internal frames was strong, hard and resistant to cracking, but the downside was that if solvents like lacquer paints penetrated it, there was a risk of small cracks forming in the parts or the parts cracking. Perhaps because of this risk, since around 2013, reinforced polystyrene, a material that balances strength and ease of painting, has become the mainstream.",
+      "t": "让我稍微谈谈过去使用的塑料。旧的钢普拉模型套件使用的结构是通过将轴穿过一个聚帽来形成关节，而在Master Grade套件中，内框使用了ABS，一种较硬的塑料。然而，最近的钢普拉模型套件使用了增强聚苯乙烯，通常称为KPS，这是一种稍软的材料。KPS可能是BADA的改进版，所以在流道上标注为PS。旧内框使用的ABS材料坚固、坚硬且抗裂，但缺点是一旦漆料等溶剂渗透进去，就有可能在零件上形成细小裂纹或导致零件开裂。也许是由于这个风险，从2013年左右开始，增强聚苯乙烯这种兼顾强度和易涂装性的材料成为了主流。"
+    },
+    {
+      "s": 218400,
+      "d": 6080,
+      "o": "The selling point of this KPS material is that it is less likely to crack even if paint is dropped on it and is highly durable. However, KPS is quite elastic.",
+      "t": "这种KPS材料的卖点是即使油漆滴在上面也不容易开裂，并且非常耐用。然而，KPS相当有弹性。"
+    },
+    {
+      "s": 224480,
+      "d": 10000,
+      "o": "Simply put, it's soft. If you cut ABS with nippers, it cuts with a snapping sound.",
+      "t": "简单来说，它很软。如果用剪钳剪ABS，会发出咔嚓一声。"
+    },
+    {
+      "s": 235519,
+      "d": 11000,
+      "o": "And here's KPS. Well, it's labeled as PS, but when you cut it, it cuts with a squishy feel.",
+      "t": "而这是KPS。嗯，它标注为PS，但剪的时候感觉软绵绵的。"
+    },
+    {
+      "s": 246840,
+      "d": 34919,
+      "o": "Looking at the cut surface of the runner, the KPS plastic seems to stretch a bit. Being elastic means it bends easily. In other words, if you use it for the shafts of Gunpla, it's prone to twisting and breaking. That's because the force applied to the shaft is in the direction of rotation. This is an ABS runner, and now I 'm rotating this ABS runner, and wow, it's incredibly hard. It doesn't bend at all in the direction of rotation. I'm not acting.",
+      "t": "看看流道的切口，KPS塑料似乎有点拉伸。有弹性就意味着容易弯曲。换句话说，如果用做钢普拉的轴，它容易扭转和断裂。这是因为施加在轴上的力是旋转方向的。这是ABS流道，现在我在旋转这个ABS流道，哇，它非常硬。在旋转方向根本不会弯曲。我不是在演戏。"
+    },
+    {
+      "s": 281759,
+      "d": 50720,
+      "o": "And this is a KPS runner. If you apply a little force in the direction of rotation , it twists easily . So, as I mentioned in the award title, KPS material is used in the shaft parts of recent Gunpla, and that's why the shafts tend to twist and break more often in recent Gunpla. I painted mine, so the joints got a little thicker and the shafts became very stiff, but people who don't paint their models and people who move their models need to be careful. If a sudden load is applied and it bends, a brittle spot is created even though it's soft, so if you keep using it, the load will be concentrated on that spot and it will eventually break. Sorry for the long explanation, but that's why the shafts on recent Gunpla models are prone to breaking.",
+      "t": "而这是KPS流道。如果在旋转方向施加一点力，它很容易扭转。所以，正如我在奖项标题中提到的，KPS材料用于最近钢普拉的轴部件，这就是为什么最近钢普拉的轴更容易扭转和断裂。我涂装了我的模型，所以关节变厚了一点，轴变得非常紧，但不涂装的人和经常移动模型的人需要小心。如果突然施加负载并弯曲，即使材料软也会产生脆弱点，如果继续使用，负载会集中在该点，最终断裂。抱歉解释得太长，但这就是为什么最近钢普拉的轴容易断裂。"
+    },
+    {
+      "s": 332479,
+      "d": 7681,
+      "o": "Next, let's go over how to deal with a broken shaft.",
+      "t": "接下来，我们来探讨如何处理断裂的轴。"
+    },
+    {
+      "s": 340160,
+      "d": 5840,
+      "o": "Okay, next, I'll introduce the tools needed to repair this broken shaft",
+      "t": "好的，接下来我将介绍修复这个断裂轴所需的工具。"
+    },
+    {
+      "s": 346000,
+      "d": 19919,
+      "o": ". The specific procedure for repairing this shaft is to drill a hole in it, and then insert a central wire, essentially a main support, and glue them together . So, I'll explain the tools needed for that.",
+      "t": "修复这个轴的具体步骤是：在上面钻一个孔，然后插入一个中心线（本质上是一个主要支撑），并将它们粘合在一起。所以，我将解释所需的工具。"
+    },
+    {
+      "s": 365919,
+      "d": 6921,
+      "o": "First, we have this central wire. The central wire is an alloy of copper and zinc and is quite strong",
+      "t": "首先，我们有这个中心线。中心线是铜和锌的合金，非常坚固。"
+    },
+    {
+      "s": 372840,
+      "d": 10680,
+      "o": ". It's the same material used in 5-yen coins. Now, some of you might think that you don't need to use this central wire and can just glue it together",
+      "t": "。它是和5日元硬币相同的材料。现在，有些人可能会认为不需要使用这个中心线，直接粘起来就行。"
+    },
+    {
+      "s": 383520,
+      "d": 65160,
+      "o": ". But if you do that, it will probably break again when you use it. The reason is that adhesives are quite strong in the pulling direction, like this, in a vertical pulling direction, but they are surprisingly weak against directions that are not perpendicular to the bonding surface, such as when you are bonding something like this , in a direction that would cause it to snap. So, to increase the strength in the lateral direction, we put a wire in the middle. This time, I had a 1.5mm wire lying around, so I'll use that, but honestly, 1.5mm is quite difficult to cut with nippers, so depending on the size of the shaft you want to attach , I think 0.5mm to 1mm would be fine. However, if possible, a thicker wire will make a stronger shaft. Next is the second tool you will need. A suitable pair of nippers for cutting the wire in the middle. Whatever you do, do not use plastic model nippers or thin-tipped nippers.",
+      "t": "但如果你那样做，使用时很可能又会断裂。原因是胶水在垂直拉伸方向上的强度很大，比如这样垂直拉动时很强，但在非垂直受力方向上却出奇地弱，例如像这样粘合时，如果受力方向导致部件折断。所以，为了增强横向强度，我们在中间加了一根金属丝。这次我手头有1.5毫米的金属丝，就用了它，但说实话，1.5毫米用钳子剪断很费劲，所以根据你要粘合的轴粗细，我觉得0.5毫米到1毫米就足够了。不过，如果可能的话，更粗的金属丝能让轴更坚固。接下来是第二件需要的工具：一把适合剪断中间金属丝的钳子。无论如何，千万不要用塑料模型钳或尖嘴钳。"
+    },
+    {
+      "s": 448680,
+      "d": 11440,
+      "o": "The blades will be ruined after cutting the middle just once. In fact, I don't think they will be able to cut at all. So, this is one I bought at Daiso for 110 yen, and the blade is this thick.",
+      "t": "剪一次中间，刀刃就废了。事实上，我觉得它们根本剪不动。所以，这是我花110日元在Daiso买的，刀刃有这么厚。"
+    },
+    {
+      "s": 460120,
+      "d": 11120,
+      "o": "I recommend using a pair of nippers that are made of solid metal , the kind you can use roughly and not mind if they get damaged",
+      "t": "我推荐用一把实心金属制成的钳子，那种可以随便用、坏了也不心疼的款式。"
+    },
+    {
+      "s": 471240,
+      "d": 5359,
+      "o": ". You can also use pliers with blades at the base, if you prefer.",
+      "t": "你也可以用带根部刀刃的钳子，如果你喜欢的话。"
+    },
+    {
+      "s": 476599,
+      "d": 66480,
+      "o": "The third tool you'll need is a pin vise. As I mentioned earlier, it's used to drill a hole for inserting the center. This is a set of a holder and drill that I bought on Amazon for 980 yen, but if you only need one shaft of a specific thickness, you can probably find one at a 100-yen store. However, a set with interchangeable drills is more compact for storage, so if you 're unsure, I recommend buying the same one I have on Amazon. The fourth tool you'll need is adhesive. This time, I'm using super glue, which is sold at pharmacies and supermarkets, not just model kit stores , but model kit adhesive is perfectly fine as well. With these four items, you can easily repair the shaft. I'll put the Amazon purchase links in the description below , so please check them out if you're interested. Now let's actually use these tools to repair the shaft. Sorry for the wait. Let's get started.",
+      "t": "第三件需要的工具是手钻。如前所述，用来钻一个插入中心金属丝的孔。这是一套我在亚马逊上花980日元买的钻头夹和钻头套装，但如果你只需要一根特定厚度的轴，在百元店可能也能找到。不过，一套可更换钻头的套装存放起来更紧凑，所以如果你不确定，我建议在亚马逊上买和我一样的。第四件需要的工具是胶水。这次我用的是在药店和超市就能买到的超强力胶，不只是在模型店，模型胶水也完全没问题。有了这四样东西，你就能轻松修复轴。我会在下方说明中放亚马逊购买链接，感兴趣的话请查看。现在让我们实际用这些工具来修复轴。久等了，开始吧。"
+    },
+    {
+      "s": 543079,
+      "d": 15641,
+      "o": "First, let's disassemble it to remove this shaft. Here's one thing to be careful about : when disassembling parts, you should always double-check the instructions. Don't assume that because you assembled it once, it will come off the same way.",
+      "t": "首先，拆开零件取下这个轴。这里有一点要注意：拆卸零件时，务必反复检查说明书。不要以为你组装过一次，拆起来就会一样。"
+    },
+    {
+      "s": 558720,
+      "d": 6040,
+      "o": "I've made that mistake before, where I tried to force something off because it wouldn't come off, and ended up breaking something else.",
+      "t": "我犯过这个错，因为拆不下来就硬掰，结果弄坏了其他部件。"
+    },
+    {
+      "s": 564760,
+      "d": 11000,
+      "o": "In the case of this military-style leg, you have to remove this part that looks like a protective shield before you can open the other part, so make sure you check the instructions carefully.",
+      "t": "就拿这条军事风格腿来说，你得先拆下这个像护盾的部分，才能打开另一部分，所以一定要仔细看说明书。"
+    },
+    {
+      "s": 575760,
+      "d": 14000,
+      "o": "Let's check it before we start disassembling it. Also, a parts opener like this is convenient for disassembling parts , but make sure to insert the parts opener in an inconspicuous place before removing it",
+      "t": "开始拆卸前先检查一下。另外，像这样的零件分离器在拆件时很方便，但务必在不显眼的地方插入零件分离器再取下。"
+    },
+    {
+      "s": 589760,
+      "d": 34000,
+      "o": ". There it is, removed. This is the broken part shaft. So originally it was attached like this . And now that I look at it, I painted this military-style figure candy paint about a year ago, and there were signs of some repair with glue. But it ended up breaking, so I guess just repairing it with glue is insufficient.",
+      "t": "好了，取下来了。这就是断裂的轴。原本是这样连接的。现在我看了一下，这个军事人物糖果涂装我大约一年前喷过，而且有之前用胶水修补的痕迹。但最后还是断了，看来只靠胶水修补是不够的。"
+    },
+    {
+      "s": 623760,
+      "d": 27280,
+      "o": "Let's remove this part as well. So, this is how we want to attach the parts. What an amazing joint. The leg part uses a ball joint, and the joints have this kind of rotational movement, and there 's even this kind of movement just above the ankle, which is an incredible technique that creates amazing range of motion",
+      "t": "也把这个部分拆下来。所以这就是我们想要粘合零件的方式。多棒的关节啊。腿部用了球头关节，关节有这种旋转活动范围，甚至在脚踝上方还有这样的活动方式，简直是不可思议的技术，能创造出惊人的可动范围。"
+    },
+    {
+      "s": 651040,
+      "d": 26039,
+      "o": ". The reason the shaft broke was that I painted this part, which made the shaft thicker, causing it to get stuck inside this part. So I'll use a magic wrench to scrape off the paint and make it thinner again to its original thickness.",
+      "t": "轴断裂的原因是我涂装了这部分，导致轴变粗，卡在了这个部件里面。所以我要用魔法扳手刮掉涂装，让它变回原来的厚度。"
+    },
+    {
+      "s": 677079,
+      "d": 13560,
+      "o": "Of course, people who aren't familiar with this don't need to do this. Okay. Next, I'll use a pin to make a hole for the center wire.",
+      "t": "当然，不熟悉的人不需要做这一步。好了，接下来我用一根针来钻一个中心金属丝用的孔。"
+    },
+    {
+      "s": 690639,
+      "d": 5440,
+      "o": "I only have a 1.5mm center wire this time, is that okay? Ah, well, it looks like it will just barely fit.",
+      "t": "这次我只有1.5毫米的中心金属丝，可以吗？啊，好吧，看来勉强能行。"
+    },
+    {
+      "s": 696079,
+      "d": 61760,
+      "o": "So I 'll proceed as is. Next I'll use a pin to make a hole, and the final hole I want to make is a 1.5mm hole for the 1.5mm center wire to pass through, but it 's better to make a smaller hole first. Well, there are various reasons for this from an industrial standpoint, but in the case of this plastic model, the main reason is that a smaller drill makes it easier to aim at the center. So I'll make a 1mm hole for now. Okay. I clamp it in the holder's chuck like this and drill a hole in the middle of the broken part. Before that, however, if I leave it as is, the drill bit will shift a little when I rotate it, so to mark the center, I use a design knife or, well, I use a magic knife, and I just twist it around where I want to drill the hole to mark the center.",
+      "t": "那我就直接继续了。接下来我用针打孔，最终要钻一个1.5毫米的孔让1.5毫米的中心金属丝穿过，但最好先钻一个小一点的孔。从工业角度看有各种原因，但就这个塑料模型而言，主要原因是用小钻头更容易对准中心。所以我先钻一个1毫米的孔。好了，这样把它夹在钻头夹的卡盘里，在断裂部分中间钻孔。但在此之前，如果直接钻，旋转时钻头会有点偏移，所以为了标记中心，我用美工刀，或者……我用魔术刀，在要钻孔的位置转一圈来标记中心。"
+    },
+    {
+      "s": 757839,
+      "d": 5841,
+      "o": "Once I've marked it, I use the drill bit to drill the hole.",
+      "t": "标记好后，我就用钻头钻孔。"
+    },
+    {
+      "s": 763680,
+      "d": 6560,
+      "o": "In the case of this part, another shaft will go in here, so the depth will be about 2mm.",
+      "t": "这个零件的话，这里还要插另一个轴，所以深度大约2毫米。"
+    },
+    {
+      "s": 770240,
+      "d": 5920,
+      "o": "Twist, twist, twist. Okay. It looks like this when the hole is drilled.",
+      "t": "转、转、转。好了，钻完孔后就是这样。"
+    },
+    {
+      "s": 776160,
+      "d": 5080,
+      "o": "I'll also drill a hole in this part on the other side.",
+      "t": "我也要在另一侧的这部分上钻一个孔。"
+    },
+    {
+      "s": 781240,
+      "d": 33360,
+      "o": "It's a little difficult to drill a straight hole in this part. With a typical joint shaft like this, you would smooth it out with a file and then attach the parts together or attach a plastic piece to make the shaft, but with this part, it's hard to tell the center on this side, so I think I'll temporarily glue it together and then drill a straight hole from the top of this part to make a hole in the middle. Damn. I wanted to show a beginner- friendly method for repairing pen shafts, but it ended up being a bit more advanced and niche.",
+      "t": "在这部分上钻一个直孔有点难度。像这样典型的连接轴，通常会用锉刀磨平，然后把零件粘在一起或者加一个塑料片来做轴，但在这部分很难看清这一侧的中心点，所以我打算先临时粘合起来，然后从顶部钻一个直孔，在中间打出孔来。该死，我本想展示一种适合初学者的笔杆修复方法，结果却变得有点高级和冷门。"
+    },
+    {
+      "s": 814600,
+      "d": 15039,
+      "o": "It would have been easier to make a tutorial video if this shaft had broken on its own, but I didn't really want to intentionally break a ready-made one, so I'm going to show you the real thing on YouTube.",
+      "t": "如果这个轴是自己断掉的，做教程视频会更容易，但我实在不想故意弄坏一个完好的，所以就在YouTube上展示真实情况吧。"
+    },
+    {
+      "s": 829639,
+      "d": 4681,
+      "o": "Okay. It's a bit of an irregular thing, but I've glued it back together",
+      "t": "好了。虽然有点不规则，但我已经把它粘回去了。"
+    },
+    {
+      "s": 834320,
+      "d": 10000,
+      "o": ". So some of you might think the video could end here, but this really does break very easily.",
+      "t": "所以有些人可能觉得视频可以到此为止，但这个东西确实很容易断。"
+    },
+    {
+      "s": 844320,
+      "d": 10120,
+      "o": "So , I want to make sure the center line is properly aligned. Okay, back to drilling the hole with the pin vise, drilling it this far, or even all the way through",
+      "t": "所以，我要确保中心线对准。好了，回到用针夹钻头的步骤，钻到这个深度，或者直接钻穿。"
+    },
+    {
+      "s": 854440,
+      "d": 34759,
+      "o": ". I'll mark the spot where I want to drill the hole with a magic screw and then use the pin vise to drill. Oh, if I do this without protection and get hurt, the video will end, and I don't want any of you to get hurt, so for safety reasons, I'll wear rubber gloves while working. Well, of course, I'm sure you all know this, but since it's a pin vise, you could easily injure your fingers if you're not careful, so please work carefully.",
+      "t": "我会用魔术螺丝标记要钻孔的位置，然后用针夹钻头钻孔。哦，如果不加防护就做，受伤的话视频就结束了，我也不希望你们任何人受伤，所以为了安全，我会戴上橡胶手套操作。当然，我相信你们都懂，但毕竟是针夹钻头，一不小心很容易伤到手指，所以请小心操作。"
+    },
+    {
+      "s": 889199,
+      "d": 6041,
+      "o": "So, uh, in the end, I drilled a hole all the way through.",
+      "t": "结果呢，我钻了一个通孔。"
+    },
+    {
+      "s": 895240,
+      "d": 16120,
+      "o": "But that's okay. Yes. And of course, a 1.5mm wire won't fit through like this, so I'll change the drill bit and enlarge the hole to make it 1.5mm.",
+      "t": "但没关系。是的。当然，1.5毫米的线这样是穿不过去的，所以我得换钻头，把孔扩大成1.5毫米。"
+    },
+    {
+      "s": 911360,
+      "d": 25560,
+      "o": "Yes, enlargement complete. Now the 1.5mm center wire can go in like this. I'm thinking again, nobody uses this part in tutorial videos on how to repair shafts, do they? Oh well. Yes. Now that I have a hole that is straight in the previously separated part, I will separate the part again",
+      "t": "是的，扩孔完成。现在1.5毫米的中心线可以这样穿进去了。我又在想，修轴的教程视频里没人用这部分吧？唉，算了。是的，既然在之前分离的部分上钻了一个直孔，那我就把零件再分开。"
+    },
+    {
+      "s": 936920,
+      "d": 13320,
+      "o": ". Well, I might be able to insert the wire as is, but just to get back to the original procedure, I will destroy this once.",
+      "t": "好吧，也许可以直接把线插进去，但为了回到原本的流程，我先把它破坏一次。"
+    },
+    {
+      "s": 950639,
+      "d": 17281,
+      "o": "Yes, destruction complete. Yes, next I will attach the wire to one side of the part . It might come out if you just insert it as is, so I will apply adhesive to the tip before inserting and fixing it in place.",
+      "t": "是的，破坏完成。好的，接下来把线固定到零件的一侧。直接插进去可能会松脱，所以我在顶端涂上粘合剂再插入并固定。"
+    },
+    {
+      "s": 968120,
+      "d": 25000,
+      "o": "And then I will insert this center wire. This time, I drilled a hole that goes all the way through, so I'll cut it to the depth just before it goes all the way through. Next, we'll attach this part like this, so we 'll cut about 2mm from here with wire cutters. And this, a 1.5mm center wire feels quite hard",
+      "t": "然后插入这根中心线。这次我钻了个通孔，所以我会剪到刚好没穿透的深度。接下来要把这个部分这样装上去，所以用剪线钳从这里剪掉大约2毫米。这根1.5毫米的中心线感觉挺硬的。"
+    },
+    {
+      "s": 993120,
+      "d": 10839,
+      "o": ". Ah, it is hard after all. But these wire cutters are cheap ones from a 100-yen store and they work just fine even if you cut into the box, so don't worry and just cut.",
+      "t": "啊，果然硬。不过这些剪线钳是百元店的便宜货，就算剪到盒子也没问题，所以不用担心，直接剪。"
+    },
+    {
+      "s": 1003959,
+      "d": 10601,
+      "o": "And if it's hard to cut like this, rotate the wire and cut it little by little, and ah, it looks like it will cut",
+      "t": "如果这样剪不动，就旋转线一点点剪，啊，看起来能剪断。"
+    },
+    {
+      "s": 1014560,
+      "d": 39320,
+      "o": ". You can cut it easily by rotating it and cutting it little by little. Okay, so the main pillar is now complete. And finally, all that's left is to put some glue on this and attach the mating part like this and it's finished. Just in case, make sure the wire goes through properly so you don't have trouble after applying the glue. And, since the plastics are now glued together, you can just apply the glue as you like. And then attach the mating part. Let's leave it for a while until the adhesive dries.",
+      "t": "旋转并一点点剪就能轻松剪断。好了，主支柱完成。最后只剩下涂胶水，然后像这样装上配合件就完成了。为了保险起见，确保线能顺利穿过，免得涂胶后出问题。既然塑料已经粘在一起了，随意涂胶就行。然后装上配合件。等胶水干一会儿。"
+    },
+    {
+      "s": 1053880,
+      "d": 5720,
+      "o": "Okay. It's been about 23 hours since then. It's completely dry.",
+      "t": "好了。到现在大概过了23小时。已经完全干了。"
+    },
+    {
+      "s": 1059600,
+      "d": 30280,
+      "o": "I'm a little afraid of breaking it so I won't use maximum force, but even when I put force on the connection point it doesn't budge. This time, the wire is a little too thick for the part , so it looks like an amber line in the middle, but this part of the shaft will be hidden by the exterior parts of the Gunpla, so it's not a problem. Okay, now let's put the Gunpla back together.",
+      "t": "我有点怕弄断，所以不会用最大力气，但即使对连接点施力，它也纹丝不动。这次线对零件来说稍微粗了一点，所以中间像有一条琥珀色的线，但轴的这部分会被高达模型的外甲遮住，所以没问题。好了，现在把高达模型重新组装起来。"
+    },
+    {
+      "s": 1089880,
+      "d": 6560,
+      "o": "I'll attach the other movable part that I removed earlier, and this also moves without any problems. It moves like this.",
+      "t": "装上之前拆下的另一个可动零件，这个也动得很顺畅。它这样活动。"
+    },
+    {
+      "s": 1096440,
+      "d": 11200,
+      "o": "Insert the part I just repaired into the joint part. Then put the other joint to cover it, and at this stage, let's make sure to check the movement. Ah, it looks fine",
+      "t": "把刚修好的零件插进关节部分。再盖上另一个关节，在这个阶段检查一下活动情况。啊，看起来没问题。"
+    },
+    {
+      "s": 1107640,
+      "d": 6640,
+      "o": ". There's a certain amount of stiffness, and the part doesn't feel like it's bending at all even under this kind of lateral force",
+      "t": "有一定的紧实感，而且即使这样侧向用力，零件也完全没有弯曲的感觉。"
+    },
+    {
+      "s": 1114280,
+      "d": 13080,
+      "o": ". All that's left is to attach the support part and these cool sneaker-like feet, and there you have it, the Gunpla is restored to its original state.",
+      "t": "只剩下装上支撑件和这些酷炫的运动鞋似的脚，这样高达模型就恢复原状了。"
+    },
+    {
+      "s": 1127360,
+      "d": 28679,
+      "o": "The joint feels much more solid compared to the unrepaired leg part; there's absolutely no feeling of the plastic bending. So, the left leg, which I didn't repair this time, might break again. But, if you use the method I used this time, you can create a joint that is much sturdier and harder than the original part, so if you break the joint axis of your Gunpla, try this method.",
+      "t": "相比没修的腿部，这个关节感觉更结实，完全没有塑料弯曲的感觉。所以，这次没修的左腿可能还会断。但如果用我这次的方法，可以做出比原零件更坚固更硬的关节，所以如果你们的高达模型关节轴断了，试试这个方法。"
+    },
+    {
+      "s": 1156039,
+      "d": 10000,
+      "o": "Please recall the video you watched. That concludes our practical demonstration of how to repair Gunpla joint axes.",
+      "t": "请回想你看过的视频。以上就是高达模型关节轴修复的实际演示。"
+    },
+    {
+      "s": 1166039,
+      "d": 47321,
+      "o": "So, how was it? We introduced a method for repairing a Gunpla axis that has been twisted off. This time it was a slightly unusual axis. Strictly speaking, it 's not really an axis either. I think the axis you were thinking of is something like this, but we'll cover that another time. What we wanted to convey in this video is not only how to fix it, but also that even if it snaps while you're moving it, Gunpla can be easily repaired. Knowing that it can be repaired even if it breaks will reduce the psychological burden when you're playing with it like this. That being said, please be careful when handling other people's Gunpla. Well, I don't think you'll be moving other people's Gunpla around that much",
+      "t": "觉得怎么样？我们介绍了修复扭断的高达模型轴的方法。这次是个有点特殊的轴。严格来说它也算不上轴。你们想的那种轴大概是这样，但那个下次再讲。这个视频想传达的不只是怎么修，更重要的是，即使把玩时断了，高达模型也很容易修复。知道断了也能修，能减轻把玩时的心理负担。话虽如此，玩别人的高达模型时还是要小心。当然，我觉得你们也不会老拿别人的模型翻来翻去。"
+    },
+    {
+      "s": 1213360,
+      "d": 12520,
+      "o": ". If, like this time, the articulation axis breaks, don't panic and remember this video. Finally, let's go over the tools we used this time",
+      "t": "如果像这次这样关节轴断了，别慌，想起这个视频。最后，回顾一下这次用的工具。"
+    },
+    {
+      "s": 1225880,
+      "d": 15320,
+      "o": ". First, wire. This time we used one with a thickness of 1.5mm, which can be fixed firmly, but I think it's quite difficult to cut with nippers. Also, for small parts like this, 1mm or 0.5mm might have been fine",
+      "t": "首先是线。这次用了1.5毫米粗的，能固定得很牢，但用钳子剪可能挺难。另外，对于这种小零件，1毫米或0.5毫米可能也行。"
+    },
+    {
+      "s": 1241200,
+      "d": 12959,
+      "o": ". This wire is a product sold by Web for plastic models , but you might be able to find larger quantities and cheaper wire at home improvement stores or 100-yen shops",
+      "t": "这根线是Web上卖的一款塑料模型用线，但你们可能在五金店或百元店找到更便宜且量更多的。"
+    },
+    {
+      "s": 1254159,
+      "d": 22120,
+      "o": ". However, those wires are often coiled up and a bit difficult to handle, so I think it's fine to buy this one because it fits well and is easy to use for other things. Next is the nippers for cutting the wire. I use these nippers that I bought at Daiso for 110 yen",
+      "t": "不过那些线通常是卷起来的，有点难操作，所以我推荐买这个，因为尺寸合适，做其他事也好用。接下来是剪线的钳子。我用的是在大创买的110日元钳子。"
+    },
+    {
+      "s": 1276279,
+      "d": 6280,
+      "o": ". I've cut 1.5mm wire a few times with them, but I haven't really dulled the box that much",
+      "t": "我用它剪过几次1.5毫米线，但没怎么伤到盒子。"
+    },
+    {
+      "s": 1282559,
+      "d": 15081,
+      "o": ". There are some gaps where light can pass through , but since they only cost 110 yen, I'll just buy a new pair when the sharpness decreases. And you should absolutely never use plastic model nippers like Ultimate Nippers",
+      "t": "有些地方透光了，但因为才110日元，等钝了就买新的。还有，绝对不要用像终极钳子那样的塑料模型钳。"
+    },
+    {
+      "s": 1297640,
+      "d": 5600,
+      "o": ". You'll ruin them in one go. Next is the pin vise.",
+      "t": "一次就废了。接下来是针夹钻头。"
+    },
+    {
+      "s": 1303240,
+      "d": 15360,
+      "o": "You can buy these individually at 100-yen stores, but you might want to drill various holes in the future, and being able to change the drill bit like this makes it more compact , so I think it's a good idea to get this set.",
+      "t": "百元店也有单卖的，但以后可能会钻各种孔，能这样换钻头更紧凑，所以我建议买这套。"
+    },
+    {
+      "s": 1318600,
+      "d": 30079,
+      "o": "I bought this on Amazon for 980 yen. Next is adhesive. This time I used some super glue that I had lying around , but EG Sanding, which I often use for filling seams, will also hold things together very securely. I 've put Amazon purchase links for the tools I used in this video in the description box below, so please check them out if you're interested. Okay. So, let's wrap up the video now. This channel uploads useful information and painting videos for plastic models, including Gunpla",
+      "t": "我在亚马逊上用980日元买的。接下来是粘合剂。这次用了手头的瞬间胶，但我常用来填补缝隙的EG砂纸也能粘得非常牢。我把视频中用到的工具在亚马逊的购买链接放在下方描述栏里了，有兴趣的话去看看。好了，视频差不多该结束了。这个频道上传包括高达模型在内的塑料模型有用信息和涂装视频。"
+    },
+    {
+      "s": 1348679,
+      "d": 5641,
+      "o": ". If you liked this video and are interested in the next one, please support us by giving us a thumbs up and subscribing to the channel. See you in the next video. This has been brought to you by Plabotchi Research Institute.",
+      "t": "如果你喜欢这个视频，对下次内容感兴趣，请点赞和订阅支持。下个视频见。这里是Plabotchi研究所为您带来的节目。"
+    },
+    {
+      "s": 1365919,
+      "d": 2961,
+      "o": "Plabotchi Research Institute",
+      "t": "Plabotchi研究所"
+    }
+  ],
+  "createdAt": 1783874431634
+}
