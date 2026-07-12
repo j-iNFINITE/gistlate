@@ -121,3 +121,37 @@ Sentence-level subtitle translation for monologue/ASR. First shipped one-pass LL
 ### Next Steps
 
 - None - task complete
+
+
+## Session 4: Subtitle display polish (linger fix, control-bar, seek); drag dropped
+
+**Date**: 2026-07-12
+**Task**: Subtitle display polish (linger fix, control-bar, seek); drag dropped
+**Branch**: `master`
+
+### Summary
+
+Fixed subtitle lingering through long music/silence gaps (cap sentence-cue end at min(nextStart, rawEnd+1.2s)). Control-bar-aware positioning (raise subtitle when YouTube controls show via ytp-autohide observer). Seek sync (force overlay refresh on seeked). Draggable subtitle attempted but dropped — YouTube's click-capture layer sits above the overlay and eats pointer events. First of the kiss-translator-inspired child tasks (parent 07-12-kiss-inspired-enhancements).
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `38cde9b` | (see git log) |
+| `27b4d99` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
