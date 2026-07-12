@@ -94,3 +94,31 @@ Translation retries use real `setTimeout` backoff (1s/2s). In vitest use
 `vi.useFakeTimers()` (real timers in `afterEach`) and drive pending timers with
 `await vi.runAllTimersAsync()`. Keeps the suite <1s instead of ~14s. Microtasks
 are not faked, so mocked `gmFetch` promises still resolve.
+
+## Subtitle sentence reconstruction (alignment is sacred)
+
+Translating auto-caption fragments as complete sentences must keep the translation
+aligned to the correct time. Two hard-won rules:
+
+- **Never do one-pass "segment + translate + report fragment ranges".** Asking the
+  LLM to translate AND report which fragments each sentence covers makes the
+  reported ranges drift out of sync with the translations — structurally valid
+  coverage, but the translation shows over the WRONG fragments' time. Symptom: each
+  cue's `t` belongs to a later cue's `o`.
+- **Group first, translate second (two-pass), so alignment is guaranteed by
+  construction.** Pass 1: per-fragment boundary flags (`[n] E`/`C`, 1:1, validated —
+  every fragment present). Group deterministically into contiguous ranges. Pass 2:
+  translate the joined sentence texts with the proven numbered 1:1 translator. Each
+  sentence-cue's `o`, `t`, and time then all derive from the SAME fragment range —
+  an imperfect boundary only shifts a seam, it can never mis-time a translation.
+- **Clamp each sentence-cue's end to the NEXT sentence's start.** ASR fragment
+  durations are estimated and frequently overlap (a later fragment starts before the
+  previous one's reported end). `end_i = frags[next.start].s` (last sentence uses raw
+  end), `d = max(1, end - s)` → gap-free, non-overlapping sequential display; keeps
+  `findCueAt`'s binary search valid.
+- **Strip non-speech annotations before segmentation** (`[...]`/`【...】` inline or
+  standalone, `♪` keeping inner lyrics), replacing with `''` (not a space) so CJK
+  mid-word joins cleanly; drop pure-annotation cues. They corrupt both segmentation
+  and translation otherwise.
+- On any non-abort failure, **fall back to 1:1 fragment translation** (never worse
+  than aligned fragments); on abort, throw without writing.
