@@ -83,3 +83,22 @@ insertBefore/idempotency rules.
 (cache-miss) translation only — wired via a `resolveTranslation(..., onTranslating)`
 hook that fires just before `translateAllCues`, so cache hits stay silent. Auto
 -hides terminal states; `destroyStatus()` on SPA nav.
+
+## Overlay positioning on the YouTube player
+
+- **Control-bar-aware bottom offset.** YouTube toggles the `ytp-autohide` class on
+  `#movie_player` (present = controls hidden, absent = controls shown). Observe it
+  with a `MutationObserver` on the class attribute and raise the overlay while
+  controls are shown: `bottom: calc(var(--gl-bottom) + var(--gl-ctrl-offset))`,
+  `--gl-ctrl-offset` = ~56px when shown / 0 when auto-hidden. Disconnect the
+  observer in `destroy`/`destroyOverlay`.
+- **Don't try to make the overlay draggable via pointer events.** YouTube's
+  transparent click-capture layer sits ABOVE our `z-index:40` overlay, so
+  `pointer-events:auto` on the subtitle text never receives `pointerdown` — drag
+  silently does nothing. (Attempted and reverted.) A future drag would need a
+  higher-z handle or to hook the player's own layer.
+- **Sentence-cue duration must be capped** so a subtitle doesn't linger through a
+  long music/silence gap: `end = min(nextSentenceStart, rawEnd + ~1.2s)` (see the
+  sentence-reconstruction rules in quality-guidelines). Keeps cues non-overlapping.
+- **Force an overlay refresh on `seeked`** (reset the `lastCueKey` dedup, then push
+  the new time) so the correct line shows immediately after a jump.
