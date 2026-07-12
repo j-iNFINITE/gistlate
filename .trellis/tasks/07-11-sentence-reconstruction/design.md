@@ -1,178 +1,158 @@
-# Technical Design — sentence reconstruction
+# Technical Design — sentence reconstruction (Approach B: two-pass)
 
-> Builds on the one-shot translation pipeline. Reuses M2's typed errors +
-> adaptive split. No schema change, no new deps.
+> The one-pass "segment+translate+report ranges" approach was UNRELIABLE: the
+> model's reported fragment ranges drifted out of sync with its translations
+> (structurally valid coverage, but semantically misaligned — the overlay showed a
+> sentence's translation over the wrong fragments' time). We replace it with a
+> **two-pass** design where alignment is guaranteed by construction.
 
-## 1. Flow overview
+## 1. Flow overview (two-pass)
 
 ```
-fragments (parseTimedtext)                       ── unchanged
+fragments (parseTimedtext -> cleanCues)                     ── §1b
       │
       ▼
-segmentAndTranslate(fragments)                   ── NEW: one LLM pass
-   • prompt: group consecutive fragments into sentences + translate
-   • output lines: "[start-end] translation"
-   • parse -> Sentence[] {startIdx, endIdx, t}
-   • validate full 1..N coverage
-   • on truncation -> split fragment range, recurse (like M2)
-      │  (valid)                      │ (invalid after retry / non-splittable)
-      ▼                               ▼
- build sentence-cues            FALLBACK: translateFragments1to1()  (today's path)
- {s,d,o=joined,t}                -> fragment-level cues
-      │                               │
-      └──────────────┬────────────────┘
-                     ▼
-          Cue[]  (stored in L1/L2, displayed)
+PASS 1 — boundary detection (reliable, 1:1)
+   • prompt: for each numbered fragment, say if it ENDS a sentence
+   • output: "[n] E" (ends) / "[n] C" (continues), one line per fragment
+   • parse -> boolean isEnd[1..N]; validate every fragment present (count==N)
+   • group deterministically -> sentence ranges [{startIdx,endIdx}]
+      │
+      ▼
+PASS 2 — translate whole sentences (reliable, reuse M2)
+   • sentenceTexts = join fragments per range
+   • translateRange(sentenceTexts)  (numbered 1:1 -> aligned, adaptive split kept)
+      │
+      ▼
+build sentence-cues  (o=joined original, t=sentence translation,
+                      time = clamp end to NEXT sentence's start)
+      │  (any unrecoverable failure, not abort)
+      ▼
+FALLBACK: translateRange(fragment texts) -> fragment-level cues  (never worse than aligned fragments)
 ```
 
-`translateAllCues(cues, targetLang, cfg, apiKey, signal)` keeps its signature and
-its callers (`resolve.ts`). Internally it now tries segmentation first, falling
-back to the existing 1:1 range translation.
+**Why aligned by construction:** we GROUP first (deterministically from per-fragment
+boundary flags), then translate each group SEPARATELY. Each sentence's `o`, `t`, and
+time all come from the SAME fragment range. Even if the model's boundary flags are
+imperfect, the result is at worst a slightly-off boundary — never a mis-timed
+translation.
 
-## 1b. Non-speech cleaning (pre-segmentation)
+`translateAllCues(cues, targetLang, cfg, apiKey, signal)` keeps its signature.
 
-`subtitles/clean.ts` (new): `cleanCues(cues: Cue[]): Cue[]`.
+## 1b. Non-speech cleaning (unchanged, pre-pass-1)
 
-- For each cue's `o`: remove `\[[^\]]*\]` and `【[^】]*】` (whole annotation), remove
-  `♪` symbols (keep any lyric text that sat between them), collapse whitespace,
-  trim.
-- Drop cues whose cleaned `o` is empty (pure annotations like `[Music]`).
-- `stripNonSpeech(text: string): string` is the reusable core; `cleanCues` maps +
-  filters.
+`subtitles/clean.ts` `cleanCues` runs in `main.ts` right after `parseTimedtext`
+(strip `[...]`/`【...】`, remove `♪` keeping inner text, drop empty). Already shipped.
 
-Wired in **`main.ts`** right after `parseTimedtext`, before `store.setSubtitle` and
-`triggerTranslation`, so annotations are gone from BOTH display and the segmentation
-input. (Keeps overlay/pipeline oblivious to annotations.)
+## 2. Data model + sentence-cue timing (no schema change)
 
-Note: only square/full-width brackets + `♪` are stripped. Parentheses `(...)` are
-NOT stripped (they carry real speech in many transcripts). Speaker labels (`>>`,
-`- Name:`) are out of scope for this round.
-
-## 2. Data model (no schema change)
-
-- Public `Cue = { s, d, o, t }` unchanged. Stored artifact stays
-  `{key,videoId,src,tgt,model,cues,createdAt}`.
-- Internal only (not stored):
-  ```ts
-  interface Sentence { startIdx: number; endIdx: number; t: string } // 0-based, inclusive
+- Public `Cue = { s, d, o, t }` unchanged; stored artifact unchanged.
+- Internal: `interface SentenceRange { startIdx: number; endIdx: number }` (0-based inclusive).
+- **Sentence-cue construction with time clamping** (`sentencesToCues`):
+  For sentence `i` covering frags `[a..b]`, with the ordered range list:
   ```
-- Sentence → Cue:
-  ```ts
-  const first = frags[s.startIdx], last = frags[s.endIdx]
-  const cue: Cue = {
-    s: first.s,
-    d: (last.s + last.d) - first.s,
-    o: frags.slice(s.startIdx, s.endIdx + 1).map(f => f.o).join(' ').replace(/\s+/g,' ').trim(),
-    t: s.t,
-  }
+  s_i = frags[a].s
+  end_i = (i < last) ? frags[ranges[i+1].startIdx].s          // clamp to next sentence's start
+                     : (frags[b].s + frags[b].d)              // last sentence: raw end
+  d_i = max(1, end_i - s_i)
+  o_i = frags.slice(a, b+1).map(f=>f.o).join(' ').replace(/\s+/g,' ').trim()
+  t_i = translations[i]
   ```
-- **Result**: `cues` becomes sentence-level (fewer entries, full o+t each). Existing
-  fragment-level pool entries remain valid `{s,d,o,t}` arrays and display as before.
+  Clamping to the next sentence's start fixes ASR's overlapping/estimated fragment
+  durations (a later fragment often starts before the previous fragment's estimated
+  end), giving gap-free, non-overlapping sequential display.
+- Result: `cues` becomes sentence-level; schema stays `{s,d,o,t}`; old fragment-level
+  pool entries still load.
 
-## 3. Segmentation prompt (`translate/prompt.ts`)
+## 3. Pass 1 prompt (`translate/prompt.ts`)
 
-New `fillSegmentPrompt(fragments, targetLang)` → `{ system, user }`.
-
-System (essentials):
+Replace `fillSegmentPrompt` with `fillBoundaryPrompt(fragments, targetLang?)`:
 ```
-You receive NUMBERED subtitle fragments from ONE video. They are consecutive and
-often auto-generated (no punctuation). Group consecutive fragments into COMPLETE
-sentences and translate each sentence into {{Target Language}}.
+You receive NUMBERED subtitle fragments from ONE video (consecutive, often
+auto-generated with NO punctuation). For EACH fragment decide whether it ends a
+sentence.
 
-Output format — one line per sentence, nothing else:
-[<start>-<end>] <translation>
-- <start>-<end> = inclusive fragment numbers the sentence covers (use [<n>] if one).
-- Ranges MUST be contiguous, non-overlapping, and cover every fragment from 1 to
-  {{N}} exactly once, in order.
-- Add natural punctuation. Keep terminology/names/tense consistent across the whole
-  video. Translate faithfully; do not add commentary.
+Output EXACTLY one line per fragment, nothing else:
+[<n>] E   ← if fragment <n> ends a sentence (or a clause you'd end with 。/./?/!)
+[<n>] C   ← if the sentence continues into the next fragment
+
+Cover every fragment from 1 to {{N}} in order. Do NOT translate here.
 ```
-User: the numbered fragments (reuse the `[i] text` builder).
+(No target language strictly needed; boundary decision is source-side. Keep the
+numbered `[i] text` builder for the user message.)
 
-## 4. Parse + validate (`translate/segment.ts`, new)
+## 4. Parse + group (`translate/segment.ts`)
 
-```ts
-export function parseSentences(output: string, n: number): Sentence[]
-```
-- Match each line against `^\s*\[(\d+)(?:\s*-\s*(\d+))?\]\s*(.+)$`.
-  `end = m[2] ?? m[1]`. Push `{ startIdx: start-1, endIdx: end-1, t: text.trim() }`.
-- Sort by startIdx. **Validate coverage** (throw `SegmentationError` on any):
-  - first.startIdx === 0
-  - for each consecutive pair: `next.startIdx === prev.endIdx + 1`
-  - last.endIdx === n-1
-  - every `startIdx <= endIdx`, all `t` non-empty
-- `SegmentationError extends Error` (new typed error). Treated as splittable-ish
-  only for retry accounting; on final failure the pipeline falls back (not split).
+- `parseBoundaries(output: string, n: number): boolean[]` — match `^\s*\[(\d+)\]\s*([EC])\b`; fill `isEnd[idx]`; require every 1..N present (else `SegmentationError`). Force `isEnd[n-1] = true` (last fragment always ends the final sentence).
+- `groupByBoundaries(isEnd: boolean[]): SentenceRange[]` — accumulate indices; close a range at each `isEnd`. Guarantees full contiguous coverage 0..n-1.
+- `SegmentationError extends Error` (kept).
+- `sentencesToCues(frags, ranges, translations)` — build cues per §2 (time clamp); assert `translations.length === ranges.length` and every `t` non-empty.
 
-## 5. Pipeline (`translate/pipeline.ts` rewrite)
+Keep the numbered-output parser (`parseNumbered`) for pass 2 via `translateRange`.
+
+## 5. Pass 2 — sentence translation
+
+Reuse the existing, proven `translateRange(texts, targetLang, cfg, apiKey, signal)`
+(numbered 1:1, count-validated, adaptive split on truncation) with the SENTENCE
+texts. Aligned 1:1 sentence↔translation. No new logic.
+
+## 6. Pipeline (`translate/pipeline.ts`)
 
 ```ts
 export async function translateAllCues(cues, targetLang, cfg, apiKey, signal?) {
   if (cues.length === 0) return []
   try {
-    const sentences = await segmentRange(cues, targetLang, cfg, apiKey, signal)   // NEW
-    return sentencesToCues(cues, sentences)
+    const isEnd = await detectBoundaries(cues, cfg, apiKey, signal)   // pass 1 (+retry)
+    const ranges = groupByBoundaries(isEnd)
+    const sentenceTexts = ranges.map(r =>
+      cues.slice(r.startIdx, r.endIdx + 1).map(c => c.o).join(' ').replace(/\s+/g,' ').trim())
+    const translations = await translateRange(sentenceTexts, targetLang, cfg, apiKey, signal) // pass 2
+    return sentencesToCues(cues, ranges, translations)
   } catch (e) {
-    if (signal?.aborted) throw e            // don't fall back on abort
-    console.warn('[Gistlate] Sentence segmentation failed; falling back to 1:1', e)
-    const texts = cues.map(c => c.o)
-    const t = await translateRange(texts, targetLang, cfg, apiKey, signal)        // EXISTING M2 path
-    return cues.map((c, i) => ({ ...c, t: t[i] }))
+    if (signal?.aborted) throw e
+    console.warn('[Gistlate] Sentence reconstruction failed; falling back to 1:1', e)
+    const t = await translateRange(cues.map(c => c.o), targetLang, cfg, apiKey, signal)
+    const out = cues.map((c, i) => ({ ...c, t: t[i] }))
+    if (out.some(c => !c.t || !c.t.trim())) throw new Error('empty translations in fallback')
+    return out
   }
 }
 ```
+`detectBoundaries(cues, ...)`: call `boundaryBatch` (openai), `parseBoundaries`,
+retry ≤2 on `SegmentationError`/transport. **No adaptive split for pass 1** — the
+E/C output is tiny; a truncation there just fails → fallback to 1:1. (Pass 2 keeps
+the adaptive split where it matters.)
 
-`segmentRange` mirrors M2's `translateRange` but for segmentation:
-- call `segmentBatch(fragTexts)` (new in openai.ts: POST with the segment prompt,
-  read content + finishReason; throw `TruncationError` on length).
-- `parseSentences(content, n)` → on `SegmentationError`, retry ≤2; then throw.
-- On `TruncationError` (splittable) and `len > MIN_SPLIT` and `depth < MAX_DEPTH`:
-  split fragments in half, `segmentRange` each half, **offset** the right half's
-  indices by `mid`, concat. (A sentence crossing the split is cut into two — rare,
-  acceptable.)
-- Non-splittable / floor reached → throw (caller falls back to 1:1).
+## 7. openai.ts
 
-`sentencesToCues(frags, sentences)` builds the sentence-cues (§2) and asserts every
-`t` non-empty (write-on-full-success invariant).
-
-## 6. openai.ts additions
-
-- Extract the shared POST+parse into a helper if convenient, or add
-  `segmentBatch(fragTexts, targetLang, cfg, apiKey, signal): Promise<{content, finishReason}>`
-  using `fillSegmentPrompt`. Reuse `TruncationError`. No numbered-count parsing here
-  (that's segmentation's job). Keep `translateBatch` (used by the 1:1 fallback)
-  intact.
-
-## 7. resolve.ts / main.ts
-
-- No changes. `translateAllCues` signature and the `onTranslating` status hook are
-  unchanged. The status pill still shows during the (now sentence-level) translation.
+- Add `boundaryBatch(fragTexts, cfg, apiKey, signal): Promise<{content, finishReason}>`
+  using `fillBoundaryPrompt`. Same transport as `translateBatch`/`segmentBatch`.
+- Remove/repurpose the old `segmentBatch` (range-based) — no longer used.
+- `translateBatch`/`translateRange` untouched (pass 2 + fallback rely on them).
 
 ## 8. Edge cases
 
-- 1 fragment → one sentence `[1]`.
-- Fallback path → fragment-level cues (today's display). Logged.
-- Truncated segmentation on a very long video → adaptive split; boundary sentence
-  may split into two — acceptable.
-- Model returns extra prose / wrong ranges repeatedly → `SegmentationError` →
-  fallback (never a crash, never missing cues).
-- `src === tgt` short-circuit stays in `main.ts` (no translation at all).
-- Abort → propagates without fallback or write.
-- Mixed pool: an old fragment-level L2 entry loads and displays as before.
+- 1 fragment → isEnd=[true] → one sentence.
+- Pass 1 fails (bad/short output) after retries → fallback to 1:1.
+- Pass 2 truncates → adaptive split inside `translateRange`; if it still fails →
+  propagates → fallback to 1:1.
+- Abort → propagates, no fallback, no write.
+- Overlapping/estimated fragment durations → handled by the next-start time clamp.
+- `src===tgt` short-circuit stays in `main.ts`.
 
-## 9. Testing (`translate/segment.test.ts` new + extend `pipeline.test.ts`)
+## 9. Testing
 
-- **parseSentences:** valid multi + single-fragment; rejects gap, overlap, missing
-  first (not starting at 1), missing last (< N), out-of-order, empty translation.
-- **pipeline (mock gmFetch):**
-  - segment happy path → sentence-cues (assert count < fragment count, o/t joined,
-    time spans correct, single request).
-  - truncation once → split → sentence-cues cover all.
-  - invalid segmentation persists → **falls back** to 1:1 → fragment-cues (assert N
-    cues, each translated).
-  - abort → rejects, no fallback.
-- Keep fake timers (fast suite).
+- `segment.test.ts`: `parseBoundaries` (valid E/C, missing fragment → throws, forces
+  last=E); `groupByBoundaries` (single, multiple, all-continue → one sentence);
+  `sentencesToCues` time clamp (non-last clamps to next start; last uses raw end;
+  joined o; asserts translation count).
+- `pipeline.test.ts` (mock `gmFetch`, TWO calls per happy path): boundaries+translate
+  → sentence-cues with clamped spans; pass-1 bad output → **fallback to 1:1** (N
+  fragment cues); pass-2 truncation → split → completes; abort → reject no fallback.
+- `clean.test.ts` unchanged. Keep fake timers.
 
 ## 10. Rollout
-Single logical change; ship in one feat commit (+ tests). No schema/pool migration.
-Old cached videos stay fragment-level until re-translated (out of scope to force).
+Single change, ship in one feat commit (+tests). No schema/pool migration. The
+previous misaligned pool entries get overwritten on re-translation (out of scope to
+force). Two LLM calls per fresh video (boundaries + sentences); DeepSeek one-shot
+both — cost acceptable. Very-long videos on tiny-output models fall back to 1:1.
