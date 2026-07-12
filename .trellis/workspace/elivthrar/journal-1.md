@@ -83,3 +83,41 @@ Added a live WYSIWYG subtitle style panel (CSS-variable driven overlay, docked c
 ### Next Steps
 
 - None - task complete
+
+
+## Session 3: Sentence reconstruction (two-pass) + non-speech stripping
+
+**Date**: 2026-07-12
+**Task**: Sentence reconstruction (two-pass) + non-speech stripping
+**Branch**: `master`
+
+### Summary
+
+Sentence-level subtitle translation for monologue/ASR. First shipped one-pass LLM segment+translate+report-ranges, which MISALIGNED (reported ranges drifted from translations). Reworked to reliable TWO-PASS: pass 1 per-fragment boundary flags (validated) -> deterministic grouping; pass 2 translate whole sentences via the proven 1:1 translator -> alignment guaranteed by construction. Sentence-cue end clamped to next sentence start (ASR overlapping durations). Non-speech [Music]/【音乐】/♪ stripped before segmentation. Fixed double-translation from spurious yt-navigate-finish + skip null videoId. trellis-check passed (AC 6/6). Studied fishjar/kiss-translator; captured alignment rules into spec.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a7c7da2` | (see git log) |
+| `5975644` | (see git log) |
+| `a3e8d09` | (see git log) |
+| `81644cb` | (see git log) |
+| `994a9bb` | (see git log) |
+| `28057be` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
