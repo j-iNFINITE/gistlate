@@ -1,0 +1,826 @@
+{
+  "key": "nVT-aa7356o|en|zh-Hans",
+  "videoId": "nVT-aa7356o",
+  "src": "en",
+  "tgt": "zh-Hans",
+  "model": "deepseek-v4-flash",
+  "cues": [
+    {
+      "s": 480,
+      "d": 2880,
+      "o": "hello i'm mark welcome to my workbench",
+      "t": "你好，我是马克，欢迎来到我的工作台"
+    },
+    {
+      "s": 3360,
+      "d": 25040,
+      "o": "uh today i wanted to record a quick tutorial video showing you how i would go about creating a 3d printable part to add on to a kit so i've been working on this 100 edge code beast kit and one thing that i don't really like about it is that it has these hard points around the kit in various places",
+      "t": "嗯，今天我想录一个快速教程视频，向你展示我如何设计一个3D打印零件来添加到套件上。我正在制作这个100边缘代码野兽套件，其中一个我不太喜欢的地方是，它周围各处都有这些硬点"
+    },
+    {
+      "s": 28400,
+      "d": 11999,
+      "o": "and there's not really anything that mounts into these there's one weapon holder for its sword that can go into one of these spaces in the backpack and there is an optional shield that can go on the outside of one of the arms",
+      "t": "而且这些位置没有什么东西可以安装。有一个用于剑的武器架，可以放在背包的其中一个空间里，还有一个可选盾牌，可以安装在其中一个手臂的外侧"
+    },
+    {
+      "s": 40399,
+      "d": 7761,
+      "o": "um but there's a mount point on both arms and so there's only one shield so you can't fill them both at the same time",
+      "t": "但是两只手臂上都有安装点，却只有一个盾牌，所以不能同时填满两个位置"
+    },
+    {
+      "s": 48160,
+      "d": 2239,
+      "o": "i think these are a bit unsightly",
+      "t": "我觉得这些有点难看"
+    },
+    {
+      "s": 50399,
+      "d": 6961,
+      "o": "and so i wanted to create parts that could be used to fill up these spaces when they're not in use",
+      "t": "所以我想设计一些零件，在不使用这些空间时用来填充"
+    },
+    {
+      "s": 57360,
+      "d": 8880,
+      "o": "but i do want them to be removable right so that for example if you plug this one in the side of the arm you could pull that out if you want to put the shield in there",
+      "t": "但我希望它们是可拆卸的，比如如果你把这个插在手臂侧面，想装盾牌时可以拔出来"
+    },
+    {
+      "s": 66240,
+      "d": 23519,
+      "o": "and so that's what we're going to do today is hop over to the computer and using blender and a free add-on for blender that i've been enjoying a lot recently i'm going to design a part specifically for the arm here that will add some sort of a fin or little wing piece that adds some extra detail here on the outside of the arm kind of to match all the pointy bits that are elsewhere around on the kit",
+      "t": "这就是我们今天要做的：转到电脑上，使用Blender和我最近非常喜欢的一个Blender免费插件，专门为这个手臂设计一个零件，添加一些鳍片或小翼片，在手臂外侧增加一些额外细节，与套件其他地方的尖角部分相匹配"
+    },
+    {
+      "s": 89759,
+      "d": 8641,
+      "o": "and so um what what i've got to do first before we jump over to the computer is just take some measurements so i've got my digital calipers here",
+      "t": "在转到电脑之前，我首先要做的是测量尺寸。我这里有数字卡尺"
+    },
+    {
+      "s": 98400,
+      "d": 19600,
+      "o": "i'm going to turn those on and zero them out and i need to know there's a hexagonal shape here for the peg that fits in there and then there's a weird six-sided shape that's not a perfect hexagon it's a little bit elongated that i'm gonna have to measure the dimensions of the inside of all of these segments of the shape",
+      "t": "我要打开它并归零。我需要知道这个插销的六边形形状，以及一个奇怪的六边形形状（不是正六边形，稍微拉长），我必须测量这个形状内所有部分的尺寸"
+    },
+    {
+      "s": 118000,
+      "d": 19120,
+      "o": "so that we can get precise measurements uh over on the computer when we start to model the part so i'm going to go ahead and take these measurements here write them down then we'll jump over to the computer and i'll show you how i'd go about modeling a piece to fit into here",
+      "t": "这样我们就能在电脑上建模时获得精确测量值。我现在就测量这些尺寸并记下来，然后转到电脑上，向你展示我如何建模一个适合这里的零件"
+    },
+    {
+      "s": 137120,
+      "d": 5360,
+      "o": "okay so here we are in blender and this is an example of the thing that i'd like to create",
+      "t": "好的，现在我们在Blender中，这是我想要创建的示例"
+    },
+    {
+      "s": 142480,
+      "d": 2240,
+      "o": "it's got the hexagonal peg at the bottom",
+      "t": "它底部有一个六边形插销"
+    },
+    {
+      "s": 144720,
+      "d": 12480,
+      "o": "and then this little area here that fits into the recess that sits above the peg and then on top of that we want to create kind of a wing shape it's tapered up at the top and then it's got this little panel line detail in it",
+      "t": "然后这里有一个小区域，装在插销上方的凹槽里，在上面我们想创建一种翼形，顶部逐渐变细，并带有这个面板线细节"
+    },
+    {
+      "s": 157200,
+      "d": 11039,
+      "o": "just to add a little bit of visual interest so this is what we're going to create but we're going to do it from scratch so let's go new file here and we'll just not save this and start from scratch",
+      "t": "只是为了增加一些视觉趣味。这就是我们要创建的，但我们要从头开始。我们在这里新建文件，不保存，从头开始"
+    },
+    {
+      "s": 168239,
+      "d": 19761,
+      "o": "so the add-on that i'm using is called nd which stands for non-destructive modeling it's a style of modeling that basically you add modifiers onto primitive shapes to create the things that you're trying to create it's much easier for me to just show it than to try to explain how it works and so that's what we'll do here",
+      "t": "我正在使用的插件叫做ND，代表非破坏性建模。这种建模方式基本上是在基本形状上添加修改器来创建你想要的东西。展示比解释更容易，所以我们直接操作"
+    },
+    {
+      "s": 188000,
+      "d": 8720,
+      "o": "the guys who create the nd add-on also have a nice youtube channel with some good tutorials and things so i'll link that below as well",
+      "t": "创建ND插件的团队也有一个很好的YouTube频道，上面有一些不错的教程，我会在下方提供链接"
+    },
+    {
+      "s": 196720,
+      "d": 49519,
+      "o": "you can find out more information about the add-on that way but the thing that's important to know is that it's got a hotkey shipped to by default which pops up this menu that gives us pretty much all the options that we're going to need to use to create some basic shapes and then to do uh you know some booleans and some extrusions and things like that on them to build out the thing that we're trying to build um in newer versions of nd there's also a separate hotkey the f key which opens a fast menu that tries to predict which of those options off of the big menu that you're going to most likely want to use at the current moment given what you have selected and what mode you're in and things like that so a lot of times during this little tutorial i'm going to use this fast menu because it's almost always right it almost always shows me exactly what i want to do",
+      "t": "你可以通过那里了解更多关于插件的信息。但重要的是要知道，它默认有一个快捷键，可以弹出这个菜单，提供我们需要的几乎所有选项，用于创建基本形状，然后进行布尔运算、挤出等操作来构建我们想要的东西。在ND的新版本中，还有一个单独的快捷键F键，可以打开一个快速菜单，根据当前选择、模式等预测你最可能使用的选项。所以在这次教程中，我会经常使用这个快速菜单，因为它几乎总是正确的，总显示我正好想做的操作"
+    },
+    {
+      "s": 246239,
+      "d": 16001,
+      "o": "so let's get started with that hexagonal peg so i'm going to go into top view here and we know that or i know because i wrote it down and i measured it that we want our hexagon to be 3.3 millimeters in diameter",
+      "t": "那么我们从六边形插销开始。我切换到顶视图，因为我们知道（因为我记下了测量值）六边形的直径是3.3毫米"
+    },
+    {
+      "s": 262240,
+      "d": 27440,
+      "o": "um and we can create a shape a flat shape with any number of sides in nd by opening the fast menu here and selecting recon poly so i'll do that now and you see the first example here of how kind of the nd interface works for most of its tools it has this little pop-up menu that follows my cursor around i'm actually editing the radius value as i move the mouse but i can also type in a number",
+      "t": "在ND中，我们可以通过打开快速菜单并选择“重构多边形”来创建任意边数的平面形状。我现在就做，你可以看到ND界面如何工作。大多数工具都有这个跟随光标的小弹出菜单。我移动鼠标时实际上在编辑半径值，但也可以输入数字"
+    },
+    {
+      "s": 289680,
+      "d": 12720,
+      "o": "and for whatever reason on my setup and it might just be the way that i have my units set in my version of blender so this may be different for you but these numbers you can see there for the radius it says 550 right at the moment",
+      "t": "由于某种原因，在我的设置中（可能只是我Blender版本的单位设置方式，所以你可能不同），这些数字显示半径现在是550"
+    },
+    {
+      "s": 302400,
+      "d": 7280,
+      "o": "i know that i want it to be 1.65 which is half of the 3.3 this is a radius not a diameter",
+      "t": "我知道我想要1.65，这是3.3的一半，这是半径不是直径"
+    },
+    {
+      "s": 309680,
+      "d": 6079,
+      "o": "so that's the number i want but if i type 1.65 here it's going to create something very small",
+      "t": "所以就是我要的数字，但如果我在这里输入1.65，它会创建非常小的东西"
+    },
+    {
+      "s": 315759,
+      "d": 9280,
+      "o": "these numbers for me in the nd menus are need to be multiplied by a thousand by a factor of a thousand so what i can do here is type 1650",
+      "t": "对我来说，ND菜单中的这些数字需要乘以1000，所以我可以输入1650"
+    },
+    {
+      "s": 325039,
+      "d": 3600,
+      "o": "and i get the correct sized shape",
+      "t": "就得到了正确尺寸的形状"
+    },
+    {
+      "s": 328639,
+      "d": 32481,
+      "o": "now i i don't need a triangle i need a hexagon so you see the next thing down below radius here in my menu is segments and i can access that by holding down the alt key as it says right there and if i hold down alt i can either then drag the mouse um to change the segments or i can just type a number so i'll type six here and then we have our hexagon and we know that it's the right radius and we'll go ahead and hit enter to lock this in so now we have basically a flat hexagon here and we know it's the right size",
+      "t": "现在我不需要三角形，我需要六边形。你看菜单中半径下面下一个选项是“分段”，我可以按住Alt键（如所示），然后拖动鼠标改变分段数，或者直接输入数字。我输入6，就得到了六边形，我们知道半径是正确的。按回车锁定，现在我们有一个扁平的六边形，尺寸正确"
+    },
+    {
+      "s": 361120,
+      "d": 14160,
+      "o": "we can then again we hit our fast menu and we can choose solidify which allows us to create some thickness to it and again i'm going to type in a number because i know that it i need it to be 2.5 millimeters high",
+      "t": "然后再次打开快速菜单，选择“实体化”，这样就能添加厚度。我输入数字，因为我知道高度需要2.5毫米"
+    },
+    {
+      "s": 375280,
+      "d": 7680,
+      "o": "so 2500 here and we can change the weighting with the w key as it says down there at the bottom of this pop-up menu",
+      "t": "所以这里输入2500，按W键可以改变权重（如弹出菜单底部所示）"
+    },
+    {
+      "s": 382960,
+      "d": 5600,
+      "o": "if i choose neutral it expands above and below the z-axis axis equally",
+      "t": "如果选择中性，它会沿Z轴上下均匀扩展"
+    },
+    {
+      "s": 388560,
+      "d": 20079,
+      "o": "but i can change it to positive if i want it to expand in the positive direction or in this case i'm going to expand it down below the axis because that will make it easier for us to build the fin part up on top at starting kind of at z equals 0. so that's good for me i'm going to lock that in as well with the enter key and now we have our peg",
+      "t": "但如果我想要它沿正方向扩展，我可以改为正。这里我打算在轴线下方扩展，因为这样更容易在上面构建鳍片部分，从Z=0开始。这样很好，我也按回车锁定，现在我们有了插销"
+    },
+    {
+      "s": 408639,
+      "d": 39521,
+      "o": "so next what i want to do is create that shape that goes above the peg and what we'll do here is again we'll open our fast menu in nd and we'll just create a single vertex and we're going to extrude this vertex and move it around um to create the shape we need for that unusual effect that's on top of the uh of the hexagon here so it creates this single vertex at the point zero zero i'm actually going to open up the i'm going to select the vertex and i'm going to open up this end menu so that i can just type in coordinates here because that's easier for me given that i've written down exactly what i need",
+      "t": "接下来我要创建插销上方的那个形状。再次打开ND快速菜单，创建一个顶点，然后挤出这个顶点并移动它，来创建六边形上方那个不寻常效果所需的形状。这个顶点在零点零处创建，我实际上要打开这个菜单，直接输入坐标，因为我记下了确切数值，这样更容易"
+    },
+    {
+      "s": 448160,
+      "d": 8960,
+      "o": "so we want to go in the y direction to i believe it's 2.2 millimeters so up there is kind of the top of our shape",
+      "t": "我们要沿Y方向移动，我认为是2.2毫米，那就是我们形状的顶部"
+    },
+    {
+      "s": 457120,
+      "d": 22079,
+      "o": "um then we're going to extrude this thing over this way and i'm gonna click anywhere because i'm gonna again just type the values i need so i know i want this x to be 1.1 um and i could have just extruded it in the x direction only so that i don't have to type the 2.2 again for the y but that's the next point",
+      "t": "然后我们往这边挤出，我随便点一下，因为又要输入数值。我知道X要设成1.1，我本来可以只沿X方向挤出，就不用重复输入Y的2.2了，但这是下一个点"
+    },
+    {
+      "s": 479199,
+      "d": 11921,
+      "o": "then we'll extrude down this way and we want this one to be at 2.1 and 1.1 so that's there",
+      "t": "然后往这边挤出，这个点要在2.1和1.1，就是这样"
+    },
+    {
+      "s": 491120,
+      "d": 25279,
+      "o": "and then we extrude again somewhere down this way is where we want to be and the actual values are 1.4 and negative 2.3 and then we're gonna extrude this again and we'll extrude it just in the x direction and we'll put it over here",
+      "t": "然后再挤出一个地方，我们想放在这里，实际值是1.4和-2.3，然后再挤出一次，只沿X方向，放在这里"
+    },
+    {
+      "s": 516399,
+      "d": 2560,
+      "o": "we want it to be at zero",
+      "t": "我们希望它位于零"
+    },
+    {
+      "s": 518959,
+      "d": 4880,
+      "o": "all right so we've got kind of half of this shape that we need here",
+      "t": "好了，我们有了所需形状的一半"
+    },
+    {
+      "s": 523839,
+      "d": 2881,
+      "o": "and that's all we need for now",
+      "t": "这样就够了"
+    },
+    {
+      "s": 526720,
+      "d": 18080,
+      "o": "we can mirror this to create the other half and so what i'm going to do is first of all i'm going to open up the fast menu and i'm going to say make manifold which fills this thing in right so now we have kind of this flat plane that represents half of the shape we're trying to make sitting up here on top of our peg",
+      "t": "我们可以镜像这个来创建另一半。首先打开快速菜单，选择“制造流形”，把这个填满。现在我们就有了一个平面，代表我们想要形状的一半，位于插销上方"
+    },
+    {
+      "s": 544800,
+      "d": 6800,
+      "o": "and let's go ahead and solidify this in the same way that we did with the peg itself",
+      "t": "我们像对插销一样对这里进行实体化"
+    },
+    {
+      "s": 551600,
+      "d": 14640,
+      "o": "so again open the fast menu and solidify is the choice and we've got some depth and i know in this case i want it to be 0.75 millimeters so we go 7500 no 750 that's correct",
+      "t": "再次打开快速菜单，选择实体化，有深度。我知道这里想要0.75毫米，所以输入750，不对，是750，正确"
+    },
+    {
+      "s": 566240,
+      "d": 5360,
+      "o": "um and we want this one to weight probably down as well",
+      "t": "我们希望权重也向下"
+    },
+    {
+      "s": 571600,
+      "d": 11600,
+      "o": "um so that we're again we're kind of leaving the zero point of the z-axis at the spot where that where we're gonna build on top of this peg so i'll go ahead and lock that in",
+      "t": "这样我们又保留了Z轴的零点位置，以便在插销上方构建。我锁定它"
+    },
+    {
+      "s": 583200,
+      "d": 16880,
+      "o": "and just to keep this weird overlap from happening right here i'm gonna grab this hexagon and i'm gonna g to move it and move it in the z direction i'm going to move it like minus 0.1 just down a tiny bit so that way it's sitting slightly below this",
+      "t": "为了避免这里出现奇怪的重叠，我选中六边形，按G移动，在Z方向移动-0.1，稍微向下一点，这样它就在这个下方"
+    },
+    {
+      "s": 600080,
+      "d": 4400,
+      "o": "and then we don't get this weird overlap where the two pieces intersect",
+      "t": "这样就不会有奇怪的重叠了"
+    },
+    {
+      "s": 604480,
+      "d": 12799,
+      "o": "so here we'll open the fast menu again and we'll choose mirror and it's already by default selected the right thing which is to mirror along the x-axis and that's what we wanted",
+      "t": "再次打开快速菜单，选择镜像，默认已经选择了沿X轴镜像，这正是我们想要的"
+    },
+    {
+      "s": 617279,
+      "d": 4961,
+      "o": "so we can go ahead and just hit enter to confirm this",
+      "t": "直接按回车确认"
+    },
+    {
+      "s": 622240,
+      "d": 5520,
+      "o": "and then now we have our shape so this should be exactly what we need",
+      "t": "现在我们有了这个形状，应该正好是我们需要的"
+    },
+    {
+      "s": 627760,
+      "d": 5280,
+      "o": "for to fill in that space on the arm of the kit",
+      "t": "用来填充套件手臂上的那个空间"
+    },
+    {
+      "s": 633040,
+      "d": 6400,
+      "o": "with the hexagonal peg and then this plate on top of it so on top of this we can build whatever we want",
+      "t": "六边形插销加上这个上面的平板，然后在上面我们可以构建任何我们想要的东西"
+    },
+    {
+      "s": 639440,
+      "d": 3040,
+      "o": "and the dimensions don't really matter anymore",
+      "t": "尺寸就不再重要了"
+    },
+    {
+      "s": 642480,
+      "d": 11919,
+      "o": "we just want to build something that looks nice we don't really care so much you know the exact dimensions so that's nice so i'm going to go into side view here and i'm going to close this end panel just so we have a little bit more space",
+      "t": "我们只是想构建好看的东西，不再关心精确尺寸，这样很好。我转到侧视图，关闭这个面板，以便有更多空间"
+    },
+    {
+      "s": 654399,
+      "d": 9601,
+      "o": "and let's move this kind of down this way because i think what we want is to create this wing section kind of up going up into the left here",
+      "t": "把这个往下移一些，因为我认为我们要创建的这个机翼部分应该向上向左延伸"
+    },
+    {
+      "s": 664000,
+      "d": 5760,
+      "o": "and we'll do that again with the fast menu and just starting with a single vertex",
+      "t": "再次使用快速菜单，从一个顶点开始"
+    },
+    {
+      "s": 669760,
+      "d": 10800,
+      "o": "so this single vertex that got created at the origin we're gonna move it along the y-axis and we're gonna move it out here somewhere",
+      "t": "这个在原点创建的顶点，我们沿Y轴移动，移到外面某个地方"
+    },
+    {
+      "s": 680560,
+      "d": 4640,
+      "o": "so maybe something like that let's zoom out just a tiny bit more all right cool",
+      "t": "大概这样，再放大一点，好了"
+    },
+    {
+      "s": 685200,
+      "d": 6400,
+      "o": "so let's extrude it up this way",
+      "t": "然后往这个方向挤出"
+    },
+    {
+      "s": 691600,
+      "d": 6880,
+      "o": "these are the the big grid units here are millimeters i believe yeah they are so this is about two millimeters up",
+      "t": "这些大网格单位应该是毫米，是的，所以这大约向上两毫米"
+    },
+    {
+      "s": 698480,
+      "d": 2960,
+      "o": "um that seems okay",
+      "t": "看起来可以"
+    },
+    {
+      "s": 701440,
+      "d": 5200,
+      "o": "then we'll extrude it again way up this way somewhere",
+      "t": "然后再往这个方向挤出很远"
+    },
+    {
+      "s": 706640,
+      "d": 8480,
+      "o": "extrude it just along the y to create kind of this back part of the fin",
+      "t": "只沿Y方向挤出，形成机翼的后部"
+    },
+    {
+      "s": 715120,
+      "d": 9920,
+      "o": "extrude it back down i'm going to roughly try to line it up with that vertically with that part on the front",
+      "t": "再向下挤出，我大致想让它与前面的部分在垂直方向对齐"
+    },
+    {
+      "s": 725040,
+      "d": 1919,
+      "o": "so about there",
+      "t": "大概这里"
+    },
+    {
+      "s": 726959,
+      "d": 5120,
+      "o": "and then we'll extrude it again kind of down to here",
+      "t": "然后再挤到这里"
+    },
+    {
+      "s": 732079,
+      "d": 4241,
+      "o": "and we actually want this point to hit the y-axis directly",
+      "t": "实际上我们希望这个点正好在Y轴上"
+    },
+    {
+      "s": 736320,
+      "d": 13440,
+      "o": "i could have turned on snapping to make that happen but i won't worry about it right now i will instead just open this up and make sure that we are at um zero on the z axis here",
+      "t": "我本来可以打开捕捉，但现在不这么做，而是打开这个，确保Z轴在零"
+    },
+    {
+      "s": 749760,
+      "d": 11199,
+      "o": "all right so now we have this shape which is going to become our fin it's not three-dimensional or anything it's just kind of our rough sketch there of what the shape should be",
+      "t": "好了，现在我们有了这个形状，将成为我们的机翼。它还不是三维的，只是我们粗略的草图"
+    },
+    {
+      "s": 760959,
+      "d": 10161,
+      "o": "and we can first of all choose make manifold here from our fast menu which closes that up and fills it in makes it an actual shape",
+      "t": "首先从快速菜单中选择“制造流形”，闭合填充，使之成为实际形状"
+    },
+    {
+      "s": 771120,
+      "d": 5760,
+      "o": "so again it's still two-dimensional it's just flat along the x-axis",
+      "t": "再次强调，它还是二维的，只是沿X轴扁平"
+    },
+    {
+      "s": 776880,
+      "d": 11040,
+      "o": "um and so let's go ahead and solidify this and here we'll pull it out",
+      "t": "然后我们实体化，拉出来"
+    },
+    {
+      "s": 787920,
+      "d": 13280,
+      "o": "i'm not sure exactly how much i want to pull it out so i just did a little bit there and we'll kind of look at it now here's one thing you can do with this non-destructive type of modeling so i went ahead and locked that in that solidify",
+      "t": "我不确定要拉出多少，就先拉了一点。现在看看，这是非破坏性建模的好处之一。我锁定了那个实体化"
+    },
+    {
+      "s": 801200,
+      "d": 9360,
+      "o": "however maybe it's not exactly as wide as i would like it to be right maybe i want this to be a little bit wider i think i actually do like if we look at it from the top here",
+      "t": "但也许宽度不是我想要的，也许我想更宽一点。从上面看"
+    },
+    {
+      "s": 810560,
+      "d": 2560,
+      "o": "it's it's pretty skinny so what you can",
+      "t": "它很细，所以你可以"
+    },
+    {
+      "s": 813120,
+      "d": 20719,
+      "o": "do is you can go over here to the modifier stack in blender and you can see that um here is our solidification modifier that the nd tool added for us and all of its parameters are here and editable by us so right now we have actually made this thing 1.05 millimeters thick but i can drag here or i can just type a",
+      "t": "在Blender的修改器堆栈中，看到ND工具为我们添加的实体化修改器，所有参数都可编辑。现在厚度是1.05毫米，但我可以拖动或输入"
+    },
+    {
+      "s": 833839,
+      "d": 6800,
+      "o": "new number so if i want it to be two millimeters there it goes and now it's nice and wide which at the base of it i think i like",
+      "t": "新数值。如果我想两毫米，就这样，现在它变得很宽，底部宽度我喜欢"
+    },
+    {
+      "s": 840639,
+      "d": 8721,
+      "o": "that width right now i do want it to taper up near the top and we'll take care of that in a bit but yeah as a starting point that should",
+      "t": "现在顶部需要逐渐变细，我们稍后处理，但作为起点应该"
+    },
+    {
+      "s": 849360,
+      "d": 4400,
+      "o": "work i like it okay so",
+      "t": "可以，我喜欢这样。好的，"
+    },
+    {
+      "s": 853760,
+      "d": 18480,
+      "o": "if i wanted to to change the shape i can also do that right so if i select this and i go into edit mode nd remembers that original shape that we've built this from so those points are still there also and editable by me so if i want to for example just grab",
+      "t": "如果我想改变形状，也可以。选中这个进入编辑模式，ND记住了我们构建的原始形状，那些点仍然存在并可编辑。比如我想抓住"
+    },
+    {
+      "s": 872240,
+      "d": 16240,
+      "o": "these two and move them you know up here because i want it to be a bigger wing and maybe add a little bit more bulk to it as well by moving these along the y-axis this way we could do something like that",
+      "t": "这两个点移动到上面，让机翼更大，或者沿Y轴移动增加体积，可以这样做"
+    },
+    {
+      "s": 888480,
+      "d": 2000,
+      "o": "um so all of this",
+      "t": "所以所有这些"
+    },
+    {
+      "s": 890480,
+      "d": 6719,
+      "o": "is editable and it changes our three-dimensional shape as you would expect so that's nice um",
+      "t": "都是可编辑的，并且会如预期改变三维形状，这很好。"
+    },
+    {
+      "s": 897199,
+      "d": 13440,
+      "o": "all right so given that let's go ahead and add the taper effect up here at the top of this shape so i don't know if it'll be in our fast menu or not it looks like the option i want is not",
+      "t": "好的，既然如此，我们给形状顶部添加渐变效果。不确定快速菜单里有没有，看起来没有"
+    },
+    {
+      "s": 910639,
+      "d": 8481,
+      "o": "so i'll hit shift 2 and open up the full menu and what we want here is deform there's two different versions of deform and the one we're going to need to use",
+      "t": "按Shift+2打开完整菜单，我们想要“变形”，有两个版本，我们需要用"
+    },
+    {
+      "s": 919120,
+      "d": 15839,
+      "o": "here is the more complicated or the more powerful one which is lattice so we choose this and what indie does here is it draws this box this rectangle around our shape for us and actually this is",
+      "t": "更复杂或更强大的那个，即“晶格”。选择后，ND在我们形状周围绘制了这样一个矩形框，实际上这"
+    },
+    {
+      "s": 934959,
+      "d": 11761,
+      "o": "all we're going to need we don't need to add more segments to this box so i'm going to lock that in like that and now we can go in and edit this lattice so what we want to do is grab the top of",
+      "t": "就是我们需要的，不需要添加更多分段，所以锁定。现在进入编辑晶格，我们抓住顶部"
+    },
+    {
+      "s": 946720,
+      "d": 7840,
+      "o": "this thing and we're going to scale it maybe we'll view it yeah we can view it",
+      "t": "然后缩放，也许从这个角度看"
+    },
+    {
+      "s": 954560,
+      "d": 10719,
+      "o": "from this angle that'll be fine so we'll we want to scale this thing but only on the x-axis right to shrink it in like so and so what that's doing is it's",
+      "t": "可以。我们想只沿X轴缩放，向内收缩，这样"
+    },
+    {
+      "s": 965279,
+      "d": 5120,
+      "o": "squishing our shape in and you can't see it in real time",
+      "t": "就会压扁我们的形状，但你看不到实时变化"
+    },
+    {
+      "s": 970399,
+      "d": 6641,
+      "o": "because i'm editing the lattice itself but when i tab back out of here",
+      "t": "因为我正在编辑晶格本身，当我按Tab退出时"
+    },
+    {
+      "s": 977040,
+      "d": 18640,
+      "o": "it should have made a little bit of a difference and it's actually not tapered quite as much as i would like here so i can go back in here again and scale on the x we might actually need to scale it oops i chose z scale on the x we might actually need to flip it this way to get it nice and thin up top",
+      "t": "应该会有一些变化。实际上渐变得不够多，所以再进去，沿X轴缩放，也许需要翻转方向，使其顶部变得又细又尖"
+    },
+    {
+      "s": 995680,
+      "d": 1040,
+      "o": "yeah",
+      "t": "是的"
+    },
+    {
+      "s": 996720,
+      "d": 2559,
+      "o": "so that looks pretty good so now",
+      "t": "看起来不错。现在"
+    },
+    {
+      "s": 999279,
+      "d": 6240,
+      "o": "let's just go ahead and hide this lattice which we can do over here so now we have",
+      "t": "我们隐藏这个晶格，可以在这边操作。现在我们有了"
+    },
+    {
+      "s": 1005519,
+      "d": 8161,
+      "o": "this nice tapered effect at the top of our fin and again all of these are modifiers",
+      "t": "机翼顶部的漂亮渐变效果。同样，这些都是修改器"
+    },
+    {
+      "s": 1013680,
+      "d": 11519,
+      "o": "um that are just on our thing here so if we find it in the modifier stack it's this lattice modifier we can turn it off for example and we're back to this or we can go into",
+      "t": "附加在我们的物体上。在修改器堆栈中找到这个晶格修改器，可以关闭它，回到之前的状态，或者进入"
+    },
+    {
+      "s": 1025199,
+      "d": 16880,
+      "o": "it and edit its parameters and all of that sort of thing so none of this is ever applied in such a way that you you lose the ability to go back and edit things which is what i really like about it especially when i'm experimenting with a design um all right one last thing let's put",
+      "t": "编辑参数等。这些永远不会被应用到你无法返回编辑的地步，这是我喜欢它的原因，尤其在设计实验时。好了，最后一件事，添加"
+    },
+    {
+      "s": 1042079,
+      "d": 17361,
+      "o": "that panel line in and then we'll be done with this for now so i'm going to zoom in just a touch so that we can see a little bit better and i'm going to turn on snapping i'm going to snap just to the grid i guess yeah we'll snap increments of the grid",
+      "t": "面板线，然后暂时完成。我稍微放大一点以便看清楚，打开捕捉，捕捉到网格增量"
+    },
+    {
+      "s": 1059440,
+      "d": 6560,
+      "o": "just to make it easier to draw this this shape that we want to draw here so again we're going to",
+      "t": "以便更容易绘制我们想要的形状。再次"
+    },
+    {
+      "s": 1066000,
+      "d": 17360,
+      "o": "start with a single point single vertex and we're going to move it up kind of outside of the shape but up here so no i guess we're going to go this way",
+      "t": "从一个单点/顶点开始，把它移动到形状外部上方，但这里，不，我们要走这边"
+    },
+    {
+      "s": 1083360,
+      "d": 10720,
+      "o": "and then up and meet the back so we'll go about halfway up this first segment here and we'll drop it right about there i'm going to hit alt z to make this",
+      "t": "然后向上贴合后部。大概在第一段的一半位置，放在这里。按Alt+Z使这些"
+    },
+    {
+      "s": 1094080,
+      "d": 27760,
+      "o": "thing all these objects uh semi-transparent for a minute just so we can see what we're doing as we're working inside of this because you know these points are going to be a long they're going to be flush with the y with you know x equals 0 here so they're going to go inside of this shape they're going to be hard to see so we're going to extrude this one only in the y and we're going to bring it out to i don't know about here let's say then we're going to extrude it again and",
+      "t": "物体半透明，以便看清内部操作，因为这些点将位于Y轴（X=0）处，会进入形状内部难以看见。我们只沿Y方向挤出，拉到大约这里，然后再挤出"
+    },
+    {
+      "s": 1121840,
+      "d": 8160,
+      "o": "i'm going to hold down the control key to snap and i'm going to get something that looks kind of like a 45 degree angle i could zoom in and get much more",
+      "t": "按住Ctrl键捕捉，得到一个大约45度角。可以放大更精确"
+    },
+    {
+      "s": 1130000,
+      "d": 4960,
+      "o": "precise but this is probably fine and then we're going to extrude again on",
+      "t": "但这样大概可以。然后再沿"
+    },
+    {
+      "s": 1134960,
+      "d": 6160,
+      "o": "the y-axis and we're going to come out here outside of the shape back here so that's roughly where i want my panel",
+      "t": "Y轴挤出，拉到形状外部后方，这就是我想要面板线"
+    },
+    {
+      "s": 1141120,
+      "d": 4880,
+      "o": "line to uh to sit again it's just a single you know sort",
+      "t": "所在的位置。目前只是一维线状，但这是一个好的开始。现在"
+    },
+    {
+      "s": 1146000,
+      "d": 6960,
+      "o": "of one-dimensional line type shape for now but that's a good start and so now we",
+      "t": "我们可以对这个进行轮廓挤出，允许沿任意轴拉出，默认选择了X轴，正是我们需要的。我们把它加宽"
+    },
+    {
+      "s": 1152960,
+      "d": 14400,
+      "o": "can within the do a profile extrude on this which will allow us to pull it out on any axis and it's chosen the x-axis by default which is exactly what we want right and we'll make this nice and wide",
+      "t": "以确保比我们想要切割的薄部分更宽。好了，这就是"
+    },
+    {
+      "s": 1167360,
+      "d": 47199,
+      "o": "so that we're sure it's wider than our thin part that we were trying to cut it or cut with it so there we go so that's kind of the an example of where the center of our panel line will be of course we need some thickness to it so now that we've done that we can again open the fast menu we can solidify this thing and i'm going to type in the thickness here because i know i want a two millimeter panel line so for me again because it's a factor of a thousand that becomes two two hundred not a two millimeter panel and a point two millimeter panel line that makes more sense so we'll hit that and we'll go ahead and hit enter to lock this in so now we have this little three-dimensional object that we could use to cut out a panel line and we have to make sure we want to make",
+      "t": "面板线中心的大致位置。当然需要厚度。再次打开快速菜单，实体化这个东西，输入厚度。我知道想要0.2毫米的面板线，所以对我来说乘以1000就是200。按回车锁定。现在我们有了这个小的三维物体，可以用来切割面板线。确保它"
+    },
+    {
+      "s": 1214559,
+      "d": 20801,
+      "o": "sure that it's overlapping that it's sticking out from the surface that we're trying to cut in all directions i'm going to turn back on solid mode here we were still in that x-ray mode so maybe we can see this a little bit better so that's what we're doing and we can open the fast menu i believe that it will be predicted here what we want to do actually it looks like maybe not oh",
+      "t": "在我们要切割的表面所有方向上突出。我切换回实体模式，之前还是X光模式。现在可以看到效果。打开快速菜单，预测可能显示我们想要的操作，看起来没有"
+    },
+    {
+      "s": 1235360,
+      "d": 17760,
+      "o": "because i don't have the right thing selected so when you do boolean type operations with nd you have to of course select two objects so this is the object that we're cutting with and then we'll shift select this is the object that we're cutting into so now if we fast predict we can um",
+      "t": "因为我没有选中正确对象。在ND中进行布尔操作时，必须选择两个对象。这是切割用的对象，然后按住Shift选择被切割的对象。现在快速预测，我们可以"
+    },
+    {
+      "s": 1253120,
+      "d": 6640,
+      "o": "you know we could do a difference for example which would just cut that out completely um so then we have a gap there and",
+      "t": "进行“差集”，把那个部分完全切掉，这样就会出现一个缺口"
+    },
+    {
+      "s": 1259760,
+      "d": 4960,
+      "o": "that's not what we want but it was worth probably showing it to you you know they have union intersection",
+      "t": "那不是我们想要的，但可能值得展示一下。还有并集、交集"
+    },
+    {
+      "s": 1264720,
+      "d": 19680,
+      "o": "and so on but the thing we want is inset outset and particular for us we want an inset so you can see as i drag my mouse here we're actually getting a nice inset that follows the shape that we drew for our panel line and with the thickness parameter here you know we can just eyeball it or i could type in a number um i think i probably want it to be",
+      "t": "等等。但我们想要的是“嵌入”和“凸出”，特别是“嵌入”。你可以看到拖动鼠标时，我们得到了一个漂亮的嵌入，沿着我们为面板线绘制的形状。这里的厚度参数，我们可以目测或输入数字。我想大概"
+    },
+    {
+      "s": 1284400,
+      "d": 9040,
+      "o": "about four millimeter point four millimeters deep so we'll go 400 there we'll hit enter and we'll go ahead and hide both of",
+      "t": "0.4毫米深，所以输入400，按回车。隐藏这两个"
+    },
+    {
+      "s": 1293440,
+      "d": 9520,
+      "o": "these cutter objects that it creates here for us and so there we have our nice panel line on the outside of our",
+      "t": "切割器对象，我们就得到了外面漂亮的嵌面板线"
+    },
+    {
+      "s": 1302960,
+      "d": 6160,
+      "o": "um our thing here so that's kind of what we had in mind right this uh",
+      "t": "这就是我们设想的，这个"
+    },
+    {
+      "s": 1309120,
+      "d": 9439,
+      "o": "wing shaped piece it hopefully fits perfectly into the arm of of the model that i was building um i will go ahead and export this thing",
+      "t": "翼形零件应该能完美贴合我制作的模型手臂。我将导出这个"
+    },
+    {
+      "s": 1318559,
+      "d": 4721,
+      "o": "as an stl and send it over to my 3d printer and um",
+      "t": "为STL文件，发送到我的3D打印机，"
+    },
+    {
+      "s": 1323280,
+      "d": 3279,
+      "o": "print out exactly what we've built here and then we'll come back to the",
+      "t": "打印出我们构建的零件，然后回到"
+    },
+    {
+      "s": 1326559,
+      "d": 8480,
+      "o": "workbench and with the printed result and see if it fits there into the forearm of our model kit so i'll do that it'll take me a little while but for you",
+      "t": "工作台，用打印好的结果看看是否贴合模型套件的前臂。我现在就去打印，需要一点时间，但对你来说"
+    },
+    {
+      "s": 1335039,
+      "d": 5441,
+      "o": "it'll just be a second and i'll be right back and we're back",
+      "t": "只是一瞬间，我马上回来。我们回来了"
+    },
+    {
+      "s": 1340480,
+      "d": 1760,
+      "o": "fresh off the printer",
+      "t": "刚从打印机上取下来"
+    },
+    {
+      "s": 1342240,
+      "d": 4480,
+      "o": "here is our part i printed it with some older resin that",
+      "t": "这是我们的零件，我用一些旧树脂打印的，"
+    },
+    {
+      "s": 1346720,
+      "d": 19760,
+      "o": "i use kind of for prototyping things um typically with this type of a project i will print a few test prints first before i do my final print so this was never meant to be the final result um but i do want to just break it off of the supports here and again i would be more careful if",
+      "t": "我通常用于原型制作。对于这类项目，我通常会在最终打印前先打印几个测试件，所以这不是最终结果。但我想把它从支撑上拆下来，如果是最终打印我会更小心"
+    },
+    {
+      "s": 1366480,
+      "d": 5920,
+      "o": "this was the final print but that should be fine um it left a few little bumps here that",
+      "t": "但这应该没问题。这里留下了一些小凸起"
+    },
+    {
+      "s": 1372400,
+      "d": 8960,
+      "o": "i don't think will impact the fit and really i just wanted to take a look at it and then test it out to see if it fits here in the kit so one thing i noticed right away is i",
+      "t": "我认为不会影响贴合。我只是想看看效果，然后测试是否适合套件。我马上注意到"
+    },
+    {
+      "s": 1381360,
+      "d": 8960,
+      "o": "would probably change the taper on this fin it's very thin at the top probably a little thinner than i would like it to be and um",
+      "t": "我可能会改变这个机翼的渐变，顶部太薄了，可能比我想象的要薄一些。"
+    },
+    {
+      "s": 1390320,
+      "d": 6960,
+      "o": "yeah i might actually make the wing section itself still even a little bit bigger than it is here so the nice thing about the workflow",
+      "t": "是的，我可能还会把机翼部分做得更大一点。好在刚才我们在Blender中使用的工作流程"
+    },
+    {
+      "s": 1397280,
+      "d": 7200,
+      "o": "that we used uh in blender just now is that all of those things are easy to change um and i can just go in and change the",
+      "t": "所有这些都很容易更改。我可以进入修改"
+    },
+    {
+      "s": 1404480,
+      "d": 18160,
+      "o": "parameters for thickness and that sort of thing and get this dialed in exactly like i want it and also if this doesn't fit in the arm perfectly we can tweak those parameters as well but let's see how this fits in here so i'm gonna just try to drop this right in here um and yeah it does fit pretty well um",
+      "t": "厚度等参数，精确调整到想要的效果。如果这个在手臂上不完全贴合，我们也可以调整那些参数。现在看看它的贴合度。我试着把它放进去，嗯，确实很合适"
+    },
+    {
+      "s": 1422640,
+      "d": 10480,
+      "o": "there's a little there's a little piece of our support that's right in there that's preventing this from pushing all the way down in the front but if i force it it'll be fine",
+      "t": "这里有个支撑的小碎片，阻止它完全推入前部，但如果用力点就没问题"
+    },
+    {
+      "s": 1433120,
+      "d": 2400,
+      "o": "and it fits in there it's nice and tight",
+      "t": "它放进去很紧"
+    },
+    {
+      "s": 1435520,
+      "d": 1759,
+      "o": "it's not going to fall out",
+      "t": "不会掉出来"
+    },
+    {
+      "s": 1437279,
+      "d": 28721,
+      "o": "so it achieved what i wanted which is to fill in this gap to add some extra detail um and to be a removable part so that we can pull this out and attach the shield on the arm there if we want to in the future so i can use this uh shape now and i think all of these are the same size i could use the hexagon peg and the little piece that's above it and create all kinds of other things on top of that to go in these other places around the kit maybe to mount weapons or to do other things like that",
+      "t": "所以达到了我想要的目的：填充这个空隙，增加额外细节，并且是可拆卸的，这样以后我们可以拔出来，在手臂上安装盾牌。现在我可以使用这个形状，我认为所有这些尺寸都一样，可以用六边形插销和上面那个小零件，在上面创建各种其他东西，装到套件其他位置，也许用于安装武器或做其他事情"
+    },
+    {
+      "s": 1466000,
+      "d": 23440,
+      "o": "yeah so i hope that helped give you an idea of kind of the workflow that i use to design a custom part if you have any questions or comments or tips this is all a process that i'm still just getting started with and figuring out myself so i appreciate any feedback that you have or any questions you have down in the comments i can make more of these kind of videos if it's something you're interested in let me know",
+      "t": "是的，希望这让你了解了我设计定制零件的工作流程。如果你有任何问题、评论或建议，这整个过程我还在起步阶段，自己也在摸索，所以很感激任何反馈或问题，请在评论区留言。如果你们感兴趣，我可以制作更多这类视频，让我知道"
+    },
+    {
+      "s": 1489440,
+      "d": 5400,
+      "o": "and until next time happy building",
+      "t": "下次见，祝制作愉快"
+    }
+  ],
+  "createdAt": 1784220825080
+}
