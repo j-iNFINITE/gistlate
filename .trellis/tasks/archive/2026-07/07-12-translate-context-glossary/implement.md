@@ -115,8 +115,8 @@ Validation/rollback point:
       full-scope acceptance coverage.
 - [x] Update frontend specs with any durable contract learned during implementation,
       especially force-retranslation state and range-capping alignment rules.
-- [ ] Record session progress in the developer journal.
-- [ ] Commit the implementation and planning/spec updates with a focused message.
-- [ ] Archive this child task only after every acceptance criterion passes.
-- [ ] Update the parent task's completion state; leave word-level segmentation as
+- [x] Record session progress in the developer journal.
+- [x] Commit the implementation and planning/spec updates with a focused message.
+- [x] Archive this child task only after every acceptance criterion passes.
+- [x] Update the parent task's completion state; leave word-level segmentation as
       the remaining child.
