@@ -45,7 +45,7 @@ In-page modal with dark theme:
 
 - Always destroy/recreate the overlay on SPA navigation
 - Never leave the overlay or styles in the DOM after destroy
-- Settings panel uses `escapeHtml()` on all user-controlled values set via innerHTML
+- Build panel DOM with `createElement` + `textContent`; never use `innerHTML`
 
 ## Live-restyle via CSS custom properties
 
@@ -79,10 +79,19 @@ insertBefore/idempotency rules.
 
 ## Transient status pill
 
-`status.ts` shows a non-interactive pill on `#movie_player` during a fresh
-(cache-miss) translation only — wired via a `resolveTranslation(..., onTranslating)`
-hook that fires just before `translateAllCues`, so cache hits stay silent. Auto
+`status.ts` shows a non-interactive pill on `#movie_player` during a genuine
+translation (cache miss or explicit force) — wired via a
+`resolveTranslation(..., { onTranslating })` hook that fires just before
+`translateAllCues`, so cache hits stay silent. Auto
 -hides terminal states; `destroyStatus()` on SPA nav.
+
+## Explicit retranslation action
+
+Retranslation is a low-frequency, quota-consuming operation, so expose it through
+`GM_registerMenuCommand('Gistlate 重新翻译当前视频', ...)`, not another permanent
+player button. Require confirmation before bypassing caches. Reuse the existing
+status pill while work runs and leave the current overlay cues untouched until a
+complete replacement succeeds.
 
 ## Overlay positioning on the YouTube player
 

@@ -11,6 +11,16 @@ A single `Store` instance (`src/core/store.ts`) holds:
 - `currentTime: number` — playback position in ms (updated by rAF/timeupdate)
 - `AbortController` — cancels in-flight translation on SPA navigation
 
+`src/main.ts` separately owns the captured original-track snapshot:
+
+- `CurrentTrack { videoId, srcLang, fragments }` — cleaned source fragments used
+  for initial translation and explicit retranslation
+- `translatingVideoId` — in-flight state only; cleared in `finally`
+
+Do not derive `CurrentTrack` from `store.subtitle` after translation: Store cues
+have already been reconstructed into sentence/display ranges and no longer
+contain the original fragment boundaries required for safe retranslation.
+
 ### Subscriber Pattern
 
 ```ts
@@ -32,6 +42,10 @@ On SPA navigation or new subtitle track, call `store.reset()` to:
 ## Key Rules
 
 - Store is a singleton (`export const store = new Store()`)
-- Only `resolve.ts` writes `setSubtitle()`; the overlay only reads via subscriber
+- `main.ts` is the Store orchestration owner: it installs original cues, awaits
+  `resolve.ts`, then replaces them with the returned cached/fresh cues
 - `currentTime` is the only pub/sub field (triggers overlay re-render)
 - `AbortSignal` (via `store.signal`) is passed to all async operations
+- Explicit retranslation does not call `store.reset()` and does not clear current
+  cues. It replaces Store state only after full success.
+- Clear `CurrentTrack` and in-flight state on genuine video navigation.

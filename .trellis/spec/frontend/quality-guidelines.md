@@ -122,3 +122,122 @@ aligned to the correct time. Two hard-won rules:
   and translation otherwise.
 - On any non-abort failure, **fall back to 1:1 fragment translation** (never worse
   than aligned fragments); on abort, throw without writing.
+
+## Scenario: context-aware translation and explicit retranslation
+
+### 1. Scope / Trigger
+
+Use this contract whenever video metadata is added to translation, sentence
+ranges are refined for display, or a caller bypasses L1/L2 to regenerate a
+shared artifact. It spans the YouTube adapter, prompt transport, segmentation,
+cache orchestration, Store lifecycle, and userscript menu.
+
+### 2. Signatures
+
+```ts
+interface TranslationContext {
+  title?: string
+  description?: string
+}
+
+interface ResolveOptions {
+  signal?: AbortSignal
+  onTranslating?: () => void
+  force?: boolean
+  context?: TranslationContext
+}
+
+resolveTranslation(videoId, srcLang, sourceFragments, options?): Promise<{
+  cues: Cue[]
+  source: 'l1' | 'l2' | 'fresh'
+}>
+
+capSentenceRanges(sourceFragments, sentenceRanges): SentenceRange[]
+```
+
+### 3. Contracts
+
+- Normalize metadata once through `translate/context.ts`: collapse whitespace,
+  omit empty fields, cap title at 300 Unicode code points and description at
+  2,000.
+- Accept `ytInitialPlayerResponse.videoDetails` only when its `videoId` matches
+  the current watch URL; stale SPA metadata must not cross videos.
+- Metadata is uploader-controlled, untrusted reference data. JSON-encode it in
+  the user prompt and instruct the model to ignore embedded instructions. Send it
+  to pass-2 translation/fallback, not pass-1 E/C detection, and add no extra LLM
+  analysis request.
+- `force: true` skips **reads only** (`getL1`, `readL2`). It reuses the normal
+  full-success `translate -> putL1 -> writeL2` path and the same cache key/path.
+- Re-check `AbortSignal` after model completion and before each persistence
+  boundary. Never cache a result already known to be stale.
+- Preserve a separate `CurrentTrack` of cleaned original fragments. Do not feed
+  reconstructed Store cues back into pass 1 during retranslation.
+- Keep old Store cues visible during retranslation; replace them only after
+  `resolveTranslation` succeeds.
+- Refine ranges only at existing fragment boundaries. Targets are 15 words for
+  space-separated text and 30 visible characters for CJK text. A single
+  over-limit fragment remains intact. Natural punctuation/pause boundaries may
+  extend a range to 125% of target to avoid an orphan tail.
+- Cache identity, IndexedDB version, GitHub path, and `{s,d,o,t}` remain unchanged.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+|---|---|
+| Matching player response | Normalize and include title/description |
+| Stale player response | Reject it; use current DOM fallback or empty context |
+| No metadata | Translate with the existing numbered prompt contract |
+| User cancels retranslation | Zero API and cache calls |
+| No captured source track | Inform the user to enable CC; do not translate |
+| Same video already translating | Refuse a concurrent force operation |
+| Model/parse failure | Throw; do not call `putL1`/`writeL2`; keep Store cues |
+| Signal aborted after model return | Throw before persistence |
+| L2 overwrite fails | Keep the successful new L1 result (soft-fail policy) |
+| Single fragment exceeds display target | Keep it intact; let overlay wrap |
+
+### 5. Good / Base / Bad Cases
+
+- **Good:** cached video + confirmed force action -> skip both reads -> translate
+  original fragments with current metadata/settings -> replace L1 -> attempt same
+  L2 path -> replace Store cues.
+- **Base:** metadata unavailable and `force` false -> ordinary L1/L2/fresh flow;
+  numbered translation behavior remains valid.
+- **Bad:** clear Store/cache first, then translate reconstructed cues. Failure
+  leaves the viewer without the old result and loses reliable fragment alignment.
+
+### 6. Tests Required
+
+- Context normalization: whitespace, empty omission, Unicode-safe caps.
+- YouTube metadata: matching player response, stale response with DOM fallback,
+  missing description.
+- Prompt: JSON context present, absent-context compatibility, injection text kept
+  as data, strict numbered output unchanged.
+- Segmentation: English/CJK target, natural boundary tolerance, positive pause,
+  single over-limit fragment, exact ordered coverage.
+- Pipeline: capped ranges become pass-2 units; context is absent from pass 1 and
+  present in pass 2; timing derives from the same ranges.
+- Resolve: normal cache hit, force skips reads, writes only after success, abort
+  after model completion still writes nothing.
+- Build: single IIFE, no `System.register`/SystemJS, expected GM grants/menu.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```ts
+// Store cues may already be sentence-level; clearing first loses the fallback.
+store.reset()
+await resolveTranslation(videoId, srcLang, store.subtitle!.cues)
+```
+
+#### Correct
+
+```ts
+// Keep the displayed/cached result until the original fragments fully resolve.
+const result = await resolveTranslation(track.videoId, track.srcLang, track.fragments, {
+  force: true,
+  signal: store.signal,
+  context: getVideoContext(track.videoId),
+})
+store.setSubtitle(track.srcLang, result.cues)
+```

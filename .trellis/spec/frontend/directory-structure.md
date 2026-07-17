@@ -14,12 +14,15 @@ src/
     netHook.ts           # unsafeWindow.fetch + XMLHttpRequest patch (observe-only)
   subtitles/
     timedtext.ts         # YouTube timedtext API types + JSON→Cue[] parser
+    clean.ts             # Strip non-speech annotations before segmentation
     cues.ts              # findCueAt, getCuesToTranslate helpers
   translate/
+    context.ts           # Bounded title/description context contract
     lang.ts              # BCP-47 normalization + language name mapping
     prompt.ts            # Prompt templates + numbered output parser
     openai.ts            # OpenAI-compatible batch translate via gmFetch
-    pipeline.ts          # Chunk→concurrent pool→assemble→validate orchestration
+    segment.ts           # Boundary ranges, display-length cap, timed Cue assembly
+    pipeline.ts          # Two-pass boundary→range→translation orchestration
   cache/
     key.ts               # CacheKeyInput type + cacheKey/shard/repoPath helpers
     l1.ts                # IndexedDB per-video cache (idb wrapper)
@@ -30,6 +33,9 @@ src/
   ui/
     overlay.ts           # DOM overlay (#movie_player, two stacked divs)
     settings-panel.ts    # In-page modal settings form
+    style-panel.ts       # Docked WYSIWYG subtitle style editor
+    style-button.ts      # Re-injectable player Aa button
+    status.ts            # Fresh/retranslation status pill
 ```
 
 Only `src/main.ts` is the entry. All other modules are imported transitively.
