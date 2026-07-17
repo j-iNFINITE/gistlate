@@ -1,7 +1,21 @@
+import { unsafeWindow } from '$'
+import {
+  normalizeTranslationContext,
+  type TranslationContext,
+} from './translate/context'
+
 /**
  * YouTube-specific helpers: video ID extraction, SPA navigation detection,
  * programmatic caption toggling.
  */
+
+interface PlayerResponse {
+  videoDetails?: {
+    videoId?: string
+    title?: string
+    shortDescription?: string
+  }
+}
 
 let videoIdCache: string | null = null
 
@@ -21,6 +35,46 @@ export function getPlayer(): HTMLElement | null {
 /** Get the native <video> element inside the player. */
 export function getVideoElement(): HTMLVideoElement | null {
   return document.querySelector<HTMLVideoElement>('#movie_player video')
+}
+
+/**
+ * Read reference-only metadata for the current watch video.
+ *
+ * YouTube may leave the previous `ytInitialPlayerResponse` visible briefly
+ * during SPA navigation, so player-response metadata is accepted only when its
+ * video ID matches the expected/current URL. DOM metadata is a soft fallback.
+ */
+export function getVideoContext(
+  expectedVideoId: string | null = getVideoId(),
+): TranslationContext {
+  const pageWindow = unsafeWindow as typeof unsafeWindow & {
+    ytInitialPlayerResponse?: PlayerResponse
+  }
+  const details = pageWindow.ytInitialPlayerResponse?.videoDetails
+  const matchingDetails =
+    expectedVideoId && details?.videoId === expectedVideoId ? details : undefined
+
+  const title =
+    matchingDetails?.title ||
+    firstMetaContent(['meta[itemprop="name"]', 'meta[property="og:title"]']) ||
+    document.title.replace(/\s*-\s*YouTube\s*$/i, '')
+  const description =
+    matchingDetails?.shortDescription ||
+    firstMetaContent([
+      'meta[itemprop="description"]',
+      'meta[property="og:description"]',
+      'meta[name="description"]',
+    ])
+
+  return normalizeTranslationContext({ title, description })
+}
+
+function firstMetaContent(selectors: string[]): string {
+  for (const selector of selectors) {
+    const content = document.querySelector<HTMLMetaElement>(selector)?.content
+    if (content?.trim()) return content
+  }
+  return ''
 }
 
 /**

@@ -6,10 +6,19 @@ import { translateAllCues } from '../translate/pipeline'
 import { loadSettings, loadSecrets } from '../settings'
 import type { Source } from './store'
 import { normalizeLang } from '../translate/lang'
+import type { TranslationContext } from '../translate/context'
 
 export interface ResolveResult {
   cues: Cue[]
   source: Source
+}
+
+export interface ResolveOptions {
+  signal?: AbortSignal
+  onTranslating?: () => void
+  /** Skip L1/L2 reads, but retain the normal full-success write sequence. */
+  force?: boolean
+  context?: TranslationContext
 }
 
 /**
@@ -24,9 +33,9 @@ export async function resolveTranslation(
   videoId: string,
   srcLang: string,
   cues: Cue[],
-  signal?: AbortSignal,
-  onTranslating?: () => void,
+  options: ResolveOptions = {},
 ): Promise<ResolveResult> {
+  const { signal, onTranslating, force = false, context } = options
   const settings = loadSettings()
   const secrets = loadSecrets()
   const tgt = normalizeLang(settings.tgt)
@@ -35,7 +44,7 @@ export async function resolveTranslation(
   const keyInput = { videoId: videoId, src, tgt }
 
   // 1. L1 lookup
-  if (!signal?.aborted) {
+  if (!force && !signal?.aborted) {
     const cached = await getL1(key)
     if (cached) {
       console.log(`[Gistlate] L1 cache hit: ${key}`)
@@ -44,7 +53,7 @@ export async function resolveTranslation(
   }
 
   // 2. L2 lookup
-  if (!signal?.aborted && settings.github.owner) {
+  if (!force && !signal?.aborted && settings.github.owner) {
     const fromL2 = await readL2(settings.github, keyInput)
     if (fromL2) {
       console.log(`[Gistlate] L2 cache hit: ${key}`)
@@ -63,7 +72,12 @@ export async function resolveTranslation(
     settings.openai,
     secrets.openaiKey,
     signal,
+    context,
   )
+
+  // The model may finish at the same moment SPA navigation aborts this track.
+  // Re-check at the persistence boundary so a stale full result is not cached.
+  throwIfAborted(signal)
 
   // 4. Write to L1
   const entry: CacheEntry = {
@@ -78,7 +92,12 @@ export async function resolveTranslation(
   await putL1(entry)
 
   // 5. Write to L2 (soft-fail: L1 already has it)
+  throwIfAborted(signal)
   writeL2(settings.github, secrets.githubPat, entry).catch(() => {})
 
   return { cues: translated, source: 'fresh' }
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw new Error('Translation resolution aborted')
 }

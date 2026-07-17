@@ -6,7 +6,13 @@ import { parseTimedtext, type Cue } from './subtitles/timedtext'
 import { cleanCues } from './subtitles/clean'
 import { findCueAt } from './subtitles/cues'
 import { normalizeLang } from './translate/lang'
-import { getVideoId, onVideoChange, ensureCaptions, getVideoElement } from './youtube'
+import {
+  getVideoId,
+  getVideoContext,
+  onVideoChange,
+  ensureCaptions,
+  getVideoElement,
+} from './youtube'
 import { store } from './core/store'
 import { resolveTranslation } from './core/resolve'
 import { createOverlay, destroyOverlay } from './ui/overlay'
@@ -34,6 +40,12 @@ GM_registerMenuCommand('Gistlate 设置', () => {
 // ── GM menu command → live subtitle style panel ─────
 GM_registerMenuCommand('Gistlate 字幕样式', () => {
   openStylePanel()
+})
+
+// Low-frequency, quota-consuming action: keep it in the userscript menu rather
+// than adding another persistent player control.
+GM_registerMenuCommand('Gistlate 重新翻译当前视频', () => {
+  retranslateCurrentVideo()
 })
 
 // ── Overlay state ─────────────────────────────────────
@@ -103,6 +115,15 @@ const pollInterval = setInterval(() => {
 let handledTrackKey = ''
 let handledVideoId = ''
 
+interface CurrentTrack {
+  videoId: string
+  srcLang: string
+  /** Cleaned original fragments; never replace with reconstructed sentence cues. */
+  fragments: Cue[]
+}
+
+let currentTrack: CurrentTrack | null = null
+
 interceptTimedtext(({ json, params }) => {
   const rawLang = params.get('lang')
   const tlang = params.get('tlang')
@@ -129,7 +150,12 @@ interceptTimedtext(({ json, params }) => {
   // Strip non-speech annotations ([Music], 【音乐】, ♪, …) up front so they never
   // display and never pollute sentence segmentation. Pure-annotation cues drop.
   const cues = cleanCues(parseTimedtext(json))
-  if (cues.length === 0) return
+  if (cues.length === 0) {
+    currentTrack = null
+    return
+  }
+
+  currentTrack = { videoId, srcLang, fragments: cues }
 
   console.log(`[Gistlate] Captured ${cues.length} cues for video=${videoId} lang=${srcLang}`)
 
@@ -149,20 +175,32 @@ interceptTimedtext(({ json, params }) => {
 
 let translatingVideoId: string | null = null
 
-async function triggerTranslation(videoId: string, srcLang: string, cues: Cue[]): Promise<void> {
-  const tgt = normalizeLang(settings.tgt)
+async function triggerTranslation(
+  videoId: string,
+  srcLang: string,
+  cues: Cue[],
+  force = false,
+): Promise<void> {
+  // Settings can change after the userscript starts. Read them at each operation
+  // so explicit retranslation always uses the current target/API configuration.
+  const liveSettings = loadSettings()
+  const tgt = normalizeLang(liveSettings.tgt)
   const src = normalizeLang(srcLang)
 
   // Same language → no translation needed
   if (src === tgt) {
     console.log('[Gistlate] Source and target languages are the same, skipping translation')
+    if (force) window.alert('Gistlate：当前字幕语言与目标语言相同，无需重新翻译。')
     return
   }
 
   // Guard by videoId (not a global boolean): prevents translating the same
   // video twice (e.g. manual + ASR tracks firing), but never blocks a *new*
   // video whose interception arrives while an old translation is aborting.
-  if (translatingVideoId === videoId) return
+  if (translatingVideoId === videoId) {
+    if (force) window.alert('Gistlate：当前视频正在翻译，请完成后再试。')
+    return
+  }
   translatingVideoId = videoId
 
   // Capture the signal now; if navigation resets the store mid-flight, this
@@ -171,7 +209,12 @@ async function triggerTranslation(videoId: string, srcLang: string, cues: Cue[])
 
   try {
     console.log(`[Gistlate] Resolving translation: ${videoId} ${src}→${tgt}`)
-    const result = await resolveTranslation(videoId, src, cues, signal, showTranslating)
+    const result = await resolveTranslation(videoId, src, cues, {
+      signal,
+      onTranslating: showTranslating,
+      force,
+      context: getVideoContext(videoId),
+    })
 
     // Staleness guard: covers the cache-hit path where resolve returns fast
     // without re-checking the signal after its async lookups.
@@ -192,9 +235,35 @@ async function triggerTranslation(videoId: string, srcLang: string, cues: Cue[])
       console.warn('[Gistlate] Translation failed (will show original only):', e)
       showError()
     }
-    // Allow a retry on the next interception for this video
+  } finally {
+    // This is in-flight state, not a permanent "already translated" guard.
+    // Network-track duplicates remain blocked by handledTrackKey.
     if (translatingVideoId === videoId) translatingVideoId = null
   }
+}
+
+function retranslateCurrentVideo(): void {
+  const videoId = getVideoId()
+  const track = currentTrack
+
+  if (!videoId || !track || track.videoId !== videoId) {
+    window.alert(
+      'Gistlate：尚未捕获当前视频的原始字幕。请先打开 YouTube 字幕（CC）后重试。',
+    )
+    return
+  }
+
+  if (translatingVideoId === videoId) {
+    window.alert('Gistlate：当前视频正在翻译，请完成后再试。')
+    return
+  }
+
+  const confirmed = window.confirm(
+    '重新翻译会忽略现有缓存、调用当前配置的 LLM，并在完整成功后覆盖本地及 GitHub 翻译。是否继续？',
+  )
+  if (!confirmed) return
+
+  void triggerTranslation(track.videoId, track.srcLang, track.fragments, true)
 }
 
 // ── SPA navigation ────────────────────────────────────
@@ -213,6 +282,7 @@ onVideoChange(() => {
   translatingVideoId = null // allow the next video to translate
   handledTrackKey = '' // allow the next video's track to be handled
   handledVideoId = ''
+  currentTrack = null
   videoEl = null
   lastCueKey = ''
 })

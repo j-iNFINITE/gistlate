@@ -1,6 +1,7 @@
 import { gmFetch } from '../net/gm'
 import { fillPrompt, fillBoundaryPrompt, parseNumbered } from './prompt'
 import type { OpenAIConfig } from '../settings'
+import type { TranslationContext } from './context'
 
 const NEW_MODELS = new Set([
   'gpt-5-nano', 'gpt-5', 'gpt-5-mini', 'o1', 'o3-mini', 'o4-mini', 'o3',
@@ -50,10 +51,11 @@ export async function translateBatch(
   apiKey: string,
   signal?: AbortSignal,
   retries = 3,
+  context?: TranslationContext,
 ): Promise<string[]> {
   if (texts.length === 0) return []
 
-  const { system, user } = fillPrompt(texts, targetLang)
+  const { system, user } = fillPrompt(texts, targetLang, undefined, context)
 
   let lastError: Error | null = null
 

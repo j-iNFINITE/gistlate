@@ -82,6 +82,37 @@ describe('translateAllCues (two-pass: boundaries + sentence translation, with 1:
     expect(result[1]).toEqual({ s: 2000, d: 1000, o: 'Test', t: 'Prueba' })
   })
 
+  it('caps one long detected sentence before pass 2 and keeps video context', async () => {
+    const cues = makeCues(20)
+    mockGmFetch
+      .mockResolvedValueOnce(boundaryResp(`${'C'.repeat(19)}E`))
+      .mockResolvedValueOnce(numberedLabels(['Primera parte', 'Segunda parte']))
+
+    const result = await translateAllCues(
+      cues,
+      'es',
+      OPENAI_CFG,
+      'sk-test',
+      undefined,
+      { title: 'A long lesson', description: 'One continuous explanation.' },
+    )
+
+    expect(result).toHaveLength(2)
+    expect(result[0].o).toBe(makeCues(15).map((cue) => cue.o).join(' '))
+    expect(result[0].s).toBe(0)
+    expect(result[0].d).toBe(15000)
+    expect(result[0].t).toBe('Primera parte')
+    expect(result[1].o).toBe('L16 L17 L18 L19 L20')
+    expect(result[1].s).toBe(15000)
+    expect(result[1].t).toBe('Segunda parte')
+
+    const boundaryBody = JSON.parse(mockGmFetch.mock.calls[0]![0].body as string)
+    const translationBody = JSON.parse(mockGmFetch.mock.calls[1]![0].body as string)
+    expect(boundaryBody.messages[1].content).not.toContain('A long lesson')
+    expect(translationBody.messages[1].content).toContain('A long lesson')
+    expect(translationBody.messages[1].content).toContain('[2] L16 L17 L18 L19 L20')
+  })
+
   it('splits the pass-2 translation on truncation and still covers every sentence', async () => {
     const cues = makeCues(10) // 10 fragments → 10 sentences > MIN_SPLIT (8)
     mockGmFetch

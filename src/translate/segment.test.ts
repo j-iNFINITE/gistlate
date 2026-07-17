@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   parseBoundaries,
   groupByBoundaries,
+  capSentenceRanges,
   sentencesToCues,
   SegmentationError,
   type SentenceRange,
@@ -58,6 +59,105 @@ describe('groupByBoundaries', () => {
 
   it('treats an all-continue array as one sentence spanning every fragment', () => {
     expect(groupByBoundaries([false, false, false])).toEqual([{ startIdx: 0, endIdx: 2 }])
+  })
+})
+
+describe('capSentenceRanges', () => {
+  const fragments = (texts: string[], gapAfter = -1): Cue[] =>
+    texts.map((o, i) => ({
+      s: i * 1000 + (gapAfter >= 0 && i > gapAfter ? 500 : 0),
+      d: 1000,
+      o,
+    }))
+
+  it('leaves a short sentence range unchanged', () => {
+    const frags = fragments(['one two', 'three four'])
+
+    expect(capSentenceRanges(frags, [{ startIdx: 0, endIdx: 1 }])).toEqual([
+      { startIdx: 0, endIdx: 1 },
+    ])
+  })
+
+  it('splits space-separated text at the 15-word target', () => {
+    const frags = fragments(Array.from({ length: 20 }, (_, i) => `w${i + 1}`))
+
+    expect(capSentenceRanges(frags, [{ startIdx: 0, endIdx: 19 }])).toEqual([
+      { startIdx: 0, endIdx: 14 },
+      { startIdx: 15, endIdx: 19 },
+    ])
+  })
+
+  it('keeps a complete sentence slightly above the target instead of orphaning a tail', () => {
+    const frags = fragments(Array.from({ length: 16 }, (_, i) => `w${i + 1}`))
+
+    expect(capSentenceRanges(frags, [{ startIdx: 0, endIdx: 15 }])).toEqual([
+      { startIdx: 0, endIdx: 15 },
+    ])
+  })
+
+  it('uses the 30-visible-character target for CJK text', () => {
+    const frags = fragments(['一'.repeat(10), '二'.repeat(10), '三'.repeat(10), '四'.repeat(10)])
+
+    expect(capSentenceRanges(frags, [{ startIdx: 0, endIdx: 3 }])).toEqual([
+      { startIdx: 0, endIdx: 2 },
+      { startIdx: 3, endIdx: 3 },
+    ])
+  })
+
+  it('prefers nearby punctuation over the exact target boundary', () => {
+    const words = Array.from({ length: 20 }, (_, i) =>
+      i === 11 ? `w${i + 1}.` : `w${i + 1}`,
+    )
+    const frags = fragments(words)
+
+    expect(capSentenceRanges(frags, [{ startIdx: 0, endIdx: 19 }])).toEqual([
+      { startIdx: 0, endIdx: 11 },
+      { startIdx: 12, endIdx: 19 },
+    ])
+  })
+
+  it('looks slightly past the target for a nearby natural boundary', () => {
+    const words = Array.from({ length: 25 }, (_, i) =>
+      i === 17 ? `w${i + 1}.` : `w${i + 1}`,
+    )
+    const frags = fragments(words)
+
+    expect(capSentenceRanges(frags, [{ startIdx: 0, endIdx: 24 }])).toEqual([
+      { startIdx: 0, endIdx: 17 },
+      { startIdx: 18, endIdx: 24 },
+    ])
+  })
+
+  it('prefers a nearby positive timing pause', () => {
+    const frags = fragments(
+      Array.from({ length: 20 }, (_, i) => `w${i + 1}`),
+      12,
+    )
+
+    expect(capSentenceRanges(frags, [{ startIdx: 0, endIdx: 19 }])).toEqual([
+      { startIdx: 0, endIdx: 12 },
+      { startIdx: 13, endIdx: 19 },
+    ])
+  })
+
+  it('keeps one over-limit fragment intact and preserves exact coverage', () => {
+    const frags = fragments([
+      Array.from({ length: 16 }, (_, i) => `long${i}`).join(' '),
+      'tail one',
+      'tail two',
+    ])
+    const capped = capSentenceRanges(frags, [{ startIdx: 0, endIdx: 2 }])
+
+    expect(capped).toEqual([
+      { startIdx: 0, endIdx: 0 },
+      { startIdx: 1, endIdx: 2 },
+    ])
+    expect(capped.flatMap((range) =>
+      Array.from(
+        { length: range.endIdx - range.startIdx + 1 },
+        (_, i) => range.startIdx + i,
+      ),
+    )).toEqual([0, 1, 2])
   })
 })
 

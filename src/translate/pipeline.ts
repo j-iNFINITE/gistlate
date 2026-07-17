@@ -4,8 +4,10 @@ import { translateBatch, boundaryBatch, isSplittable, TruncationError } from './
 import {
   parseBoundaries,
   groupByBoundaries,
+  capSentenceRanges,
   sentencesToCues,
 } from './segment'
+import type { TranslationContext } from './context'
 
 /**
  * Below this many lines we stop splitting and let a genuine failure propagate
@@ -43,13 +45,14 @@ export async function translateAllCues(
   openaiCfg: OpenAIConfig,
   apiKey: string,
   signal?: AbortSignal,
+  context?: TranslationContext,
 ): Promise<Cue[]> {
   if (cues.length === 0) return []
 
   try {
     // Pass 1: per-fragment sentence boundaries (reliable, 1:1), then group.
     const isEnd = await detectBoundaries(cues, openaiCfg, apiKey, signal)
-    const ranges = groupByBoundaries(isEnd)
+    const ranges = capSentenceRanges(cues, groupByBoundaries(isEnd))
 
     // Pass 2: translate the whole sentences (reuse the proven 1:1 range
     // translator — count-validated, adaptive split on truncation).
@@ -67,6 +70,7 @@ export async function translateAllCues(
       openaiCfg,
       apiKey,
       signal,
+      context,
     )
 
     return sentencesToCues(cues, ranges, translations)
@@ -82,6 +86,7 @@ export async function translateAllCues(
       openaiCfg,
       apiKey,
       signal,
+      context,
     )
     const out = cues.map((c, i) => ({ ...c, t: translated[i] }))
     if (out.some((c) => !c.t || c.t.trim() === '')) {
@@ -150,13 +155,22 @@ async function translateRange(
   cfg: OpenAIConfig,
   apiKey: string,
   signal?: AbortSignal,
+  context?: TranslationContext,
   depth = 0,
 ): Promise<string[]> {
   if (texts.length === 0) return []
   if (signal?.aborted) throw new Error('Translation pipeline aborted')
 
   try {
-    return await translateBatch(texts, targetLang, cfg, apiKey, signal)
+    return await translateBatch(
+      texts,
+      targetLang,
+      cfg,
+      apiKey,
+      signal,
+      undefined,
+      context,
+    )
   } catch (e) {
     // Only split on an output-size problem, and only while there is still room
     // to split. Otherwise fail closed so the caller shows original-only.
@@ -170,6 +184,7 @@ async function translateRange(
       cfg,
       apiKey,
       signal,
+      context,
       depth + 1,
     )
     const right = await translateRange(
@@ -178,6 +193,7 @@ async function translateRange(
       cfg,
       apiKey,
       signal,
+      context,
       depth + 1,
     )
     return [...left, ...right]

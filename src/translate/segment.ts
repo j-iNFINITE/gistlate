@@ -83,6 +83,150 @@ export function groupByBoundaries(isEnd: boolean[]): SentenceRange[] {
   return ranges
 }
 
+/** Display-length targets. Kept internal to the product rather than settings. */
+export const SPACE_WORD_TARGET = 15
+export const CJK_VISIBLE_CHAR_TARGET = 30
+
+const NATURAL_BOUNDARY_MIN_RATIO = 0.6
+const NATURAL_BOUNDARY_MAX_RATIO = 1.25
+const PAUSE_PREFERENCE_MS = 250
+const CJK_RE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u
+const NATURAL_PUNCTUATION_RE = /[.!?…。！？,，;；:：]$/u
+
+/**
+ * Refine sentence ranges into readable display ranges without inventing timing.
+ *
+ * Every emitted range is a non-empty, contiguous slice of the original source
+ * fragments. A single over-limit fragment stays intact; the later word-level
+ * task is the only safe place to split inside it.
+ */
+export function capSentenceRanges(
+  fragments: Cue[],
+  ranges: SentenceRange[],
+): SentenceRange[] {
+  const capped: SentenceRange[] = []
+
+  for (const range of ranges) {
+    let startIdx = range.startIdx
+
+    while (startIdx <= range.endIdx) {
+      const single = measureRange(fragments, startIdx, startIdx)
+      if (startIdx === range.endIdx || single.units > single.target) {
+        capped.push({ startIdx, endIdx: startIdx })
+        startIdx += 1
+        continue
+      }
+
+      let lastWithinTarget = startIdx
+      let firstOverTarget: number | undefined
+
+      for (let endIdx = startIdx; endIdx <= range.endIdx; endIdx++) {
+        const measurement = measureRange(fragments, startIdx, endIdx)
+        if (measurement.units <= measurement.target) {
+          lastWithinTarget = endIdx
+        } else {
+          firstOverTarget = endIdx
+          break
+        }
+      }
+
+      if (firstOverTarget === undefined) {
+        capped.push({ startIdx, endIdx: range.endIdx })
+        break
+      }
+
+      let maxCandidate = lastWithinTarget
+      for (
+        let endIdx = firstOverTarget;
+        endIdx <= range.endIdx;
+        endIdx++
+      ) {
+        const measurement = measureRange(fragments, startIdx, endIdx)
+        if (
+          measurement.units >
+          measurement.target * NATURAL_BOUNDARY_MAX_RATIO
+        ) {
+          break
+        }
+        maxCandidate = endIdx
+      }
+
+      const natural = findNaturalBoundary(
+        fragments,
+        startIdx,
+        maxCandidate,
+        range.endIdx,
+      )
+      const endIdx = natural ?? lastWithinTarget
+
+      capped.push({ startIdx, endIdx })
+      startIdx = endIdx + 1
+    }
+  }
+
+  return capped
+}
+
+function findNaturalBoundary(
+  fragments: Cue[],
+  startIdx: number,
+  maxEndIdx: number,
+  sentenceEndIdx: number,
+): number | undefined {
+  let best: { endIdx: number; distance: number } | undefined
+
+  for (let endIdx = startIdx; endIdx <= maxEndIdx; endIdx++) {
+    const measurement = measureRange(fragments, startIdx, endIdx)
+    if (measurement.units < measurement.target * NATURAL_BOUNDARY_MIN_RATIO) {
+      continue
+    }
+    if (!isNaturalBoundary(fragments, endIdx, sentenceEndIdx)) continue
+
+    const distance = Math.abs(measurement.units / measurement.target - 1)
+    if (!best || distance < best.distance) best = { endIdx, distance }
+  }
+
+  return best?.endIdx
+}
+
+function isNaturalBoundary(
+  fragments: Cue[],
+  endIdx: number,
+  sentenceEndIdx: number,
+): boolean {
+  if (endIdx === sentenceEndIdx) return true
+  if (NATURAL_PUNCTUATION_RE.test(fragments[endIdx].o.trim())) return true
+  const current = fragments[endIdx]
+  const next = fragments[endIdx + 1]
+  if (!next) return false
+  return next.s - (current.s + current.d) >= PAUSE_PREFERENCE_MS
+}
+
+function measureRange(
+  fragments: Cue[],
+  startIdx: number,
+  endIdx: number,
+): { units: number; target: number } {
+  const text = fragments
+    .slice(startIdx, endIdx + 1)
+    .map((fragment) => fragment.o)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (CJK_RE.test(text)) {
+    return {
+      units: Array.from(text).filter((char) => !/\s/u.test(char)).length,
+      target: CJK_VISIBLE_CHAR_TARGET,
+    }
+  }
+
+  return {
+    units: text === '' ? 0 : text.split(/\s+/u).length,
+    target: SPACE_WORD_TARGET,
+  }
+}
+
 /**
  * Max time (ms) a sentence-cue may linger on screen past the end of its own
  * speech. Bridges tiny inter-sentence gaps (no flicker) while stopping a
