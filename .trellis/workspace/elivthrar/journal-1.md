@@ -155,3 +155,38 @@ Fixed subtitle lingering through long music/silence gaps (cap sentence-cue end a
 ### Next Steps
 
 - None - task complete
+
+
+## Session 5: Context-aware retranslation and readable cue caps
+
+**Date**: 2026-07-17
+**Task**: Context-aware retranslation and readable cue caps
+**Branch**: `master`
+
+### Summary
+
+Added bounded YouTube title/description context, safe explicit force retranslation that preserves old results until full success, and fragment-aligned English/CJK cue-length capping. Added cache/abort, prompt, metadata, segmentation, and pipeline coverage; compile, 100 tests, production build, single-IIFE audit, and live YouTube metadata probe passed.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9ae32a5` | (see git log) |
+| `faebf2d` | (see git log) |
+| `abf4da2` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

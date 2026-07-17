@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 4
-- **Last Active**: 2026-07-12
+- **Total Sessions**: 5
+- **Last Active**: 2026-07-17
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~157 | Active |
+| `journal-1.md` | ~192 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 5 | 2026-07-17 | Context-aware retranslation and readable cue caps | `9ae32a5`, `faebf2d`, `abf4da2` | `master` |
 | 4 | 2026-07-12 | Subtitle display polish (linger fix, control-bar, seek); drag dropped | `38cde9b`, `27b4d99` | `master` |
 | 3 | 2026-07-12 | Sentence reconstruction (two-pass) + non-speech stripping | `a7c7da2`, `5975644`, `a3e8d09`, `81644cb`, `994a9bb`, `28057be` | `master` |
 | 2 | 2026-07-11 | Style panel + one-shot translation + status pill | `79e45cb`, `d240ffc`, `7459dcb`, `2a9e0a1`, `19be82a`, `3fa1726` | `master` |
