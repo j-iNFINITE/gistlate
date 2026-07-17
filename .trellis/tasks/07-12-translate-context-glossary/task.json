@@ -1,9 +1,9 @@
 {
   "id": "translate-context-glossary",
   "name": "translate-context-glossary",
-  "title": "Translation context: video title + glossary + sentence length cap",
+  "title": "Translation context + explicit retranslation + sentence length cap",
   "description": "",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

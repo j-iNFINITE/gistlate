@@ -1,1 +1,6 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Feature threads metadata and force state through YouTube, core resolution, translation, cache, and UI boundaries."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"New context normalization, constants, and range logic need single ownership rather than repeated parsing."}
+{"file":".trellis/spec/frontend/directory-structure.md","reason":"Defines the single-entry userscript module boundaries and placement of YouTube/translation/core responsibilities."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"Retranslation must preserve Store cues, use abort correctly, and distinguish captured source fragments from rendered cues."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Owns fail-closed translation, soft-fail L2, Trusted Types, single-IIFE, and alignment invariants."}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"Owns menu/UI conventions and the rule against unnecessary persistent player controls."}

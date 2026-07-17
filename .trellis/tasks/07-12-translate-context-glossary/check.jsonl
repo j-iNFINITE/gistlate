@@ -1,1 +1,5 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Audit complete metadata and force-retranslation data flow with explicit boundary contracts."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Check constants, normalization, and state transitions have one source of truth."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"Verify abort, navigation reset, in-flight state, and old-cue preservation."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Verify fail-closed writes, alignment, Trusted Types, tests, and single-IIFE output."}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"Verify the menu-only retranslation action and existing status UI integration."}

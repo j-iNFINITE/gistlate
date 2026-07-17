@@ -12,9 +12,11 @@ we do not copy code.
 
 ## Children (independently verifiable)
 
-- **07-12-translate-context-glossary** — Translation quality, prompt-level (small):
-  inject the **video title** as context; support a **glossary/terminology** list;
-  cap **sentence length** for on-screen readability (split overly long sentences).
+- **07-12-translate-context-glossary** — Translation context and cache control
+  (small): inject the **video title and description** as context; add an explicit
+  **retranslate current video** action; cap **sentence length** for on-screen
+  readability (split overly long sentences). The stable directory slug predates
+  the decision to drop glossary management from scope.
 - **07-12-word-level-segmentation** — Segmentation, architectural (large): keep
   **word-level** timestamps from timedtext (currently merged to cue-level) and port a
   **statistical sentence breaker** (word-gap MAD/Z-score + linguistic features) so
@@ -27,7 +29,7 @@ we do not copy code.
 
 ## Cross-child notes / ordering
 
-- Recommended order: **display-polish → translate-context-glossary →
+- Recommended order: **display-polish → translation-context/retranslate →
   word-level-segmentation** (fix the visible linger bug + polish first, quick
   translation wins next, big refactor last).
 - The linger fix (display-polish) and word-level-segmentation both touch cue timing;
