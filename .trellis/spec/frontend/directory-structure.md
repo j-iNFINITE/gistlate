@@ -14,6 +14,7 @@ src/
     netHook.ts           # unsafeWindow.fetch + XMLHttpRequest patch (observe-only)
   subtitles/
     timedtext.ts         # YouTube timedtext API types + JSON→Cue[] parser
+    sentence-marks.ts    # Shared sentence-mark detection/counting contract
     clean.ts             # Strip non-speech annotations before segmentation
     cues.ts              # findCueAt, getCuesToTranslate helpers
   translate/
@@ -24,6 +25,7 @@ src/
     segment.ts           # Boundary ranges, display-length cap, timed Cue assembly
     jobs.ts              # Complete SentencePlan/Job ownership, grouping, cue assembly
     pipeline.ts          # Boundary→canonical translation→cut-only alignment scheduler
+    validation.ts        # Canonical target language/echo/completeness quality gate
   usage/
     contracts.ts         # Sole provider-usage decoder + stage/operation aggregation
     pricing.ts           # Strict official DeepSeek V4 CNY pricing snapshots

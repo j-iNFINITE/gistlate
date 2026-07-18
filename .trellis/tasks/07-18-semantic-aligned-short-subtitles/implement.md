@@ -20,6 +20,14 @@
       currently exposes no downloadable original ASR track for this video.
 - [ ] Do not overwrite/remove the bad remote pool artifact until that live result
       passes semantic review; no remote mutation was performed in this session.
+- [x] Follow-up `Ru7H092hFAI` audit downloaded `ja-orig` JSON3 and reproduced the
+      actual parser loss of internal word-timed sentence boundaries.
+- [x] Added minimal `tOffsetMs` sentence recovery, local timed-punctuation
+      boundaries, mega-sentence limits, canonical quality retry, and word-safe
+      alignment cuts. Real replay preserves all 5,618 source characters, yields
+      169 sentence plans, and has a 13.742s maximum sentence (zero over 30s).
+- [x] Follow-up automated gate passes: 20 test files / 159 tests, TypeScript
+      compile, production build, one IIFE, and zero SystemJS/dynamic imports.
 
 ## Step 1 — Settings and backward-compatible metadata contracts
 
@@ -122,6 +130,21 @@ pnpm compile
 
 Rollback point: pure planning/alignment layer is testable before network
 scheduling changes.
+
+### Step 4 follow-up — real Google ASR correctness
+
+- [x] Recover internal punctuation fragments from usable Google `tOffsetMs` and
+      retain legacy parsing for untimed/manual tracks.
+- [x] Skip the boundary API when every source Cue has a deterministic
+      `sentenceEnd`; record boundary method/request count in generation metadata.
+- [x] Reject 30s/240-code-point/3-stop false sentence plans.
+- [x] Validate canonical target language, source echo/prefix, and completeness;
+      retry with a cache-friendly correction tail.
+- [x] Reject Latin-token, Han/Han, and pre-punctuation alignment cuts.
+- [x] Preflight the count of safe cut positions and immediately fallback with
+      zero alignment calls when a valid response is structurally impossible.
+- [x] Replay `Ru7H092hFAI.ja-orig.json3`: exact 5,618-character source, 439
+      fragments, 169 plans, 13.742s maximum plan, no >30s plan.
 
 ## Step 5 — Strategy grouping, cache warm-up, scheduling, and progressive pipeline
 

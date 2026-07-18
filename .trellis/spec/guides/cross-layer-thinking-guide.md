@@ -100,6 +100,38 @@ create one owner for:
 
 Rendering code may format fields, but it must not redefine the payload contract.
 
+### Mistake 5: A Lossy Adapter Removes Information Needed Downstream
+
+An adapter can preserve visible text while silently destroying the information
+that makes later correctness possible. Structural tests at the downstream layer
+then pass because the lost distinction can no longer be expressed.
+
+**Bad:** flatten a rich upstream payload to the smallest currently displayed
+shape without tracing later consumers. In Gistlate, joining Google JSON3 `segs`
+into one event-level string preserved all 5,618 visible characters but discarded
+`tOffsetMs`; boundary detection could only choose after whole events, even when a
+true sentence ended inside the event.
+
+**Good:** preserve upstream granularity in an internal typed field, derive a
+deterministic hint when possible, and remove the internal field only at the final
+persistence boundary if compatibility requires a compact schema.
+
+Checklist for adapters:
+
+- [ ] Inventory upstream fields even when the first UI does not display them.
+- [ ] Trace which downstream decisions need timing, identity, ordering, or
+      provenance—not only visible value equality.
+- [ ] Test both payload conservation (for example, exact joined text) and
+      decision expressiveness (for example, a boundary inside one event).
+- [ ] Keep persisted compatibility separate from internal fidelity; an internal
+      type may safely be richer than its serialized artifact.
+- [ ] Add a real-payload replay when synthetic fixtures cannot reveal upstream
+      granularity or provider-specific event behavior.
+
+For Gistlate's executable timedtext/translation contract, see
+`.trellis/spec/frontend/quality-guidelines.md`, “Scenario: semantic-aligned
+progressive translation.”
+
 ---
 
 ## Checklist for Cross-Layer Features

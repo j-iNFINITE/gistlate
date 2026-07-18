@@ -33,21 +33,29 @@ valid Chinese cues progressively contain the following Japanese cue's meaning.
 - The source transcript clearly belongs to the expected Gundam Marker / partial
   painting video, so stale cross-video capture is not the primary cause in this
   incident.
-- The current pipeline detects complete sentence ranges, then calls
+- The pre-task pipeline detected complete sentence ranges, then called
   `capSentenceRanges` before translation. The cap re-splits complete sentences
   into display-sized partial clauses, and the numbered translator can move
   meaning across those lines while still returning every required number.
 - Number/count validation cannot prove semantic line alignment.
-- Google currently exposes no downloadable caption track for this video in the
-  inspected public player session. The pool artifact still preserves sufficient
-  ordered Japanese `o` text and cue timing for diagnosis and possible recovery.
+- A later `yt-dlp` audit of `Ru7H092hFAI` retrieved Google's `ja-orig` JSON3.
+  Its 309 text events contain 3,211 word/symbol segments and 308/309 events have
+  `tOffsetMs`; 135 events contain an internal sentence end followed by the next
+  sentence. The pre-fix parser discarded those offsets and made each whole
+  event one Cue, so the boundary model cannot express most true sentence ends.
+- The cleaned JSON3 source and the pool artifact source are exactly equal at
+  5,618 characters. Source capture, cleanup, ordering, and video identity are
+  therefore not the cause of the `Ru7H092hFAI` drift.
 - Translation title/description context, force retranslation, abort behavior,
   full-success cache writes, and the compact stored cue schema `{s,d,o,t}` must
   continue to work.
 - This task may change internal types and prompts but should avoid an L1/L2 data
   migration unless evidence proves one is necessary.
-- The separate word-level timestamp/statistical segmentation task remains out of
-  scope. This task must work with existing source-fragment boundaries.
+- Minimal recovery of sentence/display fragments from Google-provided
+  `tOffsetMs` is in scope because otherwise true sentence boundaries inside an
+  event are inexpressible. Statistical word-boundary inference (MAD/Z-score),
+  tokenization of untimed tracks, and arbitrary intra-word splitting remain in
+  the separate word-level task.
 - The supplied DeepSeek-V3/V4 tokenizer counts the failing artifact at 5,677
   tokens for the 204 numbered Japanese source cues and 3,526 tokens for the 204
   numbered visible Chinese outputs. With current prompts and title-only context,
@@ -56,8 +64,10 @@ valid Chinese cues progressively contain the following Japanese cue's meaning.
 - DeepSeek-V4 thinking mode is enabled by default. The current OpenAI-compatible
   request body does not send `thinking`, so hidden reasoning output is an
   unbounded cost/latency variable when translation is divided into many calls.
-- The user approved keeping thinking enabled for the single boundary-detection
-  request while explicitly disabling thinking for all translation batches.
+- The user approved keeping thinking enabled for boundary detection when the
+  source has no deterministic timed-punctuation hints, while explicitly
+  disabling thinking for all translation batches. Word-timed Google ASR uses
+  local punctuation hints and sends no boundary request.
 - The user approved deterministic sampling for constrained translation:
   translation and target-alignment requests use `temperature: 0` with provider
   default `top_p`; the thinking-enabled boundary request sends neither sampling
@@ -100,6 +110,11 @@ valid Chinese cues progressively contain the following Japanese cue's meaning.
 
 ### R1 — Complete-sentence translation ownership
 
+- When Google JSON3 supplies usable word/symbol `tOffsetMs`, preserve those
+  offsets, split after sentence punctuation, and expose an internal optional
+  `sentenceEnd` hint. A sentence mark at the beginning of the next event closes
+  the previous fragment. Untimed/manual captions retain the legacy parser and
+  boundary-model path.
 - A complete source sentence, determined from ordered ASR fragments, is the
   smallest unit whose target translation may be generated independently.
 - Display-length refinement must not turn partial clauses into independent
@@ -127,6 +142,12 @@ valid Chinese cues progressively contain the following Japanese cue's meaning.
   exact required cut count, integer/strictly increasing/in-range positions, and
   non-empty target slices. Slicing and cue construction are deterministic local
   operations.
+- Reject cuts inside Latin/ASCII tokens, between adjacent Han characters, or
+  immediately before closing punctuation. If no safe semantic cuts exist, use
+  the approved complete-sentence fallback.
+- Before calling alignment, count structurally safe positions locally. If fewer
+  positions exist than the required cut count, fallback immediately instead of
+  paying for retries that cannot produce a valid result.
 - Concatenating every target display slice must reproduce the canonical target
   string exactly, character for character. Alignment retries may change cut
   positions but never the canonical translation.
@@ -138,6 +159,12 @@ valid Chinese cues progressively contain the following Japanese cue's meaning.
   translation.
 - A malformed or unalignable display split must not be cached as a normal
   successful short-cue result.
+- Reject a boundary result that creates a likely false mega-sentence (over 30
+  seconds, over 240 source code points, or over three terminal sentence marks).
+- Validate canonical targets before caching: reject source echo/prefixes,
+  kana-heavy Simplified-Chinese output, common Traditional-only characters, and
+  severe long-source omissions. Retry with a compact correction tail; never
+  cache the rejected target.
 - Abort and navigation staleness must still prevent all L1/L2 writes.
 - Existing fallback behavior may be revised when the current fallback can also
   produce semantic cross-line drift.
@@ -178,10 +205,11 @@ valid Chinese cues progressively contain the following Japanese cue's meaning.
 - Thinking mode must be explicitly selected per request role rather than relying
   on DeepSeek's provider default, so request count cannot silently multiply
   reasoning-token cost.
-- Boundary detection uses thinking mode and omits unsupported sampling controls.
-  Translation batches use non-thinking mode; their temperature must be explicit
-  and `top_p` must remain at its provider default unless later evidence justifies
-  changing the alternative sampler instead.
+- Untimed boundary detection uses thinking mode and omits unsupported sampling
+  controls. Timed-punctuation boundaries are local and record zero boundary
+  requests. Translation batches use non-thinking mode; their temperature must
+  be explicit and `top_p` must remain at its provider default unless later
+  evidence justifies changing the alternative sampler instead.
 
 ### R7 — Progressive translation and display
 
@@ -271,6 +299,9 @@ valid Chinese cues progressively contain the following Japanese cue's meaning.
 
 - [ ] Pass-2 translation receives complete source sentences, never display-capped
       partial clauses as independent numbered items.
+- [ ] Word-timed `Ru7H092hFAI` parsing preserves the exact 5,618-character source,
+      recovers deterministic sentence hints, produces no sentence over 30
+      seconds, and performs zero boundary API requests.
 - [ ] A long complete sentence can produce multiple ordered display cues without
       target content leaking into a neighbouring sentence.
 - [ ] Concatenating a sentence's target display chunks reproduces its complete
@@ -278,6 +309,9 @@ valid Chinese cues progressively contain the following Japanese cue's meaning.
 - [ ] Target alignment is a separate request that returns cut positions only;
       the canonical complete translation is immutable and display slices
       concatenate back to it exactly.
+- [ ] Canonical source-copy/Japanese-heavy/Traditional/incomplete responses are
+      rejected and retried with a correction tail; unsafe word-internal target
+      cuts are rejected before cue assembly.
 - [ ] Every source fragment is covered exactly once, in order, by non-empty,
       non-overlapping display ranges derived from existing timing boundaries.
 - [ ] Invalid target splitting follows the approved safe fallback and writes no
@@ -285,6 +319,8 @@ valid Chinese cues progressively contain the following Japanese cue's meaning.
 - [ ] Exhausted alignment retries produce one full-source/full-target long cue,
       never a proportional guessed split, and record the fallback in generation
       diagnostics.
+- [ ] A target with too few structurally safe cut positions falls back locally
+      with zero alignment API requests.
 - [ ] A timedtext response whose `v` parameter differs from `getVideoId()` is
       ignored.
 - [ ] Normal cache hits, explicit force retranslation, abort, navigation, and L2
@@ -326,8 +362,8 @@ valid Chinese cues progressively contain the following Japanese cue's meaning.
 ## Out of Scope
 
 - Terminology extraction or glossary management.
-- Word-level timestamp recovery or splitting inside a single Google ASR
-  fragment.
+- Statistical word-level segmentation for untimed tracks, MAD/Z-score boundary
+  inference, or synthesizing timestamps Google did not provide.
 - Supporting additional video sites or live captions.
 - A general semantic-quality scorer for arbitrary language pairs.
 - The stored-subtitle browser UI. Keep it as the next independent task; it should

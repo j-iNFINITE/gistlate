@@ -103,12 +103,22 @@ Use this contract whenever auto-caption fragments are grouped, display ranges
 are shortened, translation requests are batched, or partial results are shown.
 It prevents the `vvLnNHtY09U` failure where structurally valid target lines were
 one semantic cue ahead because display-capped partial clauses were translated as
-independent numbered items.
+independent numbered items, and the `Ru7H092hFAI` failure where Google word
+timings were discarded before boundary detection and canonical responses could
+copy Japanese while still passing the ID parser.
 
 ### 2. Signatures
 
 ```ts
 type TranslationMode = 'sentence' | 'batch' | 'whole'
+
+interface Cue {
+  s: number
+  d: number
+  o: string
+  t?: string
+  sentenceEnd?: boolean // internal source hint; omitted from final artifact cues
+}
 
 interface SentencePlan {
   id: string                    // global S001...
@@ -128,6 +138,14 @@ interface TranslationProgress {
 translateCues(cues, target, config, key, options):
   Promise<{ cues: Cue[]; diagnostics: PipelineDiagnostics }>
 
+interface PipelineDiagnostics {
+  boundaryMethod: 'timed-punctuation' | 'llm'
+  boundaryRequestCount: number
+  translationRequestCount: number
+  alignmentRequestCount: number
+  fallbackSentenceCount: number
+}
+
 // IndexedDB `gistlate-usage`, version 1
 operations: { keyPath: 'operationId'; indexes: videoId, endedAt, status }
 totals:     { keyPath: 'videoId' }
@@ -142,18 +160,34 @@ Provider usage is decoded once at the HTTP boundary and propagated as
 
 ### 3. Contracts
 
-- Boundary output contains every fragment exactly once as `E`/`C`; missing or
-  duplicate IDs are invalid. Official DeepSeek uses thinking enabled/high and
-  sends no sampling controls.
+- When a clear majority of Google ASR segments carry `tOffsetMs`, recover
+  absolute segment time, split after sentence punctuation, attach a leading
+  next-event sentence mark to the preceding fragment, and set `sentenceEnd` on
+  every source Cue. Preserve the cleaned source exactly. Sparse/untimed/manual
+  tracks stay on the legacy event parser.
+- If every source Cue has `sentenceEnd`, use it locally and record
+  `timed-punctuation` with zero boundary requests. Otherwise boundary output
+  contains every fragment exactly once as `E`/`C`; missing/duplicate IDs are
+  invalid. Official DeepSeek uses thinking enabled/high and no sampling controls.
 - A complete source sentence is the minimum translation owner. Display capping
   creates nested ranges only; it must never create translation request items.
+- Reject a likely false complete sentence before translation when it exceeds 30
+  seconds, 240 source code points, or three terminal sentence marks.
 - Canonical responses use stable global IDs and contain exactly the requested
-  non-empty ID set. Requests keep the same whole-video reference prefix.
+  non-empty ID set. Then reject source echo/prefix, kana-heavy zh-Hans,
+  Traditional-only zh-Hans characters, and severe long-source omission. Retry
+  with only a compact correction at the changing tail; do not cache a rejected
+  canonical target. Requests keep the same whole-video reference prefix.
 - Translation/alignment use official DeepSeek thinking disabled,
   `temperature: 0`, and no `top_p`.
 - Multi-range sentences run a separate alignment request returning `K-1`
   strictly increasing Unicode code-point cuts. Local slices must concatenate
-  character-for-character to the immutable canonical target.
+  character-for-character to the immutable canonical target. Reject cuts inside
+  Latin/ASCII product tokens, between adjacent Han characters, or immediately
+  before closing punctuation.
+- Preflight the number of structurally safe target positions. If fewer than
+  `K-1` exist, skip the alignment API and use the complete-sentence fallback;
+  this preflight may reject impossible work but must never choose semantic cuts.
 - After three invalid alignments, emit one full-source/full-target long cue.
   Never guess proportional cuts and never translate fragments independently.
 - Clamp every cue to the next emitted range start and the shared 1.2s gap
@@ -173,9 +207,15 @@ Provider usage is decoded once at the HTTP boundary and propagated as
 
 | Condition | Required behavior |
 |---|---|
+| Usable Google word offsets | Recover timed fragments/hints locally; exact source preservation |
+| Complete timed hints | Zero boundary calls; `boundaryThinking: not-used` |
 | Boundary missing/duplicate/truncated after retries | Fail operation; no translation artifact |
+| One range exceeds 30s/240 code points/3 stops | Reject as a false sentence before display capping |
 | Canonical ID missing/duplicate/extra/empty | Retry; split only contiguous multi-sentence groups; single sentence fails closed |
+| Canonical source echo/wrong zh-Hans script/severe omission | Retry with correction tail; then split/fail closed |
 | Alignment cut wrong count/type/order/range | Retry with compact validation error |
+| Alignment cut inside Latin/Han or before closing punctuation | Retry; safe full-sentence fallback after exhaustion |
+| Fewer safe positions than required cuts | Immediate full-sentence fallback; zero alignment requests |
 | Three alignment attempts invalid | One complete long cue; increment fallback count |
 | One independent group permanently fails | Other fresh groups may display; final persistence fails |
 | Navigation/user abort | Abort requests, discard persistence, ledger `aborted` |
@@ -187,18 +227,36 @@ Provider usage is decoded once at the HTTP boundary and propagated as
 
 ### 5. Good / Base / Bad Cases
 
+- **Good:** Google ASR has dense `tOffsetMs` -> recover internal punctuation
+  fragments -> joined cleaned source remains identical -> use local boundary
+  flags with zero boundary API calls.
+- **Base:** manual/untimed captions -> keep legacy event Cues -> use validated
+  DeepSeek E/C detection and the same sentence-plan safety limits.
 - **Good:** long complete sentence -> one canonical target -> validated code-point
   cuts -> several timed cues whose targets rejoin exactly.
-- **Base:** one display range -> canonical target becomes that cue directly; no
+- **Base:** one display range -> validated canonical target becomes that cue; no
   alignment request.
 - **Bad:** `capSentenceRanges(...)` output is sent to the translator as separate
   IDs. The model can move the next clause forward while count/timing tests pass.
+- **Bad:** event segments are joined while `tOffsetMs` is discarded. Visible
+  text tests pass, but internal sentence boundaries become inexpressible.
+- **Bad:** canonical ID/count or target reconstruction is treated as semantic
+  validation. Japanese source echo and cuts inside `LiberNovo`/`腰痛` can pass
+  those structural checks.
 
 ### 6. Tests Required
 
 - Plans prove complete and display ranges each cover source fragments exactly.
 - Canonical parser rejects missing, duplicate, extra, empty, and prose output.
-- Cut parser covers Unicode supplementary characters and exact reconstruction.
+- Canonical validator covers source echo/prefix, kana-heavy output, Traditional
+  output, severe omission, and a valid Simplified-Chinese base case.
+- Cut parser covers Unicode supplementary characters, exact reconstruction, and
+  unsafe Latin/Han/pre-punctuation cuts.
+- Alignment preflight asserts an all-Han target performs zero alignment calls
+  and increments the fallback count once.
+- Timedtext tests cover internal event stops, a stop at the next event start,
+  sparse-offset legacy fallback, missing-offset inference, decimals/punctuation
+  runs, exact text, and positive non-overlapping times.
 - Sentence/batch/whole grouping changes request grouping only, not ownership.
 - Scheduler tests current-playhead warm-up, live dequeue reprioritization,
   out-of-order completion, group progress, failure, and abort.
@@ -208,6 +266,8 @@ Provider usage is decoded once at the HTTP boundary and propagated as
   exact lifetime totals, 20/2,000 pruning, and subtitle-cache independence.
 - Regression fixture checks `vvLnNHtY09U` anchors at 17.720–32.559s: Gundam
   Marker/viewers and prior-method/partial-painting remain source-owned.
+- A replay of the real `Ru7H092hFAI` JSON3 must preserve all 5,618 source
+  characters and produce no complete sentence over 30 seconds.
 - Build remains one static-import IIFE with no SystemJS/dynamic import.
 
 ### 7. Wrong vs Correct
@@ -219,6 +279,12 @@ const displayRanges = capSentenceRanges(cues, completeRanges)
 const targets = await translate(displayRanges.map(joinSource))
 ```
 
+```ts
+// Lossy adapter: true sentence boundaries inside the event become impossible.
+const text = event.segs.map((segment) => segment.utf8).join('')
+cues.push({ s: event.tStartMs, d: duration, o: text })
+```
+
 #### Correct
 
 ```ts
@@ -226,6 +292,15 @@ const plans = buildSentencePlans(cues, completeRanges)
 const canonical = await translateCompleteSentences(plans)
 const cuts = await alignImmutableTargets(plans, canonical)
 const finalCues = sliceAndAssembleLocally(plans, canonical, cuts)
+```
+
+```ts
+// Preserve richer upstream timing internally; final persisted cues still use
+// the compact {s,d,o,t} schema.
+const sourceCues = parseTimedtextWithOffsets(events)
+const flags = sourceCues.every(hasSentenceEnd)
+  ? sourceCues.map((cue) => cue.sentenceEnd)
+  : await detectBoundaries(sourceCues)
 ```
 
 Always strip non-speech annotations before this flow (`[...]`/`【...】`, musical

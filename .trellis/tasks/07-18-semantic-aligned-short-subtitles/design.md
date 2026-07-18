@@ -19,8 +19,8 @@ details, including failed and aborted work.
 1. A complete source sentence is the minimum independently translated unit.
 2. A canonical target sentence belongs to exactly one source sentence and is
    immutable after translation succeeds.
-3. Display alignment may choose only strictly increasing cut positions in the
-   canonical target string. It cannot rewrite target text.
+3. Display alignment may choose only strictly increasing, word-safe cut
+   positions in the canonical target string. It cannot rewrite target text.
 4. Target display slices concatenate exactly to the canonical translation.
 5. Source fragments are covered exactly once, contiguously, in source order.
 6. Emitted cues remain sorted, non-empty, and non-overlapping.
@@ -31,6 +31,8 @@ details, including failed and aborted work.
    content validation/retry decisions.
 10. `completion_tokens_details.reasoning_tokens` is a subset of
     `completion_tokens`; cost never double-counts it.
+11. A canonical target must pass target-language/source-echo/completeness
+    validation before it can enter a SentenceJob or cache.
 
 ## 3. End-to-end data flow
 
@@ -39,7 +41,11 @@ YouTube timedtext response
   -> require request v === current watch videoId
   -> parseTimedtext + cleanCues
   -> cleaned source fragments
-  -> boundary request (DeepSeek thinking enabled/high)
+       word-timed Google ASR: recover tOffsetMs fragments + sentenceEnd hints
+       untimed/manual captions: preserve legacy event cues
+  -> boundary method
+       all sentenceEnd hints: local timed-punctuation flags (zero API calls)
+       otherwise: DeepSeek E/C request (thinking enabled/high)
   -> validated E/C flags
   -> complete SentenceRange[]
   -> SentencePlan[]
@@ -82,6 +88,22 @@ operation terminal state
 ```
 
 ## 4. Domain contracts
+
+### 4.0 Timed ASR sentence recovery
+
+Use the word-timed path only when `tOffsetMs` is present on a clear majority of
+visible segments and at least one event contains multiple visible segments.
+Expand absolute segment starts as `event.tStartMs + inferredOrExplicitOffset`.
+Infer only sparse missing offsets: first missing offset is zero, interior gaps
+interpolate between known neighbors, and trailing gaps use the median known step
+or 200 ms. Explicit offsets are never rewritten.
+
+Skip pure newline `aAppend` events, retain real appended text, split after
+`.!?。！？`, and keep ordinary Google event boundaries as continuing fragments.
+If the next event begins with a sentence mark, attach it to the previous
+fragment. Preserve every cleaned source character, force the final hint to end,
+and emit positive, sorted, non-overlapping cue times. Manual/untimed tracks use
+the unchanged legacy parser.
 
 ### 4.1 Translation settings
 
@@ -149,6 +171,9 @@ into translation units. It validates:
 - display ranges cover each plan's source range exactly once;
 - global source coverage remains contiguous and ordered;
 - every source/display text is non-empty.
+- no complete sentence exceeds 30 seconds, 240 source code points, or three
+  terminal sentence marks; such a range indicates failed boundary recovery and
+  is rejected before display capping or translation.
 
 ### 4.3 Canonical translation response
 
@@ -161,6 +186,13 @@ type CanonicalTranslations = Map<string, string>
 
 Do not renumber each request locally. Global IDs make out-of-order concurrent
 responses and diagnostics unambiguous.
+
+After exact ID parsing, validate every canonical target before it enters the
+job: reject normalized source echoes/long source prefixes, kana-heavy zh-Hans,
+common Traditional-only zh-Hans characters, severe long-source compression, and
+missing punctuation coverage for a multi-sentence source. Treat validation as a
+retryable structured-response error. Append only the compact error at the
+changing prompt tail so the immutable transcript prefix remains cacheable.
 
 ### 4.4 Target alignment response
 
@@ -185,6 +217,8 @@ Validation per sentence:
 - cut count is exactly `displayRanges.length - 1`;
 - each cut is a safe JavaScript string/code-point boundary chosen by one
   centralized indexing contract;
+- no cut is inside a Latin/ASCII product token, between adjacent Han characters,
+  or immediately before closing punctuation;
 - cuts are integers, strictly increasing, and `0 < cut < targetLength`;
 - all slices are non-empty;
 - rejoining slices equals `canonicalTarget` exactly.
@@ -200,6 +234,11 @@ No alignment request is needed when `displayRanges.length === 1`.
 An alignment attempt receives up to two validation-guided corrective retries
 (three attempts total). The immutable input prefix stays unchanged; the compact
 validation failure is appended at the tail for cache reuse.
+
+Before the first request, enumerate locally valid structural cut positions. If
+their count is lower than `displayRanges.length - 1`, no model response can pass
+the validator: skip all alignment calls and use the same fallback immediately.
+This optimization never chooses a cut or guesses semantic alignment.
 
 If all attempts fail:
 
@@ -220,8 +259,12 @@ fallback diagnostic counter, and never performs proportional target guessing.
 
 ### 5.1 Boundary request
 
-Retain the existing full-fragment E/C boundary contract. For recognized official
-DeepSeek V4 models send:
+If every source Cue has a boolean `sentenceEnd`, use those flags locally and
+record `boundaryMethod: timed-punctuation`, `boundaryRequestCount: 0`, and
+`boundaryThinking: not-used`.
+
+Otherwise retain the full-fragment E/C boundary contract. For recognized
+official DeepSeek V4 models send:
 
 ```json
 {
@@ -390,7 +433,9 @@ interface GenerationMetadata {
     effectiveRequestCount: number
     concurrency: number
     temperature: number
-    boundaryThinking: 'enabled'
+    boundaryMethod: 'timed-punctuation' | 'llm'
+    boundaryRequestCount: number
+    boundaryThinking: 'enabled' | 'not-used'
     translationThinking: 'disabled'
   }
   alignment: {
@@ -530,10 +575,14 @@ watch URL. Keep existing duplicate-track suppression after this guard.
 | Condition | Behavior |
 |---|---|
 | Cache hit | return immediately; no usage operation/cost |
+| Timed-punctuation source hints | use local flags; zero boundary requests/reasoning cost |
 | Boundary malformed after retries | fail operation; no partial translation cache |
+| Boundary creates >30s/>240-code-point/>3-stop sentence | fail operation; do not cache the false sentence |
 | Translation group truncated/count-invalid | retry, then adaptively split group |
+| Canonical target echoes source/wrong script/severely incomplete | retry with correction tail, then split/fail closed |
 | Single-sentence translation still fails | mark failed; continue display of other fresh results; final operation fails/no artifact |
 | Alignment invalid | append validation error and retry up to two times |
+| Target has fewer safe positions than required cuts | immediate full-sentence fallback; zero alignment calls |
 | Alignment retries exhausted | emit safe full-sentence long cue; count fallback |
 | Seek | reprioritize pending groups only |
 | Navigation/user abort | abort in-flight, discard fresh working result, ledger status aborted, no artifact |
@@ -549,10 +598,16 @@ watch URL. Keep existing duplicate-track suppression after this guard.
 
 - settings merge: old settings, all modes, invalid mode, batch clamp/default;
 - sentence plans: complete vs display ranges, exact coverage, long fragment;
+- word-timed parser: internal event punctuation, next-event punctuation,
+  sparse-offset legacy fallback, exact source preservation, positive ordering;
 - global-ID translation parser: exact IDs, duplicate/missing/extra/empty;
+- canonical target validator: source echo/prefix, kana-heavy, Traditional-only,
+  severe omission, and valid Simplified Chinese;
 - alignment parser: valid cuts, wrong count, unordered, non-integer, out of range,
-  Unicode code points, exact target reconstruction;
+  Unicode code points, exact target reconstruction, unsafe Latin/Han/punctuation
+  cuts;
 - long-cue fallback timing and diagnostics;
+- impossible-safe-cut preflight: zero alignment requests and one fallback;
 - grouping: sentence/batch/whole and adaptive split;
 - priority selection around playhead and seek;
 - usage decoder: full DeepSeek payload, reasoning subset, missing/invalid fields;
@@ -565,6 +620,8 @@ watch URL. Keep existing duplicate-track suppression after this guard.
 
 - boundary -> complete plans -> per-sentence translations -> alignment cuts ->
   progressive ordered cues -> final cues;
+- timed-punctuation hints bypass boundary transport and record zero requests;
+- a canonical source-copy response is rejected and corrected on retry;
 - reproduce `vvLnNHtY09U` anchor pattern with recorded source/target fixtures and
   prove a canonical sentence cannot be assigned to its neighbor;
 - sentence mode first result appears before full completion;
@@ -607,3 +664,46 @@ Rollback is schema-light:
 
 The known-bad `vvLnNHtY09U` artifact is repaired only after real verification;
 force retranslation overwrites it atomically through the existing path.
+
+## 14. Debug retrospective: structurally valid but semantically wrong captions
+
+### 14.1 Root-cause categories
+
+- **B — Cross-layer contract:** JSON3 segments carried word/symbol time, but the
+  timedtext adapter exposed only event-level text/time. Later boundary logic
+  could not express an internal sentence end.
+- **E — Implicit assumption:** the pipeline treated one Google event as an
+  adequate atomic source fragment and treated valid IDs/reversible target cuts
+  as evidence of semantic quality.
+- **D — Test coverage gap:** fixtures checked count, coverage, order, and exact
+  target reconstruction, but not a real event containing two sentences,
+  source-copy Japanese, Traditional output, or cuts inside product/CJK words.
+
+### 14.2 Why earlier fixes were insufficient
+
+1. Complete-sentence ownership fixed cross-ID drift only after boundary ranges
+   existed; it could not recover a boundary that the adapter had erased.
+2. Exact canonical IDs proved response structure, not that the value was in the
+   target language or complete.
+3. Exact cut reconstruction proved reversibility, not semantic word safety.
+4. Full-sentence fallback was safe only if the source range was a true sentence;
+   four `Ru7H092hFAI` ranges were actually 42–94 second multi-sentence blocks.
+
+### 14.3 Prevention mechanisms
+
+| Priority | Mechanism | Action | Status |
+|---|---|---|---|
+| P0 | Architecture | Preserve usable `tOffsetMs` and typed `sentenceEnd` through source planning | Done |
+| P0 | Runtime validation | Reject false mega-sentences, bad canonical targets, and unsafe cuts | Done |
+| P0 | Regression replay | Verify real JSON3 source equality, plan count, and maximum duration | Done |
+| P1 | Observability | Persist boundary method/request count and truthful thinking state | Done |
+| P1 | Documentation | Record lossy-adapter and semantic-validation contracts in frontend/cross-layer specs | Done |
+
+### 14.4 Systematic expansion
+
+- Untimed/manual tracks still require the boundary model, so hard sentence limits
+  remain a provider-independent fail-closed guard.
+- Other target languages still receive generic echo/completeness checks; the
+  kana/Traditional checks remain scoped to `zh-Hans`.
+- Internal source types may be richer than `{s,d,o,t}`. Compatibility belongs at
+  the final artifact boundary, not in the parser's fidelity.
