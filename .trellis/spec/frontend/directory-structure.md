@@ -22,7 +22,12 @@ src/
     prompt.ts            # Prompt templates + numbered output parser
     openai.ts            # OpenAI-compatible batch translate via gmFetch
     segment.ts           # Boundary ranges, display-length cap, timed Cue assembly
-    pipeline.ts          # Two-pass boundary→range→translation orchestration
+    jobs.ts              # Complete SentencePlan/Job ownership, grouping, cue assembly
+    pipeline.ts          # Boundary→canonical translation→cut-only alignment scheduler
+  usage/
+    contracts.ts         # Sole provider-usage decoder + stage/operation aggregation
+    pricing.ts           # Strict official DeepSeek V4 CNY pricing snapshots
+    ledger.ts            # Separate gistlate-usage IndexedDB totals + bounded operations
   cache/
     key.ts               # CacheKeyInput type + cacheKey/shard/repoPath helpers
     l1.ts                # IndexedDB per-video cache (idb wrapper)
@@ -39,3 +44,6 @@ src/
 ```
 
 Only `src/main.ts` is the entry. All other modules are imported transitively.
+
+`usage/ledger.ts` intentionally owns a separate IndexedDB database from
+`cache/l1.ts`. Subtitle-cache eviction/clearing must never erase lifetime spend.

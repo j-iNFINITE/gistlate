@@ -95,33 +95,141 @@ Translation retries use real `setTimeout` backoff (1s/2s). In vitest use
 `await vi.runAllTimersAsync()`. Keeps the suite <1s instead of ~14s. Microtasks
 are not faked, so mocked `gmFetch` promises still resolve.
 
-## Subtitle sentence reconstruction (alignment is sacred)
+## Scenario: semantic-aligned progressive translation
 
-Translating auto-caption fragments as complete sentences must keep the translation
-aligned to the correct time. Two hard-won rules:
+### 1. Scope / Trigger
 
-- **Never do one-pass "segment + translate + report fragment ranges".** Asking the
-  LLM to translate AND report which fragments each sentence covers makes the
-  reported ranges drift out of sync with the translations — structurally valid
-  coverage, but the translation shows over the WRONG fragments' time. Symptom: each
-  cue's `t` belongs to a later cue's `o`.
-- **Group first, translate second (two-pass), so alignment is guaranteed by
-  construction.** Pass 1: per-fragment boundary flags (`[n] E`/`C`, 1:1, validated —
-  every fragment present). Group deterministically into contiguous ranges. Pass 2:
-  translate the joined sentence texts with the proven numbered 1:1 translator. Each
-  sentence-cue's `o`, `t`, and time then all derive from the SAME fragment range —
-  an imperfect boundary only shifts a seam, it can never mis-time a translation.
-- **Clamp each sentence-cue's end to the NEXT sentence's start.** ASR fragment
-  durations are estimated and frequently overlap (a later fragment starts before the
-  previous one's reported end). `end_i = frags[next.start].s` (last sentence uses raw
-  end), `d = max(1, end - s)` → gap-free, non-overlapping sequential display; keeps
-  `findCueAt`'s binary search valid.
-- **Strip non-speech annotations before segmentation** (`[...]`/`【...】` inline or
-  standalone, `♪` keeping inner lyrics), replacing with `''` (not a space) so CJK
-  mid-word joins cleanly; drop pure-annotation cues. They corrupt both segmentation
-  and translation otherwise.
-- On any non-abort failure, **fall back to 1:1 fragment translation** (never worse
-  than aligned fragments); on abort, throw without writing.
+Use this contract whenever auto-caption fragments are grouped, display ranges
+are shortened, translation requests are batched, or partial results are shown.
+It prevents the `vvLnNHtY09U` failure where structurally valid target lines were
+one semantic cue ahead because display-capped partial clauses were translated as
+independent numbered items.
+
+### 2. Signatures
+
+```ts
+type TranslationMode = 'sentence' | 'batch' | 'whole'
+
+interface SentencePlan {
+  id: string                    // global S001...
+  sourceRange: SentenceRange    // complete translation owner
+  sourceText: string
+  displayRanges: SentenceRange[]
+  displayTexts: string[]
+}
+
+interface TranslationProgress {
+  stage: 'boundaries' | 'translating' | 'aligning'
+  completedSentences: number
+  totalSentences: number
+  cues: Cue[]                   // memory-only until full success
+}
+
+translateCues(cues, target, config, key, options):
+  Promise<{ cues: Cue[]; diagnostics: PipelineDiagnostics }>
+
+// IndexedDB `gistlate-usage`, version 1
+operations: { keyPath: 'operationId'; indexes: videoId, endedAt, status }
+totals:     { keyPath: 'videoId' }
+
+beginUsageOperation(input): Promise<UsageOperation>
+appendUsageResponse(operationId, stage, usage?): Promise<void>
+finalizeUsageOperation(operationId, status): Promise<UsageOperation | undefined>
+```
+
+Provider usage is decoded once at the HTTP boundary and propagated as
+`onUsage(stage, RequestUsage | undefined)` before content validation.
+
+### 3. Contracts
+
+- Boundary output contains every fragment exactly once as `E`/`C`; missing or
+  duplicate IDs are invalid. Official DeepSeek uses thinking enabled/high and
+  sends no sampling controls.
+- A complete source sentence is the minimum translation owner. Display capping
+  creates nested ranges only; it must never create translation request items.
+- Canonical responses use stable global IDs and contain exactly the requested
+  non-empty ID set. Requests keep the same whole-video reference prefix.
+- Translation/alignment use official DeepSeek thinking disabled,
+  `temperature: 0`, and no `top_p`.
+- Multi-range sentences run a separate alignment request returning `K-1`
+  strictly increasing Unicode code-point cuts. Local slices must concatenate
+  character-for-character to the immutable canonical target.
+- After three invalid alignments, emit one full-source/full-target long cue.
+  Never guess proportional cuts and never translate fragments independently.
+- Clamp every cue to the next emitted range start and the shared 1.2s gap
+  tolerance so output stays sorted/non-overlapping for binary search.
+- Fresh progress is Store-only; force progress is status-only. L1/L2 persist
+  exactly one fully validated artifact.
+- `gistlate-usage` is independent of the subtitle cache. Count every HTTP 200,
+  including parse-invalid retries; reasoning tokens are already part of
+  completion tokens and are not charged again.
+- Write the running operation before the first API call and update it after each
+  response. Keep exact per-video lifetime totals, newest 20 details per video,
+  and at most 2,000 details globally; pruning details never subtracts totals.
+- A successful artifact stores the producing operation's usage, strict official
+  DeepSeek price snapshot, and CNY cost. Failed/aborted operations remain local.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+|---|---|
+| Boundary missing/duplicate/truncated after retries | Fail operation; no translation artifact |
+| Canonical ID missing/duplicate/extra/empty | Retry; split only contiguous multi-sentence groups; single sentence fails closed |
+| Alignment cut wrong count/type/order/range | Retry with compact validation error |
+| Three alignment attempts invalid | One complete long cue; increment fallback count |
+| One independent group permanently fails | Other fresh groups may display; final persistence fails |
+| Navigation/user abort | Abort requests, discard persistence, ledger `aborted` |
+| Force failure | Keep prior complete Store/cache result visible |
+| Provider usage absent/partial | Keep known tokens, mark incomplete, do not fabricate cost |
+| Unknown provider/model | Tokens only; no DeepSeek price snapshot or CNY cost |
+| Stale `running` ledger row on initialization | Reconcile to `aborted` without inventing usage |
+| Subtitle cache clear | Leave `gistlate-usage` totals/details untouched |
+
+### 5. Good / Base / Bad Cases
+
+- **Good:** long complete sentence -> one canonical target -> validated code-point
+  cuts -> several timed cues whose targets rejoin exactly.
+- **Base:** one display range -> canonical target becomes that cue directly; no
+  alignment request.
+- **Bad:** `capSentenceRanges(...)` output is sent to the translator as separate
+  IDs. The model can move the next clause forward while count/timing tests pass.
+
+### 6. Tests Required
+
+- Plans prove complete and display ranges each cover source fragments exactly.
+- Canonical parser rejects missing, duplicate, extra, empty, and prose output.
+- Cut parser covers Unicode supplementary characters and exact reconstruction.
+- Sentence/batch/whole grouping changes request grouping only, not ownership.
+- Scheduler tests current-playhead warm-up, live dequeue reprioritization,
+  out-of-order completion, group progress, failure, and abort.
+- Usage tests count parse-invalid HTTP 200 retries before format validation and
+  verify no reasoning-token double charge.
+- Ledger integration tests cover running/success/fail/abort, stale reconciliation,
+  exact lifetime totals, 20/2,000 pruning, and subtitle-cache independence.
+- Regression fixture checks `vvLnNHtY09U` anchors at 17.720–32.559s: Gundam
+  Marker/viewers and prior-method/partial-painting remain source-owned.
+- Build remains one static-import IIFE with no SystemJS/dynamic import.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```ts
+const displayRanges = capSentenceRanges(cues, completeRanges)
+const targets = await translate(displayRanges.map(joinSource))
+```
+
+#### Correct
+
+```ts
+const plans = buildSentencePlans(cues, completeRanges)
+const canonical = await translateCompleteSentences(plans)
+const cuts = await alignImmutableTargets(plans, canonical)
+const finalCues = sliceAndAssembleLocally(plans, canonical, cuts)
+```
+
+Always strip non-speech annotations before this flow (`[...]`/`【...】`, musical
+markers) so annotations cannot corrupt boundary detection or translation.
 
 ## Scenario: context-aware translation and explicit retranslation
 
@@ -145,6 +253,8 @@ interface ResolveOptions {
   onTranslating?: () => void
   force?: boolean
   context?: TranslationContext
+  onProgress?: (progress: TranslationProgress) => void
+  getCurrentTime?: () => number
 }
 
 resolveTranslation(videoId, srcLang, sourceFragments, options?): Promise<{
@@ -214,8 +324,9 @@ capSentenceRanges(sourceFragments, sentenceRanges): SentenceRange[]
   as data, strict numbered output unchanged.
 - Segmentation: English/CJK target, natural boundary tolerance, positive pause,
   single over-limit fragment, exact ordered coverage.
-- Pipeline: capped ranges become pass-2 units; context is absent from pass 1 and
-  present in pass 2; timing derives from the same ranges.
+- Pipeline: complete ranges remain pass-2 owners; capped ranges are nested
+  display timing only; context is absent from pass 1 and present in canonical
+  translation/alignment.
 - Resolve: normal cache hit, force skips reads, writes only after success, abort
   after model completion still writes nothing.
 - Build: single IIFE, no `System.register`/SystemJS, expected GM grants/menu.

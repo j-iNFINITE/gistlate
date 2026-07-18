@@ -44,8 +44,23 @@ On SPA navigation or new subtitle track, call `store.reset()` to:
 - Store is a singleton (`export const store = new Store()`)
 - `main.ts` is the Store orchestration owner: it installs original cues, awaits
   `resolve.ts`, then replaces them with the returned cached/fresh cues
-- `currentTime` is the only pub/sub field (triggers overlay re-render)
+- Both `setCurrentTime()` and `setSubtitle()` notify subscribers with the current
+  playhead. Progressive cue replacement repaints the current line without
+  callers faking a time update.
 - `AbortSignal` (via `store.signal`) is passed to all async operations
 - Explicit retranslation does not call `store.reset()` and does not clear current
   cues. It replaces Store state only after full success.
 - Clear `CurrentTrack` and in-flight state on genuine video navigation.
+
+## Progressive Translation State
+
+- Fresh work may install memory-only working cues: completed SentenceJobs have
+  `t`; pending/failed jobs retain source-only cues. Store never persists them.
+- `resolveTranslation` remains the only persistence owner and writes L1/L2 only
+  after all jobs validate.
+- Force retranslation receives progress for status rendering but must not call
+  `setSubtitle` until the full replacement returns.
+- Every scheduler dequeue reads the live playhead through `getCurrentTime()`;
+  seeking reprioritizes pending groups, while already-running groups finish once.
+- Translation-only overlay mode renders `cue.o` in the target line while `cue.t`
+  is absent, avoiding a blank player during progressive work.
