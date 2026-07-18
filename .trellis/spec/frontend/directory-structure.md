@@ -19,6 +19,7 @@ src/
     sentence-marks.ts    # Shared sentence-mark detection/counting contract
     clean.ts             # Strip non-speech annotations before segmentation
     cues.ts              # findCueAt, getCuesToTranslate helpers
+    transcript.ts        # Search/index projection + fail-closed original/translated SRT
   translate/
     context.ts           # Bounded title/description context contract
     lang.ts              # BCP-47 normalization + language name mapping
@@ -34,7 +35,7 @@ src/
     ledger.ts            # Separate gistlate-usage IndexedDB totals + bounded operations
   cache/
     key.ts               # CacheKeyInput type + cacheKey/shard/repoPath helpers
-    l1.ts                # IndexedDB per-video cache (idb wrapper)
+    l1.ts                # IndexedDB per-video cache + newest-first local library listing
     l2github.ts          # GitHub repo read (raw.githubusercontent.com) + write (Contents API)
     source.ts            # Source text/timeline compatibility for safe cache hits
   core/
@@ -47,6 +48,7 @@ src/
     style-panel.ts       # Docked WYSIWYG subtitle style editor
     style-button.ts      # Re-injectable player Aa button
     status.ts            # Fresh/retranslation status pill
+    subtitle-browser.ts  # Current transcript + local L1 library + SRT UI
 ```
 
 Only `src/main.ts` is the entry. All other modules are imported transitively.

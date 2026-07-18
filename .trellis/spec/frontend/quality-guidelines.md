@@ -401,6 +401,7 @@ interface ResolveOptions {
 resolveTranslation(videoId, srcLang, sourceFragments, options?): Promise<{
   cues: Cue[]
   source: 'l1' | 'l2' | 'fresh'
+  artifact: CacheEntry
 }>
 
 capSentenceRanges(sourceFragments, sentenceRanges): SentenceRange[]
@@ -491,7 +492,7 @@ const result = await resolveTranslation(track.videoId, track.srcLang, track.frag
   signal: store.signal,
   context: getVideoContext(track.videoId),
 })
-store.setSubtitle(track.srcLang, result.cues)
+store.setSubtitle(track.srcLang, result.cues, result.artifact)
 ```
 
 ## Scenario: canonical YouTube track acquisition, cache safety and player activation
@@ -649,6 +650,149 @@ if (!captionTrackNeedsTranslation(acquired.selected, settings.tgt)) {
     signal,
     track: acquired.selected.track,
   })
+}
+```
+
+## Scenario: current transcript, local subtitle library and SRT export
+
+### 1. Scope / Trigger
+
+Use this contract whenever complete artifacts or progressive Store cues are
+browsed, searched, highlighted, opened from local IndexedDB, or exported. It
+keeps the browser read-only with respect to translation/usage, prevents a local
+artifact from seeking an unrelated Watch video, and prevents incomplete targets
+from becoming misleading translated SRT files.
+
+### 2. Signatures
+
+```ts
+interface SubtitleState {
+  loaded: boolean
+  srcLang: string
+  cues: Cue[]
+  artifact?: CacheEntry
+}
+
+resolveTranslation(...): Promise<{
+  cues: Cue[]
+  source: 'l1' | 'l2' | 'fresh'
+  artifact: CacheEntry
+}>
+
+listL1(): Promise<CacheEntry[]>
+filterTranscriptCues(cues: Cue[], query: string): Array<{ index: number; cue: Cue }>
+findCueIndexAt(cues: Cue[], timeMs: number): number
+formatSrt(cues: Cue[], channel: 'original' | 'translated'): string
+
+openSubtitleBrowser({ getCurrentVideoId, getCurrentVideoTitle, seekCurrentVideo }): void
+destroySubtitleBrowser(): void
+```
+
+### 3. Contracts
+
+- A cache hit or fresh success returns the exact accepted/written `CacheEntry`.
+  `main.ts` installs it with the final Store cues. Progressive/source/direct
+  states omit artifact context; force progress/failure preserves the old one.
+- `Store.reset()` aborts, clears subtitle/time, creates the next controller, then
+  notifies subscribers at time `0` so the browser cannot show stale current cues.
+- `listL1()` uses the existing `gistlate/videos.createdAt` index in descending
+  order, applies the same 90-day age rule as `getL1`, skips invalid rows, and
+  requires no database migration or GitHub request.
+- Treat a changed complete-artifact object as invalidating an already-loaded L1
+  list even when its cache key is unchanged. Force retranslation overwrites the
+  same canonical key, so key-only comparison can leave the browser showing the
+  previous title, usage, cost or cues.
+- Search normalizes case/whitespace over both `cue.o` and `cue.t`, preserves cue
+  order, and returns original indices. Playhead-only notifications update one
+  active row; progressive cue-array replacement rebuilds the filtered rows.
+- A current or opened artifact row seeks only when its `videoId` equals the
+  current Watch `videoId`. Other library transcripts remain readable/exportable.
+- Original SRT uses only `cue.o`; translated SRT requires every `cue.t` to be
+  non-empty. Preserve ordered non-overlapping `{s,d}` timing, emit 1-based blocks
+  with `HH:MM:SS,mmm`, and reject invalid/overlapping timelines instead of
+  guessing repairs or substituting source text.
+- Render title, strategy, measured usage tokens and actual `costCny` when present.
+  Old artifacts without optional metadata use video ID/model/date fallbacks.
+- The side panel is one scoped singleton built with `createElement`/`textContent`.
+  Closing removes its Store subscription, DOM and scoped CSS. The player button
+  remains idempotent/re-injectable and the userscript menu opens the same panel.
+- Browsing/export never calls translation, enumerates the GitHub pool, clears L1,
+  or calls `clearUsageHistory`. Blob download URLs are revoked after the click.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+|---|---|
+| Progressive Store update | Rebuild current rows, keep query/order, show pending target |
+| Playhead-only update | Binary-search active index; do not rebuild the transcript |
+| Store reset/navigation | Clear current view through subscriber notification |
+| Force retranslation returns a new artifact at the same key | Mark the loaded L1 list stale so the next library view reads the replacement |
+| L1 entry older than 90 days | Exclude/delete under existing cache policy |
+| Old artifact lacks optional metadata | Render fallback fields; browsing/export remains usable |
+| Library artifact video differs from Watch video | Read/export enabled; seek disabled |
+| Search matches `o` or `t` | Return original index/order; highlight mapping remains correct |
+| Any translated cue is missing/blank | Reject translated SRT with missing cue numbers |
+| Timeline is negative, non-positive or overlapping | Reject SRT; never silently clamp/reorder |
+| L1 listing fails | Show local error; current subtitles/playback continue |
+| Panel closes | Unsubscribe and remove root/scoped style |
+
+### 5. Good / Base / Bad Cases
+
+- **Good:** fresh translation publishes progressive source/targets, then one
+  complete artifact; the open panel updates rows and finally reveals strategy,
+  usage and exact cost without another cache read.
+- **Good:** open an older different-video L1 artifact, search it and export both
+  complete channels while its rows cannot seek the current player.
+- **Base:** direct target-language track has current cues but no translation
+  artifact; source SRT works and translated SRT reports incomplete.
+- **Bad:** search returns sliced cues without original indices; the active class
+  and click seek now address the wrong canonical row.
+- **Bad:** translated export uses `cue.t ?? cue.o`; a partially translated video
+  produces a file falsely labeled as translated.
+- **Bad:** local browsing clears/reconciles the independent usage ledger or walks
+  GitHub `data/**`; both exceed this read-only local-browser boundary.
+
+### 6. Tests Required
+
+- Search tests match original/target, preserve order and canonical indices.
+- Cue-index tests cover exact boundaries and gaps.
+- SRT tests cover hour timestamps, CRLF normalization, successful source/target,
+  all missing target numbers, invalid duration and overlap rejection.
+- fake-indexeddb tests cover newest-first listing, 90-day pruning and legacy rows
+  without optional metadata.
+- Resolve/Store tests cover L1/L2/fresh artifact propagation, progressive
+  omission, reset notification and force-failure preservation.
+- Presentation tests cover strategy, cache-hit/miss/output tokens, actual CNY
+  cost, legacy fallbacks and cross-video seek eligibility.
+- Installed-userscript checks cover player/menu open, close/unsubscribe, live
+  progress, search, click seek, active auto-scroll, library open and both files.
+- Production remains one IIFE with no SystemJS/dynamic import/HTML sinks.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```ts
+const visible = cues.filter(matchesQuery)
+const active = findCueIndexAt(visible, currentTime) // filtered index is not canonical
+
+const target = cue.t ?? cue.o // silently labels source text as translated
+
+if (previousArtifact?.key !== nextArtifact?.key) libraryLoaded = false
+// Misses a force-retranslated replacement at the same canonical key.
+```
+
+#### Correct
+
+```ts
+const visible = filterTranscriptCues(cues, query) // { index, cue }
+const active = findCueIndexAt(cues, currentTime)
+rows.get(active)?.classList.add('glb-active')
+
+if (previousArtifact !== nextArtifact) libraryLoaded = false
+
+if (cues.some((cue) => !cue.t?.trim())) {
+  throw new IncompleteTranslatedSrtError(missingCueNumbers)
 }
 ```
 

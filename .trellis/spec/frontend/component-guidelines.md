@@ -88,6 +88,23 @@ translation (cache miss or explicit force) — wired via a
 `translateAllCues`, so cache hits stay silent. Auto
 -hides terminal states; `destroyStatus()` on SPA nav.
 
+## Stored subtitle browser
+
+`ui/subtitle-browser.ts` owns one fixed, responsive, Trusted Types-safe side
+panel opened from both the player `文` control and the userscript menu. It has a
+live current-Store view and a newest-first local-L1 view. Build all uploader and
+subtitle text with `textContent`; never turn artifact fields into HTML.
+
+Keep playhead updates cheap: rebuild rows only when the Store subtitle/artifact
+identity changes, then use `findCueIndexAt` to move one active class on ordinary
+time notifications. Preserve canonical cue indices through search so filtered
+rows still highlight and seek correctly. An opened library artifact may seek
+only when its `videoId` equals the current Watch video.
+
+The panel owns and removes its Store subscription, root and scoped style on
+close. Store reset updates the current view but does not forcibly discard a
+library artifact the user is reading.
+
 ## Explicit retranslation action
 
 Retranslation is a low-frequency, quota-consuming operation, so expose it through

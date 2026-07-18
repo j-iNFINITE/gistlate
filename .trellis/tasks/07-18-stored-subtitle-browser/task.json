@@ -3,7 +3,7 @@
   "name": "stored-subtitle-browser",
   "title": "Stored subtitle browser",
   "description": "Current-video transcript panel with search, click-to-seek, active-cue highlight and progressive updates; local L1 subtitle library; defer GitHub pool-wide browsing until a remote index strategy is designed.",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,
