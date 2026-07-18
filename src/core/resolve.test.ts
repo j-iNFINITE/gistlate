@@ -10,27 +10,43 @@ vi.mock('../cache/l2github', () => ({
   writeL2: vi.fn(),
 }))
 vi.mock('../translate/pipeline', () => ({
-  translateAllCues: vi.fn(),
+  translateCues: vi.fn(),
 }))
 vi.mock('../settings', () => ({
   loadSettings: vi.fn(() => ({
     tgt: 'zh-Hans',
     openai: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
     github: { owner: 'owner', repo: 'pool', branch: 'main' },
+    translation: { mode: 'sentence', batchSize: 8 },
   })),
   loadSecrets: vi.fn(() => ({ openaiKey: 'sk-test', githubPat: 'pat-test' })),
+  normalizeTranslationSettings: vi.fn((value) => value ?? { mode: 'sentence', batchSize: 8 }),
+}))
+vi.mock('../usage/ledger', () => ({
+  reconcileStaleUsageOperations: vi.fn().mockResolvedValue(0),
+  beginUsageOperation: vi.fn().mockResolvedValue({ operationId: 'op-1' }),
+  appendUsageResponse: vi.fn().mockResolvedValue(undefined),
+  finalizeUsageOperation: vi.fn().mockResolvedValue(undefined),
 }))
 
 import { getL1, putL1 } from '../cache/l1'
 import { readL2, writeL2 } from '../cache/l2github'
-import { translateAllCues } from '../translate/pipeline'
+import { translateCues } from '../translate/pipeline'
+import {
+  appendUsageResponse,
+  beginUsageOperation,
+  finalizeUsageOperation,
+} from '../usage/ledger'
 import { resolveTranslation } from './resolve'
 
 const mockGetL1 = vi.mocked(getL1)
 const mockPutL1 = vi.mocked(putL1)
 const mockReadL2 = vi.mocked(readL2)
 const mockWriteL2 = vi.mocked(writeL2)
-const mockTranslateAllCues = vi.mocked(translateAllCues)
+const mockTranslateCues = vi.mocked(translateCues)
+const mockBeginUsageOperation = vi.mocked(beginUsageOperation)
+const mockAppendUsageResponse = vi.mocked(appendUsageResponse)
+const mockFinalizeUsageOperation = vi.mocked(finalizeUsageOperation)
 
 const SOURCE_CUES: Cue[] = [{ s: 0, d: 1000, o: 'hello' }]
 const TRANSLATED_CUES: Cue[] = [{ s: 0, d: 1000, o: 'hello', t: '你好' }]
@@ -53,7 +69,14 @@ beforeEach(() => {
   mockReadL2.mockResolvedValue(undefined)
   mockPutL1.mockResolvedValue(undefined)
   mockWriteL2.mockResolvedValue(undefined)
-  mockTranslateAllCues.mockResolvedValue(TRANSLATED_CUES)
+  mockTranslateCues.mockResolvedValue({
+    cues: TRANSLATED_CUES,
+    diagnostics: {
+      translationRequestCount: 1,
+      alignmentRequestCount: 0,
+      fallbackSentenceCount: 0,
+    },
+  })
 })
 
 describe('resolveTranslation', () => {
@@ -64,7 +87,8 @@ describe('resolveTranslation', () => {
 
     expect(result).toEqual({ cues: TRANSLATED_CUES, source: 'l1' })
     expect(mockReadL2).not.toHaveBeenCalled()
-    expect(mockTranslateAllCues).not.toHaveBeenCalled()
+    expect(mockTranslateCues).not.toHaveBeenCalled()
+    expect(mockBeginUsageOperation).not.toHaveBeenCalled()
   })
 
   it('returns an L2 hit, backfills L1, and skips translation', async () => {
@@ -79,7 +103,8 @@ describe('resolveTranslation', () => {
       { videoId: 'video', src: 'en', tgt: 'zh-Hans' },
     )
     expect(mockPutL1).toHaveBeenCalledWith(entry)
-    expect(mockTranslateAllCues).not.toHaveBeenCalled()
+    expect(mockTranslateCues).not.toHaveBeenCalled()
+    expect(mockBeginUsageOperation).not.toHaveBeenCalled()
     expect(result).toEqual({ cues: TRANSLATED_CUES, source: 'l2' })
   })
 
@@ -98,30 +123,39 @@ describe('resolveTranslation', () => {
     expect(mockGetL1).not.toHaveBeenCalled()
     expect(mockReadL2).not.toHaveBeenCalled()
     expect(onTranslating).toHaveBeenCalledOnce()
-    expect(mockTranslateAllCues).toHaveBeenCalledWith(
+    expect(mockTranslateCues).toHaveBeenCalledWith(
       SOURCE_CUES,
       'zh-Hans',
       expect.objectContaining({ model: 'gpt-4o-mini' }),
       'sk-test',
-      undefined,
-      context,
+      expect.objectContaining({
+        signal: undefined,
+        context,
+        translation: { mode: 'sentence', batchSize: 8 },
+      }),
     )
     expect(mockPutL1).toHaveBeenCalledWith(
       expect.objectContaining({
         key: 'video|en|zh-Hans',
         cues: TRANSLATED_CUES,
+        generation: expect.objectContaining({
+          strategy: expect.objectContaining({ mode: 'sentence', effectiveRequestCount: 1 }),
+        }),
       }),
     )
     expect(mockWriteL2).toHaveBeenCalledWith(
       expect.objectContaining({ owner: 'owner', repo: 'pool' }),
       'pat-test',
       expect.objectContaining({ cues: TRANSLATED_CUES }),
+      undefined,
+      undefined,
     )
     expect(result).toEqual({ cues: TRANSLATED_CUES, source: 'fresh' })
+    expect(mockFinalizeUsageOperation).toHaveBeenCalledWith('op-1', 'success')
   })
 
   it('does not write either cache when translation fails', async () => {
-    mockTranslateAllCues.mockRejectedValue(new Error('model failed'))
+    mockTranslateCues.mockRejectedValue(new Error('model failed'))
 
     await expect(
       resolveTranslation('video', 'en', SOURCE_CUES, { force: true }),
@@ -129,12 +163,13 @@ describe('resolveTranslation', () => {
 
     expect(mockPutL1).not.toHaveBeenCalled()
     expect(mockWriteL2).not.toHaveBeenCalled()
+    expect(mockFinalizeUsageOperation).toHaveBeenCalledWith('op-1', 'failed', 'Error')
   })
 
   it('passes an aborted signal through without writing', async () => {
     const controller = new AbortController()
     controller.abort()
-    mockTranslateAllCues.mockRejectedValue(new Error('Translation pipeline aborted'))
+    mockTranslateCues.mockRejectedValue(new Error('Translation pipeline aborted'))
 
     await expect(
       resolveTranslation('video', 'en', SOURCE_CUES, {
@@ -143,23 +178,30 @@ describe('resolveTranslation', () => {
       }),
     ).rejects.toThrow(/abort/i)
 
-    expect(mockTranslateAllCues).toHaveBeenCalledWith(
+    expect(mockTranslateCues).toHaveBeenCalledWith(
       SOURCE_CUES,
       'zh-Hans',
       expect.any(Object),
       'sk-test',
-      controller.signal,
-      undefined,
+      expect.objectContaining({ signal: controller.signal, context: undefined }),
     )
     expect(mockPutL1).not.toHaveBeenCalled()
     expect(mockWriteL2).not.toHaveBeenCalled()
+    expect(mockFinalizeUsageOperation).toHaveBeenCalledWith('op-1', 'aborted', 'Error')
   })
 
   it('does not write when navigation aborts just as translation completes', async () => {
     const controller = new AbortController()
-    mockTranslateAllCues.mockImplementationOnce(async () => {
+    mockTranslateCues.mockImplementationOnce(async () => {
       controller.abort()
-      return TRANSLATED_CUES
+      return {
+        cues: TRANSLATED_CUES,
+        diagnostics: {
+          translationRequestCount: 1,
+          alignmentRequestCount: 0,
+          fallbackSentenceCount: 0,
+        },
+      }
     })
 
     await expect(
@@ -171,5 +213,41 @@ describe('resolveTranslation', () => {
 
     expect(mockPutL1).not.toHaveBeenCalled()
     expect(mockWriteL2).not.toHaveBeenCalled()
+  })
+
+  it('records HTTP-success usage before building the successful artifact', async () => {
+    mockTranslateCues.mockImplementationOnce(async (_cues, _target, _cfg, _key, options) => {
+      await options.onUsage?.('translation', {
+        promptTokens: 10,
+        promptCacheHitTokens: 8,
+        promptCacheMissTokens: 2,
+        completionTokens: 4,
+        totalTokens: 14,
+      })
+      return {
+        cues: TRANSLATED_CUES,
+        diagnostics: {
+          translationRequestCount: 1,
+          alignmentRequestCount: 0,
+          fallbackSentenceCount: 0,
+        },
+      }
+    })
+
+    await resolveTranslation('video', 'en', SOURCE_CUES, { force: true })
+
+    expect(mockAppendUsageResponse).toHaveBeenCalledWith(
+      'op-1',
+      'translation',
+      expect.objectContaining({ promptCacheHitTokens: 8, completionTokens: 4 }),
+    )
+    expect(mockPutL1).toHaveBeenCalledWith(expect.objectContaining({
+      generation: expect.objectContaining({
+        usage: expect.objectContaining({
+          requestCount: 1,
+          tokens: expect.objectContaining({ completionTokens: 4 }),
+        }),
+      }),
+    }))
   })
 })

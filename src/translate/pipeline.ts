@@ -1,44 +1,195 @@
 import type { Cue } from '../subtitles/timedtext'
-import type { OpenAIConfig } from '../settings'
-import { translateBatch, boundaryBatch, isSplittable, TruncationError } from './openai'
-import {
-  parseBoundaries,
-  groupByBoundaries,
-  capSentenceRanges,
-  sentencesToCues,
-} from './segment'
+import type { OpenAIConfig, TranslationSettings } from '../settings'
 import type { TranslationContext } from './context'
+import {
+  boundaryBatch,
+  completePrompt,
+  CountMismatchError,
+  isSplittable,
+  TruncationError,
+} from './openai'
+import { groupByBoundaries, parseBoundaries } from './segment'
+import {
+  assembleJobs,
+  assertAllJobsComplete,
+  buildSentencePlans,
+  completeAlignedJob,
+  completeFallbackJob,
+  createSentenceJobs,
+  groupPlans,
+  selectNextTimedGroupIndex,
+  type PlanGroup,
+  type SentenceJob,
+  type SentencePlan,
+} from './jobs'
+import {
+  fillAlignmentPrompt,
+  fillCanonicalPrompt,
+  parseAlignmentCuts,
+  parseGlobalTranslations,
+  type SentenceReference,
+} from './prompt'
+import type { RequestUsage, UsageStage } from '../usage/contracts'
 
-/**
- * Below this many lines we stop splitting and let a genuine failure propagate
- * (fail-closed). Prevents thrashing on tiny ranges a model still can't satisfy.
- */
-const MIN_SPLIT = 8
-/**
- * Hard recursion cap; bounds worst-case request fan-out on a pathological
- * model. At depth 6 a whole-video range has already been halved six times.
- */
-const MAX_DEPTH = 6
-/** Retries for a malformed / transient pass-1 boundary response before giving up. */
 const BOUNDARY_RETRIES = 2
+const TRANSLATION_RETRIES = 3
+const ALIGNMENT_ATTEMPTS = 3
+export const TRANSLATION_CONCURRENCY = 8
+
+export interface TranslationProgress {
+  stage: 'boundaries' | 'translating' | 'aligning'
+  completedSentences: number
+  totalSentences: number
+  cues: Cue[]
+}
+
+export interface PipelineDiagnostics {
+  translationRequestCount: number
+  alignmentRequestCount: number
+  fallbackSentenceCount: number
+}
+
+export interface TranslationPipelineResult {
+  cues: Cue[]
+  diagnostics: PipelineDiagnostics
+}
+
+export interface TranslationPipelineOptions {
+  signal?: AbortSignal
+  context?: TranslationContext
+  translation: TranslationSettings
+  getCurrentTime?: () => number
+  onProgress?: (progress: TranslationProgress) => void
+  onUsage?: (stage: UsageStage, usage?: RequestUsage) => Promise<void> | void
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw new Error('Translation pipeline aborted')
+}
 
 /**
- * Translate a full set of cues into sentence-level cues (two-pass).
- *
- * Pass 1 (`detectBoundaries`): ask the model, for each fragment, whether it ends
- * a sentence; group the per-fragment flags deterministically into contiguous
- * sentence ranges. Pass 2 (`translateRange`): translate the joined sentence
- * texts 1:1 (adaptive split on truncation). Building each cue's `o`, `t`, and
- * time from the SAME fragment range makes the translation aligned by
- * construction — an imperfect boundary at worst shifts a seam, never mis-times a
- * translation.
- *
- * On any unrecoverable failure of either pass (malformed boundaries, transport,
- * truncation below the split floor) — but NOT on abort — fall back to the
- * existing 1:1 fragment translation so the result is never worse than before.
- * Fail-closed: an unrecoverable failure throws (no partial result); the caller
- * writes nothing. Abort propagates without falling back or writing.
+ * Complete-sentence translation pipeline. Display capping never creates a
+ * translation owner: one immutable canonical target is generated per plan,
+ * then a separate cut-only alignment maps it onto source-timed display ranges.
  */
+export async function translateCues(
+  cues: Cue[],
+  targetLang: string,
+  openaiCfg: OpenAIConfig,
+  apiKey: string,
+  options: TranslationPipelineOptions,
+): Promise<TranslationPipelineResult> {
+  const diagnostics: PipelineDiagnostics = {
+    translationRequestCount: 0,
+    alignmentRequestCount: 0,
+    fallbackSentenceCount: 0,
+  }
+  if (cues.length === 0) return { cues: [], diagnostics }
+
+  const { signal, context, translation, getCurrentTime, onProgress, onUsage } = options
+  throwIfAborted(signal)
+  onProgress?.({ stage: 'boundaries', completedSentences: 0, totalSentences: 0, cues })
+
+  const endFlags = await detectBoundaries(
+    cues,
+    openaiCfg,
+    apiKey,
+    signal,
+    (usage) => onUsage?.('boundary', usage),
+  )
+  const plans = buildSentencePlans(cues, groupByBoundaries(endFlags))
+  const jobs = createSentenceJobs(plans)
+  const references: SentenceReference[] = plans.map(({ id, sourceText }) => ({ id, sourceText }))
+  const groups = groupPlans(plans, translation.mode, translation.batchSize)
+  let completedSentences = 0
+
+  const emit = (stage: TranslationProgress['stage']): void => {
+    onProgress?.({
+      stage,
+      completedSentences,
+      totalSentences: jobs.length,
+      cues: assembleJobs(cues, jobs),
+    })
+  }
+  emit('translating')
+
+  const runGroup = async (group: PlanGroup): Promise<void> => {
+    const groupJobs = group.plans.map((plan) => jobs[plans.indexOf(plan)])
+    groupJobs.forEach((job) => { job.status = 'translating' })
+    try {
+      const translations = await translateGroupAdaptive(
+        group.plans,
+        references,
+        targetLang,
+        openaiCfg,
+        apiKey,
+        signal,
+        context,
+        diagnostics,
+        (usage) => onUsage?.('translation', usage),
+      )
+      for (const job of groupJobs) {
+        job.canonicalTarget = translations.get(job.plan.id)
+        job.status = job.plan.displayRanges.length > 1 ? 'aligning' : 'translating'
+      }
+      if (groupJobs.some((job) => job.status === 'aligning')) emit('aligning')
+
+      await Promise.all(groupJobs.map(async (job) => {
+        const target = job.canonicalTarget
+        if (!target) throw new Error(`Missing canonical target for ${job.plan.id}`)
+        if (job.plan.displayRanges.length === 1) {
+          completeAlignedJob(job, target)
+          return
+        }
+        await alignJob(
+          job,
+          references,
+          target,
+          openaiCfg,
+          apiKey,
+          signal,
+          context,
+          diagnostics,
+          (usage) => onUsage?.('alignment', usage),
+        )
+      }))
+      completedSentences += groupJobs.length
+    } catch (error) {
+      groupJobs.forEach((job) => {
+        if (job.status !== 'done') {
+          job.status = 'failed'
+          job.error = error as Error
+        }
+      })
+    }
+    emit('translating')
+  }
+
+  const pending = [...groups]
+  if (pending.length > 0) {
+    // One sequential playhead-near request warms DeepSeek's stable transcript prefix.
+    const warmIndex = selectNextTimedGroupIndex(pending, cues, getCurrentTime?.() ?? 0)
+    const [warm] = pending.splice(warmIndex, 1)
+    await runGroup(warm)
+  }
+
+  const worker = async (): Promise<void> => {
+    while (pending.length > 0) {
+      throwIfAborted(signal)
+      const nextIndex = selectNextTimedGroupIndex(pending, cues, getCurrentTime?.() ?? 0)
+      const [group] = pending.splice(nextIndex, 1)
+      await runGroup(group)
+    }
+  }
+  await Promise.all(
+    Array.from({ length: Math.min(TRANSLATION_CONCURRENCY, pending.length) }, () => worker()),
+  )
+  throwIfAborted(signal)
+  assertAllJobsComplete(jobs)
+  return { cues: assembleJobs(cues, jobs), diagnostics }
+}
+
+/** Backward-compatible convenience wrapper; product orchestration uses translateCues. */
 export async function translateAllCues(
   cues: Cue[],
   targetLang: string,
@@ -47,155 +198,164 @@ export async function translateAllCues(
   signal?: AbortSignal,
   context?: TranslationContext,
 ): Promise<Cue[]> {
-  if (cues.length === 0) return []
-
-  try {
-    // Pass 1: per-fragment sentence boundaries (reliable, 1:1), then group.
-    const isEnd = await detectBoundaries(cues, openaiCfg, apiKey, signal)
-    const ranges = capSentenceRanges(cues, groupByBoundaries(isEnd))
-
-    // Pass 2: translate the whole sentences (reuse the proven 1:1 range
-    // translator — count-validated, adaptive split on truncation).
-    const sentenceTexts = ranges.map((r) =>
-      cues
-        .slice(r.startIdx, r.endIdx + 1)
-        .map((c) => c.o)
-        .join(' ')
-        .replace(/\s+/g, ' ')
-        .trim(),
-    )
-    const translations = await translateRange(
-      sentenceTexts,
-      targetLang,
-      openaiCfg,
-      apiKey,
-      signal,
-      context,
-    )
-
-    return sentencesToCues(cues, ranges, translations)
-  } catch (e) {
-    // Never fall back on abort — the result would be stale and discarded anyway.
-    if (signal?.aborted) throw e
-
-    console.warn('[Gistlate] Sentence reconstruction failed; falling back to 1:1', e)
-
-    const translated = await translateRange(
-      cues.map((c) => c.o),
-      targetLang,
-      openaiCfg,
-      apiKey,
-      signal,
-      context,
-    )
-    const out = cues.map((c, i) => ({ ...c, t: translated[i] }))
-    if (out.some((c) => !c.t || c.t.trim() === '')) {
-      throw new Error('Translation pipeline: empty translations in fallback')
-    }
-    return out
-  }
+  const result = await translateCues(cues, targetLang, openaiCfg, apiKey, {
+    signal,
+    context,
+    translation: { mode: 'whole', batchSize: 8 },
+  })
+  return result.cues
 }
 
-/**
- * Pass 1. Ask the model, for each fragment, whether it ends a sentence; parse to
- * a boolean end-flag array aligned 1:1 with `cues`. Retries on a malformed
- * response (`SegmentationError`) or a transient transport error, with backoff.
- *
- * There is NO adaptive split for pass 1: the E/C output is tiny, so a truncation
- * (`finish_reason==='length'`) signals a misbehaving model rather than an
- * oversized range — it propagates immediately (caller falls back to 1:1) instead
- * of burning retries. Abort propagates immediately.
- */
 async function detectBoundaries(
   cues: Cue[],
   cfg: OpenAIConfig,
   apiKey: string,
-  signal?: AbortSignal,
+  signal: AbortSignal | undefined,
+  onUsage: (usage?: RequestUsage) => Promise<void> | void,
 ): Promise<boolean[]> {
-  const fragTexts = cues.map((c) => c.o)
-  let lastError: Error | null = null
-
+  const texts = cues.map((cue) => cue.o)
+  let lastError: Error | undefined
   for (let attempt = 0; attempt <= BOUNDARY_RETRIES; attempt++) {
-    if (signal?.aborted) throw new Error('Translation pipeline aborted')
-
+    throwIfAborted(signal)
     try {
-      const { content, finishReason } = await boundaryBatch(fragTexts, cfg, apiKey, signal)
-      if (finishReason === 'length') {
+      const result = await boundaryBatch(texts, cfg, apiKey, signal, onUsage)
+      if (result.finishReason === 'length') {
         throw new TruncationError(`Boundary output truncated for ${cues.length} fragments`)
       }
-      return parseBoundaries(content, cues.length)
-    } catch (e) {
-      if (signal?.aborted) throw e
-      // Truncation won't improve on retry, and pass 1 has no split — propagate
-      // so the caller falls back to 1:1.
-      if (e instanceof TruncationError) throw e
-
-      lastError = e as Error
+      return parseBoundaries(result.content, cues.length)
+    } catch (error) {
+      if (signal?.aborted || error instanceof TruncationError) throw error
+      lastError = error as Error
       if (attempt < BOUNDARY_RETRIES) {
-        await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt))
-        continue
+        await new Promise((resolve) => setTimeout(resolve, 1000 * 2 ** attempt))
       }
-      throw lastError
     }
   }
-
   throw lastError ?? new Error('Boundary detection failed')
 }
 
-/**
- * Translate a range of raw text lines (used for both pass-2 sentence texts and
- * the 1:1 fallback). Tries the whole range in one request; on an output-size
- * failure (truncation / count mismatch) it splits the range in half and
- * recurses, concatenating the halves. Any non-splittable error, or a failure
- * below the MIN_SPLIT / MAX_DEPTH floor, propagates (fail-closed).
- */
-async function translateRange(
-  texts: string[],
+async function translateGroupAdaptive(
+  plans: SentencePlan[],
+  references: SentenceReference[],
   targetLang: string,
   cfg: OpenAIConfig,
   apiKey: string,
-  signal?: AbortSignal,
-  context?: TranslationContext,
-  depth = 0,
-): Promise<string[]> {
-  if (texts.length === 0) return []
-  if (signal?.aborted) throw new Error('Translation pipeline aborted')
-
+  signal: AbortSignal | undefined,
+  context: TranslationContext | undefined,
+  diagnostics: PipelineDiagnostics,
+  onUsage: (usage?: RequestUsage) => Promise<void> | void,
+): Promise<Map<string, string>> {
   try {
-    return await translateBatch(
-      texts,
-      targetLang,
-      cfg,
-      apiKey,
-      signal,
-      undefined,
-      context,
-    )
-  } catch (e) {
-    // Only split on an output-size problem, and only while there is still room
-    // to split. Otherwise fail closed so the caller shows original-only.
-    if (!isSplittable(e) || texts.length <= MIN_SPLIT || depth >= MAX_DEPTH) {
-      throw e
-    }
-    const mid = Math.ceil(texts.length / 2)
-    const left = await translateRange(
-      texts.slice(0, mid),
+    return await translateCanonicalGroup(
+      plans,
+      references,
       targetLang,
       cfg,
       apiKey,
       signal,
       context,
-      depth + 1,
+      diagnostics,
+      onUsage,
     )
-    const right = await translateRange(
-      texts.slice(mid),
-      targetLang,
-      cfg,
-      apiKey,
-      signal,
-      context,
-      depth + 1,
+  } catch (error) {
+    if (!isSplittable(error) || plans.length <= 1) throw error
+    const middle = Math.ceil(plans.length / 2)
+    const left = await translateGroupAdaptive(
+      plans.slice(0, middle), references, targetLang, cfg, apiKey, signal,
+      context, diagnostics, onUsage,
     )
-    return [...left, ...right]
+    const right = await translateGroupAdaptive(
+      plans.slice(middle), references, targetLang, cfg, apiKey, signal,
+      context, diagnostics, onUsage,
+    )
+    return new Map([...left, ...right])
   }
+}
+
+async function translateCanonicalGroup(
+  plans: SentencePlan[],
+  references: SentenceReference[],
+  targetLang: string,
+  cfg: OpenAIConfig,
+  apiKey: string,
+  signal: AbortSignal | undefined,
+  context: TranslationContext | undefined,
+  diagnostics: PipelineDiagnostics,
+  onUsage: (usage?: RequestUsage) => Promise<void> | void,
+): Promise<Map<string, string>> {
+  const ids = plans.map((plan) => plan.id)
+  const { system, user } = fillCanonicalPrompt(references, ids, targetLang, context)
+  let lastError: Error | undefined
+  for (let attempt = 0; attempt < TRANSLATION_RETRIES; attempt++) {
+    throwIfAborted(signal)
+    diagnostics.translationRequestCount += 1
+    try {
+      const completion = await completePrompt(system, user, cfg, apiKey, signal, {
+        role: 'translation',
+        onUsage,
+      })
+      if (completion.finishReason === 'length') {
+        throw new TruncationError(`Canonical translation truncated for ${ids.join(', ')}`)
+      }
+      try {
+        return parseGlobalTranslations(completion.content, ids)
+      } catch (error) {
+        throw new CountMismatchError((error as Error).message)
+      }
+    } catch (error) {
+      if (signal?.aborted || error instanceof TruncationError) throw error
+      lastError = error as Error
+      if (attempt < TRANSLATION_RETRIES - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * 2 ** attempt))
+      }
+    }
+  }
+  throw lastError ?? new Error('Canonical translation failed')
+}
+
+async function alignJob(
+  job: SentenceJob,
+  references: SentenceReference[],
+  target: string,
+  cfg: OpenAIConfig,
+  apiKey: string,
+  signal: AbortSignal | undefined,
+  context: TranslationContext | undefined,
+  diagnostics: PipelineDiagnostics,
+  onUsage: (usage?: RequestUsage) => Promise<void> | void,
+): Promise<void> {
+  let previousError: string | undefined
+  for (let attempt = 0; attempt < ALIGNMENT_ATTEMPTS; attempt++) {
+    throwIfAborted(signal)
+    const { system, user } = fillAlignmentPrompt(
+      references,
+      job.plan,
+      job.plan.displayTexts,
+      target,
+      context,
+      previousError,
+    )
+    diagnostics.alignmentRequestCount += 1
+    try {
+      const completion = await completePrompt(system, user, cfg, apiKey, signal, {
+        role: 'alignment',
+        jsonOutput: true,
+        onUsage,
+      })
+      if (completion.finishReason === 'length') throw new Error('Alignment output truncated')
+      const cuts = parseAlignmentCuts(
+        completion.content,
+        job.plan.id,
+        job.plan.displayRanges.length - 1,
+        target,
+      )
+      completeAlignedJob(job, target, cuts)
+      return
+    } catch (error) {
+      if (signal?.aborted) throw error
+      previousError = (error as Error).message
+    }
+  }
+  completeFallbackJob(job, target)
+  diagnostics.fallbackSentenceCount += 1
 }

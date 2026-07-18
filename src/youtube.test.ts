@@ -14,7 +14,7 @@ const pageWindow = vi.hoisted(() => ({
 
 vi.mock('$', () => ({ unsafeWindow: pageWindow }))
 
-import { getVideoContext } from './youtube'
+import { getVideoContext, isTimedtextRequestForVideo } from './youtube'
 
 const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document')
 
@@ -83,5 +83,14 @@ describe('getVideoContext', () => {
     installDocument({}, 'Document fallback - YouTube')
 
     expect(getVideoContext('current')).toEqual({ title: 'Document fallback' })
+  })
+})
+
+describe('timedtext video identity', () => {
+  it('accepts only a request whose v parameter matches the current watch video', () => {
+    expect(isTimedtextRequestForVideo(new URLSearchParams('v=current&lang=ja'), 'current')).toBe(true)
+    expect(isTimedtextRequestForVideo(new URLSearchParams('v=previous&lang=ja'), 'current')).toBe(false)
+    expect(isTimedtextRequestForVideo(new URLSearchParams('lang=ja'), 'current')).toBe(false)
+    expect(isTimedtextRequestForVideo(new URLSearchParams('v=current'), null)).toBe(false)
   })
 })

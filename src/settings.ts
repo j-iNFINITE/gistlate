@@ -13,6 +13,14 @@ export interface GitHubConfig {
   branch: string
 }
 
+export type TranslationMode = 'sentence' | 'batch' | 'whole'
+
+export interface TranslationSettings {
+  mode: TranslationMode
+  /** Remembered while another mode is selected. Valid range: 2..32. */
+  batchSize: number
+}
+
 /** Live subtitle overlay styling (driven by CSS custom properties). */
 export interface SubtitleStyle {
   /** Preset key ('system-sans' | 'serif' | 'mono' | 'yt-noto') or a raw CSS font family. */
@@ -42,6 +50,7 @@ export interface Settings {
   displayMode: 'bilingual' | 'translation-only'
   openai: OpenAIConfig
   github: GitHubConfig
+  translation: TranslationSettings
   style: SubtitleStyle
 }
 
@@ -60,6 +69,10 @@ export const DEFAULTS: Settings = {
     owner: '',
     repo: '',
     branch: 'main',
+  },
+  translation: {
+    mode: 'sentence',
+    batchSize: 8,
   },
   // Reproduces the MVP overlay look (see ui/overlay.ts OVERLAY_CSS fallbacks).
   style: {
@@ -160,7 +173,26 @@ function mergeDefaults(stored: Record<string, unknown>): Settings {
           ? (stored.github as GitHubConfig).branch
           : d.github.branch,
     },
+    translation: normalizeTranslationSettings(stored.translation),
     style: mergeStyle(stored.style),
+  }
+}
+
+/** Backward-compatible translation strategy merge for old or malformed settings. */
+export function normalizeTranslationSettings(stored: unknown): TranslationSettings {
+  const d = DEFAULTS.translation
+  const value = stored && typeof stored === 'object'
+    ? stored as Record<string, unknown>
+    : {}
+  const mode = value.mode === 'sentence' || value.mode === 'batch' || value.mode === 'whole'
+    ? value.mode
+    : d.mode
+  const rawBatchSize = typeof value.batchSize === 'number' && Number.isFinite(value.batchSize)
+    ? Math.trunc(value.batchSize)
+    : d.batchSize
+  return {
+    mode,
+    batchSize: Math.min(32, Math.max(2, rawBatchSize)),
   }
 }
 

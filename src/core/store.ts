@@ -32,6 +32,7 @@ class Store {
 
   setSubtitle(srcLang: string, cues: Cue[]): void {
     this.subtitle = { loaded: true, srcLang, cues }
+    this.notify()
   }
 
   reset(): void {
@@ -45,7 +46,7 @@ class Store {
 
   setCurrentTime(time: number): void {
     this.currentTime = time
-    this.listeners.forEach((fn) => fn(time))
+    this.notify()
   }
 
   subscribe(fn: Listener): () => void {
@@ -57,6 +58,10 @@ class Store {
 
   get signal(): AbortSignal {
     return this.abortController.signal
+  }
+
+  private notify(): void {
+    this.listeners.forEach((fn) => fn(this.currentTime))
   }
 }
 

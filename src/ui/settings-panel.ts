@@ -55,6 +55,7 @@ const PANEL_CSS = `
   #${PANEL_ID}-modal .gl-btn-test:disabled { opacity: .5; cursor: wait; }
   #${PANEL_ID}-modal .gl-actions { display: flex; gap: 8px; justify-content: end; margin-top: 20px; }
   #${PANEL_ID}-modal .gl-status { font-size: 12px; margin-top: 4px; min-height: 1.2em; }
+  #${PANEL_ID}-modal .gl-hint { font-size: 12px; color: #888; line-height: 1.5; margin: 5px 0 8px; }
   #${PANEL_ID}-modal .gl-ok { color: #4caf50; }
   #${PANEL_ID}-modal .gl-err { color: #ef5350; }
 `
@@ -114,6 +115,45 @@ export function openSettingsPanel(): void {
   ])
   const displayLabel = h('label', { textContent: '显示模式', htmlFor: 'gl-display' })
 
+  const strategySelect = h('select', { id: 'gl-translation-mode' }, [
+    h('option', {
+      value: 'sentence',
+      textContent: '一句一次（最稳、最早显示）',
+      selected: settings.translation.mode === 'sentence',
+    }),
+    h('option', {
+      value: 'batch',
+      textContent: 'N 句一次（平衡速度与可靠性）',
+      selected: settings.translation.mode === 'batch',
+    }),
+    h('option', {
+      value: 'whole',
+      textContent: '全量一次（请求最少、完成后显示）',
+      selected: settings.translation.mode === 'whole',
+    }),
+  ])
+  const strategyLabel = h('label', { textContent: '翻译请求模式', htmlFor: 'gl-translation-mode' })
+  const batchSizeF = labeledInput(
+    '每批完整句数（2–32）',
+    'gl-translation-batch-size',
+    'number',
+    String(settings.translation.batchSize),
+    '8',
+  )
+  batchSizeF.input.min = '2'
+  batchSizeF.input.max = '32'
+  batchSizeF.input.step = '1'
+  const batchSizeBox = h('div', {}, [batchSizeF.label, batchSizeF.input])
+  const strategyHint = h('p', {
+    className: 'gl-hint',
+    textContent: '模式只影响新翻译；已有缓存不会自动重做。要用新模式处理当前视频，请使用“重新翻译当前视频”。',
+  })
+  const updateBatchVisibility = () => {
+    batchSizeBox.style.display = strategySelect.value === 'batch' ? 'block' : 'none'
+  }
+  strategySelect.addEventListener('change', updateBatchVisibility)
+  updateBatchVisibility()
+
   const oaiUrlF = labeledInput('Base URL', 'gl-openai-url', 'text', settings.openai.baseUrl, 'https://api.openai.com/v1')
   const oaiModelF = labeledInput('模型', 'gl-openai-model', 'text', settings.openai.model, 'gpt-4o-mini')
   const oaiKeyF = labeledInput('API Key', 'gl-openai-key', 'password', openaiKey, 'sk-...')
@@ -136,6 +176,11 @@ export function openSettingsPanel(): void {
 
     tgtF.label, tgtF.input,
     displayLabel, displaySelect,
+
+    h('h3', { textContent: '翻译策略' }),
+    strategyLabel, strategySelect,
+    batchSizeBox,
+    strategyHint,
 
     h('h3', { textContent: 'OpenAI' }),
     oaiUrlF.label, oaiUrlF.input,
@@ -228,6 +273,10 @@ export function openSettingsPanel(): void {
         owner: ghOwnerF.input.value.trim(),
         repo: ghRepoF.input.value.trim(),
         branch: ghBranchF.input.value.trim() || 'main',
+      },
+      translation: {
+        mode: strategySelect.value as Settings['translation']['mode'],
+        batchSize: Math.min(32, Math.max(2, Math.trunc(Number(batchSizeF.input.value) || 8))),
       },
       // Preserve subtitle style — it is edited only in the style panel. Re-read
       // at save time so a style saved there while this modal is open (both can be

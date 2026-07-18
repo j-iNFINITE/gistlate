@@ -12,6 +12,7 @@ import {
   onVideoChange,
   ensureCaptions,
   getVideoElement,
+  isTimedtextRequestForVideo,
 } from './youtube'
 import { store } from './core/store'
 import { resolveTranslation } from './core/resolve'
@@ -19,9 +20,22 @@ import { createOverlay, destroyOverlay } from './ui/overlay'
 import { openSettingsPanel } from './ui/settings-panel'
 import { openStylePanel } from './ui/style-panel'
 import { mountStyleButton } from './ui/style-button'
-import { showTranslating, showDone, showError, destroyStatus } from './ui/status'
+import {
+  showTranslating,
+  showProgress,
+  showDone,
+  showError,
+  destroyStatus,
+} from './ui/status'
+import { reconcileStaleUsageOperations } from './usage/ledger'
 
 console.log('[Gistlate] Script loaded on YouTube')
+
+// A tab/browser crash can leave a billed operation marked running. Reconcile
+// it once on the next userscript initialization without fabricating new usage.
+void reconcileStaleUsageOperations().catch((error) => {
+  console.warn('[Gistlate] Could not reconcile stale usage operations', error)
+})
 
 // ── Settings ──────────────────────────────────────────
 const settings = loadSettings()
@@ -125,6 +139,12 @@ interface CurrentTrack {
 let currentTrack: CurrentTrack | null = null
 
 interceptTimedtext(({ json, params }) => {
+  const videoId = getVideoId()
+  // A late timedtext response from the previous SPA page must never be parsed,
+  // deduplicated, displayed, or cached under the current watch URL.
+  if (!isTimedtextRequestForVideo(params, videoId)) return
+  if (!videoId) return
+
   const rawLang = params.get('lang')
   const tlang = params.get('tlang')
 
@@ -133,10 +153,6 @@ interceptTimedtext(({ json, params }) => {
 
   if (!json.events || json.events.length === 0) return
 
-  const videoId = getVideoId()
-  // Mid-navigation the watch URL isn't settled yet and getVideoId() is null;
-  // skip until it resolves, or we'd translate + cache under an empty videoId key.
-  if (!videoId) return
   const srcLang = rawLang ?? 'unknown'
   const trackKey = `${videoId}|${srcLang}`
 
@@ -169,7 +185,7 @@ interceptTimedtext(({ json, params }) => {
   // Try enabling captions so next video auto-starts
   ensureCaptions()
 
-  // Trigger translation (eager, whole-track)
+  // Trigger whole-track planning; canonical sentence jobs then run progressively.
   triggerTranslation(videoId, srcLang, cues)
 })
 
@@ -206,6 +222,7 @@ async function triggerTranslation(
   // Capture the signal now; if navigation resets the store mid-flight, this
   // signal aborts and we discard the stale result.
   const signal = store.signal
+  overlay?.setDisplayMode(liveSettings.displayMode)
 
   try {
     console.log(`[Gistlate] Resolving translation: ${videoId} ${src}→${tgt}`)
@@ -214,6 +231,16 @@ async function triggerTranslation(
       onTranslating: showTranslating,
       force,
       context: getVideoContext(videoId),
+      getCurrentTime: () => store.currentTime,
+      onProgress: (progress) => {
+        if (signal.aborted || getVideoId() !== videoId) return
+        showProgress(progress)
+        // Fresh translation may mix completed targets with original-only pending
+        // cues in memory. Force mode keeps the old complete artifact atomically.
+        if (!force && progress.cues.length > 0) {
+          store.setSubtitle(srcLang, progress.cues)
+        }
+      },
     })
 
     // Staleness guard: covers the cache-hit path where resolve returns fast
@@ -227,7 +254,6 @@ async function triggerTranslation(
     // Only flash "done" when we actually translated (the pill was shown).
     if (result.source === 'fresh') showDone()
     store.setSubtitle(srcLang, result.cues)
-    store.setCurrentTime(store.currentTime) // force overlay refresh
   } catch (e) {
     if (signal.aborted) {
       console.log('[Gistlate] Translation aborted (superseded by a newer track)')

@@ -16,6 +16,7 @@
   },
   "devDependencies": {
     "@types/tampermonkey": "^5.0.5",
+    "fake-indexeddb": "^6.2.5",
     "typescript": "^5.8.3",
     "vite": "^6.3.5",
     "vite-plugin-monkey": "^5.0.8",

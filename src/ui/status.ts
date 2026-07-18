@@ -1,9 +1,4 @@
-/**
- * Minimal on-screen translation status pill (not a streaming progress bar).
- * Shows a spinner + "翻译中…" while a fresh whole-video translation runs, a brief
- * "✓ 翻译完成" on success, and "翻译失败" on error. Cache hits show nothing.
- * Mounted on `#movie_player`, non-interactive, auto-hiding for terminal states.
- */
+import type { TranslationProgress } from '../translate/pipeline'
 
 const ID = 'gistlate-status'
 const CSS_ID = 'gistlate-status-css'
@@ -64,7 +59,16 @@ function render(text: string, spinner: boolean): HTMLDivElement | null {
 }
 
 export function showTranslating(): void {
-  render('Gistlate 翻译中…', true)
+  render('Gistlate 正在分析字幕结构…', true)
+}
+
+export function showProgress(progress: TranslationProgress): void {
+  if (progress.stage === 'boundaries') {
+    render('Gistlate 正在分析字幕结构…', true)
+    return
+  }
+  const verb = progress.stage === 'aligning' ? '正在对齐' : '已翻译'
+  render(`Gistlate ${verb} ${progress.completedSentences} / ${progress.totalSentences}`, true)
 }
 
 export function showDone(): void {

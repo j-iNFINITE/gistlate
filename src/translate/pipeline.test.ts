@@ -1,174 +1,253 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { translateAllCues } from './pipeline'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Cue } from '../subtitles/timedtext'
+import { translateCues } from './pipeline'
 
-// Mock the transport so no real network happens.
-vi.mock('../net/gm', () => ({
-  gmFetch: vi.fn(),
-}))
-
+vi.mock('../net/gm', () => ({ gmFetch: vi.fn() }))
 import { gmFetch } from '../net/gm'
 const mockGmFetch = vi.mocked(gmFetch)
 
-const OPENAI_CFG = { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' }
+const CFG = { baseUrl: 'https://api.deepseek.com', model: 'deepseek-v4-flash' }
 
-const CUES: Cue[] = [
-  { s: 0, d: 1000, o: 'Hello' },
-  { s: 1000, d: 1000, o: 'World' },
-  { s: 2000, d: 1000, o: 'Test' },
-]
-
-/** N cues with distinct originals (o = "L1".."LN"). */
-function makeCues(n: number): Cue[] {
-  return Array.from({ length: n }, (_, i) => ({ s: i * 1000, d: 1000, o: `L${i + 1}` }))
+function makeCues(count: number): Cue[] {
+  return Array.from({ length: count }, (_, index) => ({
+    s: index * 1000,
+    d: 1000,
+    o: `L${index + 1}`,
+  }))
 }
 
-/** Build a /chat/completions success body. `finishReason` defaults to 'stop'. */
-function chatOk(content: string, finishReason = 'stop') {
+function chatOk(content: string, usage?: Record<string, unknown>) {
   return {
     status: 200,
-    text: JSON.stringify({
-      choices: [{ message: { content }, finish_reason: finishReason }],
-    }),
+    text: JSON.stringify({ choices: [{ message: { content }, finish_reason: 'stop' }], usage }),
   }
 }
 
-/** Pass-1 boundary body: `flags` like 'CEE' → "[1] C\n[2] E\n[3] E". */
-function boundaryResp(flags: string) {
-  const content = flags
-    .split('')
-    .map((f, i) => `[${i + 1}] ${f}`)
-    .join('\n')
-  return chatOk(content)
+function boundaries(flags: string) {
+  return chatOk(flags.split('').map((flag, index) => `[${index + 1}] ${flag}`).join('\n'))
 }
 
-/** Pass-2 / fallback body: numbered 1:1 from explicit labels ("[1] a\n[2] b"). */
-function numberedLabels(labels: string[]) {
-  return chatOk(labels.map((l, i) => `[${i + 1}] ${l}`).join('\n'))
+function targetIds(body: string): string[] {
+  const parsed = JSON.parse(body) as { messages: Array<{ content: string }> }
+  const match = parsed.messages[1].content.match(/TARGET IDS: ([^\n]+)/u)
+  return match?.[1].split(',').map((id) => id.trim()) ?? []
 }
 
-// Fake timers keep the retry backoff (1s/2s) instant. Microtasks (promise
-// resolution) are NOT faked, so mocked gmFetch responses still resolve.
+function translations(ids: string[]) {
+  return chatOk(ids.map((id) => `[${id}] T-${id}`).join('\n'))
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   vi.useFakeTimers()
 })
-afterEach(() => {
-  vi.useRealTimers()
-})
 
-describe('translateAllCues (two-pass: boundaries + sentence translation, with 1:1 fallback)', () => {
-  it('returns empty for empty cues without calling the API', async () => {
-    const result = await translateAllCues([], 'es', OPENAI_CFG, 'sk-test')
-    expect(result).toEqual([])
+afterEach(() => vi.useRealTimers())
+
+describe('complete-sentence translation pipeline', () => {
+  it('returns empty without making a request', async () => {
+    const result = await translateCues([], 'zh-Hans', CFG, 'key', {
+      translation: { mode: 'sentence', batchSize: 8 },
+    })
+    expect(result.cues).toEqual([])
     expect(mockGmFetch).not.toHaveBeenCalled()
   })
 
-  it('detects boundaries then translates whole sentences in TWO requests', async () => {
-    // Pass 1: fragments 1+2 form one sentence, fragment 3 another.
-    // Pass 2: translate the two joined sentences 1:1.
-    mockGmFetch
-      .mockResolvedValueOnce(boundaryResp('CEE'))
-      .mockResolvedValueOnce(numberedLabels(['Hola Mundo', 'Prueba']))
-
-    const result = await translateAllCues(CUES, 'es', OPENAI_CFG, 'sk-test')
-
-    expect(mockGmFetch).toHaveBeenCalledTimes(2)
-    expect(result).toHaveLength(2) // fewer cues than fragments
-
-    // Sentence 0 end is clamped to the next sentence's start (2000) → d = 2000.
-    expect(result[0]).toEqual({ s: 0, d: 2000, o: 'Hello World', t: 'Hola Mundo' })
-    // Last sentence: raw end 2000 + 1000 = 3000 → d = 1000.
-    expect(result[1]).toEqual({ s: 2000, d: 1000, o: 'Test', t: 'Prueba' })
-  })
-
-  it('caps one long detected sentence before pass 2 and keeps video context', async () => {
+  it('translates one complete sentence once, then aligns its immutable target to short cues', async () => {
     const cues = makeCues(20)
     mockGmFetch
-      .mockResolvedValueOnce(boundaryResp(`${'C'.repeat(19)}E`))
-      .mockResolvedValueOnce(numberedLabels(['Primera parte', 'Segunda parte']))
+      .mockResolvedValueOnce(boundaries(`${'C'.repeat(19)}E`))
+      .mockResolvedValueOnce(chatOk('[S001] 甲乙丙丁'))
+      .mockResolvedValueOnce(chatOk('{"S001":[2]}'))
 
-    const result = await translateAllCues(
-      cues,
-      'es',
-      OPENAI_CFG,
-      'sk-test',
-      undefined,
-      { title: 'A long lesson', description: 'One continuous explanation.' },
-    )
-
-    expect(result).toHaveLength(2)
-    expect(result[0].o).toBe(makeCues(15).map((cue) => cue.o).join(' '))
-    expect(result[0].s).toBe(0)
-    expect(result[0].d).toBe(15000)
-    expect(result[0].t).toBe('Primera parte')
-    expect(result[1].o).toBe('L16 L17 L18 L19 L20')
-    expect(result[1].s).toBe(15000)
-    expect(result[1].t).toBe('Segunda parte')
-
-    const boundaryBody = JSON.parse(mockGmFetch.mock.calls[0]![0].body as string)
-    const translationBody = JSON.parse(mockGmFetch.mock.calls[1]![0].body as string)
-    expect(boundaryBody.messages[1].content).not.toContain('A long lesson')
-    expect(translationBody.messages[1].content).toContain('A long lesson')
-    expect(translationBody.messages[1].content).toContain('[2] L16 L17 L18 L19 L20')
-  })
-
-  it('splits the pass-2 translation on truncation and still covers every sentence', async () => {
-    const cues = makeCues(10) // 10 fragments → 10 sentences > MIN_SPLIT (8)
-    mockGmFetch
-      // Pass 1: every fragment ends its own sentence.
-      .mockResolvedValueOnce(boundaryResp('E'.repeat(10)))
-      // Pass 2 whole range truncates → TruncationError → split into halves of 5.
-      .mockResolvedValueOnce(chatOk('[1] partial', 'length'))
-      .mockResolvedValueOnce(numberedLabels(['T1', 'T2', 'T3', 'T4', 'T5'])) // left 1..5
-      .mockResolvedValueOnce(numberedLabels(['T6', 'T7', 'T8', 'T9', 'T10'])) // right 6..10
-
-    const result = await translateAllCues(cues, 'es', OPENAI_CFG, 'sk-test')
-
-    expect(mockGmFetch).toHaveBeenCalledTimes(4)
-    expect(result).toHaveLength(10) // one sentence-cue per fragment
-    expect(result.every((c) => c.t && c.t.trim() !== '')).toBe(true)
-    // Contiguous, gap-free spans (each non-last clamped to the next start).
-    expect(result[0]).toEqual({ s: 0, d: 1000, o: 'L1', t: 'T1' })
-    expect(result[9]).toEqual({ s: 9000, d: 1000, o: 'L10', t: 'T10' })
-  })
-
-  it('falls back to 1:1 fragment translation when pass-1 boundaries stay malformed', async () => {
-    mockGmFetch
-      // 3 boundary attempts (initial + 2 retries): each omits fragments 2,3 → SegmentationError.
-      .mockResolvedValueOnce(chatOk('[1] E'))
-      .mockResolvedValueOnce(chatOk('[1] E'))
-      .mockResolvedValueOnce(chatOk('[1] E'))
-      // Fallback 1:1 path (existing translateBatch) succeeds.
-      .mockResolvedValueOnce(numberedLabels(['Hola', 'Mundo', 'Prueba']))
-
-    const p = translateAllCues(CUES, 'es', OPENAI_CFG, 'sk-test')
-    await vi.runAllTimersAsync() // drive the pass-1 retry backoff
-    const result = await p
-
-    expect(mockGmFetch).toHaveBeenCalledTimes(4)
-    // The first request WAS the boundary (pass-1) request.
-    const firstBody = JSON.parse(mockGmFetch.mock.calls[0]![0].body as string)
-    expect(firstBody.messages[0].content).toContain('[<n>] E')
-
-    // Fragment-level cues (N of them), each translated, originals intact.
-    expect(result).toHaveLength(3)
-    expect(result.map((c) => c.o)).toEqual(['Hello', 'World', 'Test'])
-    expect(result.map((c) => c.t)).toEqual(['Hola', 'Mundo', 'Prueba'])
-  })
-
-  it('aborts cleanly during pass 1 and does NOT fall back or write', async () => {
-    const cues = makeCues(10)
-    const ac = new AbortController()
-    mockGmFetch.mockImplementationOnce(async () => {
-      ac.abort()
-      throw new Error('Translation aborted')
+    const result = await translateCues(cues, 'zh-Hans', CFG, 'key', {
+      context: { title: 'Gundam Marker' },
+      translation: { mode: 'sentence', batchSize: 8 },
     })
 
-    await expect(
-      translateAllCues(cues, 'es', OPENAI_CFG, 'sk-test', ac.signal),
-    ).rejects.toThrow(/abort/i)
-    // Aborted on the first request; no retry, no fallback.
-    expect(mockGmFetch).toHaveBeenCalledTimes(1)
+    expect(mockGmFetch).toHaveBeenCalledTimes(3)
+    expect(result.cues).toHaveLength(2)
+    expect(result.cues.map((cue) => cue.t)).toEqual(['甲乙', '丙丁'])
+    expect(result.cues.map((cue) => cue.t).join('')).toBe('甲乙丙丁')
+    expect(result.cues[0].o).toBe(makeCues(15).map((cue) => cue.o).join(' '))
+    expect(result.cues[1].o).toBe('L16 L17 L18 L19 L20')
+
+    const translationBody = JSON.parse(mockGmFetch.mock.calls[1][0].body as string)
+    expect(translationBody.messages[1].content).toContain('[S001] L1 L2')
+    expect(translationBody.messages[1].content).not.toContain('TARGET IDS: S002')
+    expect(translationBody.thinking).toEqual({ type: 'disabled' })
+    expect(translationBody.temperature).toBe(0)
+  })
+
+  it('keeps the vvLnNHtY09U 17.7–32.6s semantic anchors in their source-owned sentences', async () => {
+    const anchorCues: Cue[] = [
+      {
+        s: 17_720,
+        d: 4_719,
+        o: 'だけのキットとどれくらい違ってくるのか比較していきたいと思います。',
+      },
+      {
+        s: 22_439,
+        d: 5_201,
+        o: '少し前の動画でガンダムマーカーの塗り方について解説しました。多くの方が見ていただきありがとうございます。',
+      },
+      {
+        s: 27_640,
+        d: 14_880,
+        o: 'そこで今回は実際にその動画で解説したやり方を使って、ガンダムマーカーの部分塗装でパチ組とどれぐらい変わるのか検証します。',
+      },
+    ]
+    mockGmFetch
+      .mockResolvedValueOnce(boundaries('EEE'))
+      .mockResolvedValueOnce(chatOk('[S001] 我想比较一下它与仅素组的套件有多大区别。'))
+      .mockResolvedValueOnce(chatOk('[S002] 在稍早的视频中介绍了高达马克笔的涂法，感谢众多观众观看。'))
+      .mockResolvedValueOnce(chatOk('[S003] 因此这次会实际采用视频中讲解的方法，用高达马克笔局部上色，验证与素组有多大差别。'))
+
+    const result = await translateCues(anchorCues, 'zh-Hans', CFG, 'key', {
+      translation: { mode: 'sentence', batchSize: 8 },
+      getCurrentTime: () => 17_720,
+    })
+
+    const markerCue = result.cues.find((cue) => cue.s === 22_439)
+    const methodCue = result.cues.find((cue) => cue.s === 27_640)
+    expect(markerCue?.o).toContain('ガンダムマーカー')
+    expect(markerCue?.t).toContain('高达马克笔')
+    expect(markerCue?.t).toContain('观众')
+    expect(methodCue?.o).toContain('その動画で解説したやり方')
+    expect(methodCue?.t).toContain('视频中讲解的方法')
+    expect(methodCue?.t).toContain('局部上色')
+    expect(result.cues[0].t).not.toContain('高达马克笔')
+  })
+
+  it('falls back to one full-source/full-target cue after three invalid alignments', async () => {
+    const cues = makeCues(20)
+    mockGmFetch
+      .mockResolvedValueOnce(boundaries(`${'C'.repeat(19)}E`))
+      .mockResolvedValueOnce(chatOk('[S001] 完整中文译文'))
+      .mockResolvedValueOnce(chatOk('{"S001":[]}'))
+      .mockResolvedValueOnce(chatOk('{"S001":[999]}'))
+      .mockResolvedValueOnce(chatOk('not json'))
+
+    const result = await translateCues(cues, 'zh-Hans', CFG, 'key', {
+      translation: { mode: 'sentence', batchSize: 8 },
+    })
+    expect(result.cues).toEqual([
+      { s: 0, d: 20000, o: cues.map((cue) => cue.o).join(' '), t: '完整中文译文' },
+    ])
+    expect(result.diagnostics.alignmentRequestCount).toBe(3)
+    expect(result.diagnostics.fallbackSentenceCount).toBe(1)
+  })
+
+  it('warms the playhead sentence first and exposes sentence-mode progress', async () => {
+    const cues = makeCues(3)
+    const progress: number[] = []
+    mockGmFetch.mockImplementation(async (request) => {
+      const body = request.body as string
+      if (body.includes('[<n>] E')) return boundaries('EEE')
+      return translations(targetIds(body))
+    })
+
+    const result = await translateCues(cues, 'zh-Hans', CFG, 'key', {
+      translation: { mode: 'sentence', batchSize: 8 },
+      getCurrentTime: () => 2200,
+      onProgress: (event) => {
+        if (event.stage === 'translating') progress.push(event.completedSentences)
+      },
+    })
+
+    expect(targetIds(mockGmFetch.mock.calls[1][0].body as string)).toEqual(['S003'])
+    expect(progress[0]).toBe(0)
+    expect(progress).toContain(1)
+    expect(progress.at(-1)).toBe(3)
+    expect(result.cues.map((cue) => cue.t)).toEqual(['T-S001', 'T-S002', 'T-S003'])
+  })
+
+  it('re-reads the playhead when dequeuing pending work after warm-up', async () => {
+    const cues = makeCues(12)
+    const getCurrentTime = vi.fn()
+      .mockReturnValueOnce(0)
+      .mockReturnValue(11_200)
+    mockGmFetch.mockImplementation(async (request) => {
+      const body = request.body as string
+      if (body.includes('[<n>] E')) return boundaries('E'.repeat(12))
+      return translations(targetIds(body))
+    })
+
+    await translateCues(cues, 'zh-Hans', CFG, 'key', {
+      translation: { mode: 'sentence', batchSize: 8 },
+      getCurrentTime,
+    })
+    expect(targetIds(mockGmFetch.mock.calls[1][0].body as string)).toEqual(['S001'])
+    expect(targetIds(mockGmFetch.mock.calls[2][0].body as string)).toEqual(['S012'])
+  })
+
+  it('updates batch mode only after each complete batch and preserves source order', async () => {
+    const cues = makeCues(4)
+    const progress: number[] = []
+    mockGmFetch.mockImplementation(async (request) => {
+      const body = request.body as string
+      if (body.includes('[<n>] E')) return boundaries('EEEE')
+      return translations(targetIds(body))
+    })
+    const result = await translateCues(cues, 'zh-Hans', CFG, 'key', {
+      translation: { mode: 'batch', batchSize: 2 },
+      onProgress: (event) => {
+        if (event.stage === 'translating') progress.push(event.completedSentences)
+      },
+    })
+    expect(progress).toEqual([0, 2, 4])
+    expect(result.cues.map((cue) => cue.t)).toEqual(['T-S001', 'T-S002', 'T-S003', 'T-S004'])
+  })
+
+  it('counts parse-invalid HTTP-success usage before retrying', async () => {
+    const usageStages: Array<{ stage: string; completion?: number }> = []
+    const usage = {
+      prompt_tokens: 10,
+      prompt_cache_hit_tokens: 8,
+      prompt_cache_miss_tokens: 2,
+      completion_tokens: 3,
+      total_tokens: 13,
+    }
+    mockGmFetch
+      .mockResolvedValueOnce(boundaries('E'))
+      .mockResolvedValueOnce(chatOk('malformed', usage))
+      .mockResolvedValueOnce(chatOk('[S001] 正确', usage))
+
+    const promise = translateCues(makeCues(1), 'zh-Hans', CFG, 'key', {
+      translation: { mode: 'whole', batchSize: 8 },
+      onUsage: (stage, value) => {
+        usageStages.push({ stage, completion: value?.completionTokens })
+      },
+    })
+    await vi.runAllTimersAsync()
+    await promise
+    expect(usageStages.filter((entry) => entry.stage === 'translation')).toEqual([
+      { stage: 'translation', completion: 3 },
+      { stage: 'translation', completion: 3 },
+    ])
+  })
+
+  it('fails closed when boundary output remains malformed instead of translating fragments', async () => {
+    mockGmFetch.mockResolvedValue(chatOk('[1] E'))
+    const promise = translateCues(makeCues(3), 'zh-Hans', CFG, 'key', {
+      translation: { mode: 'sentence', batchSize: 8 },
+    })
+    const assertion = expect(promise).rejects.toThrow(/missing fragments/i)
+    await vi.runAllTimersAsync()
+    await assertion
+    expect(mockGmFetch).toHaveBeenCalledTimes(3)
+  })
+
+  it('aborts without fallback or a completed artifact', async () => {
+    const controller = new AbortController()
+    mockGmFetch.mockImplementationOnce(async () => {
+      controller.abort()
+      throw new Error('aborted')
+    })
+    await expect(translateCues(makeCues(3), 'zh-Hans', CFG, 'key', {
+      signal: controller.signal,
+      translation: { mode: 'sentence', batchSize: 8 },
+    })).rejects.toThrow(/abort/i)
+    expect(mockGmFetch).toHaveBeenCalledOnce()
   })
 })

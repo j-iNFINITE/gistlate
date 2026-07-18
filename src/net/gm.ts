@@ -9,13 +9,25 @@ export function gmFetch(opts: {
   signal?: AbortSignal
 }): Promise<{ status: number; text: string }> {
   return new Promise((resolve, reject) => {
+    if (opts.signal?.aborted) {
+      reject(new DOMException('Request aborted', 'AbortError'))
+      return
+    }
+    let abortHandler: (() => void) | undefined
+    const cleanup = () => {
+      if (abortHandler) opts.signal?.removeEventListener('abort', abortHandler)
+    }
     const handle = GM_xmlhttpRequest({
       method: opts.method,
       url: opts.url,
       headers: opts.headers,
       data: opts.body,
-      onload: (r) => resolve({ status: r.status, text: r.responseText }),
-      onerror: (r) =>
+      onload: (r) => {
+        cleanup()
+        resolve({ status: r.status, text: r.responseText })
+      },
+      onerror: (r) => {
+        cleanup()
         reject(
           new Error(
             `GM_xmlhttpRequest network error (status=${r?.status ?? 0}${
@@ -23,10 +35,19 @@ export function gmFetch(opts: {
             }). Likely a Tampermonkey @connect permission block for ${hostOf(opts.url)} — ` +
               `check the Tampermonkey icon for a connection prompt and choose "Always allow".`,
           ),
-        ),
-      ontimeout: () => reject(new Error(`GM_xmlhttpRequest: timeout for ${hostOf(opts.url)}`)),
+        )
+      },
+      ontimeout: () => {
+        cleanup()
+        reject(new Error(`GM_xmlhttpRequest: timeout for ${hostOf(opts.url)}`))
+      },
     })
-    opts.signal?.addEventListener('abort', () => handle?.abort?.(), { once: true })
+    abortHandler = () => {
+      handle?.abort?.()
+      cleanup()
+      reject(new DOMException('Request aborted', 'AbortError'))
+    }
+    opts.signal?.addEventListener('abort', abortHandler, { once: true })
   })
 }
 

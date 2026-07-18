@@ -1,5 +1,8 @@
 import { openDB, deleteDB, type IDBPDatabase } from 'idb'
 import type { Cue } from '../subtitles/timedtext'
+import type { TranslationMode } from '../settings'
+import type { TranslationOperationUsage } from '../usage/contracts'
+import type { PricingSnapshot } from '../usage/pricing'
 
 const DB_NAME = 'gistlate'
 const DB_VERSION = 1
@@ -16,6 +19,27 @@ export interface CacheEntry {
   model: string
   cues: Cue[]
   createdAt: number
+  video?: { title?: string }
+  generation?: GenerationMetadata
+}
+
+export interface GenerationMetadata {
+  strategy: {
+    mode: TranslationMode
+    configuredBatchSize: number
+    effectiveRequestCount: number
+    concurrency: number
+    temperature: 0
+    boundaryThinking: 'enabled'
+    translationThinking: 'disabled'
+  }
+  alignment: {
+    requestCount: number
+    fallbackSentenceCount: number
+  }
+  usage?: TranslationOperationUsage
+  pricing?: PricingSnapshot
+  costCny?: number
 }
 
 let dbPromise: Promise<IDBPDatabase> | undefined

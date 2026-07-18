@@ -114,4 +114,14 @@ describe('writeL2', () => {
     // Should not throw
     await expect(writeL2(CFG, 'ghp_test123', ENTRY)).resolves.toBeUndefined()
   })
+
+  it('does not start the PUT when navigation aborts after the SHA lookup', async () => {
+    const controller = new AbortController()
+    mockGmFetch.mockImplementationOnce(async () => {
+      controller.abort()
+      return { status: 200, text: JSON.stringify({ sha: 'abc123def' }) }
+    })
+    await writeL2(CFG, 'ghp_test123', ENTRY, undefined, controller.signal)
+    expect(mockGmFetch).toHaveBeenCalledOnce()
+  })
 })

@@ -43,6 +43,7 @@ export async function writeL2(
   pat: string,
   entry: CacheEntry,
   commitMessage?: string,
+  signal?: AbortSignal,
 ): Promise<void> {
   if (!cfg.owner || !cfg.repo || !pat) {
     console.warn('[Gistlate] L2 write skipped: missing config or PAT')
@@ -60,6 +61,7 @@ export async function writeL2(
       method: 'GET',
       url: `${API_BASE}/repos/${cfg.owner}/${cfg.repo}/contents/${path}`,
       headers: { Authorization: `Bearer ${pat}` },
+      signal,
     })
     if (getR.status === 200) {
       const data = JSON.parse(getR.text)
@@ -68,6 +70,8 @@ export async function writeL2(
   } catch {
     // 404 or error → new file
   }
+
+  if (signal?.aborted) return
 
   // PUT the file
   try {
@@ -85,6 +89,7 @@ export async function writeL2(
         Authorization: `Bearer ${pat}`,
       },
       body,
+      signal,
     })
     if (r.status >= 200 && r.status < 300) {
       console.log(`[Gistlate] L2 write OK: ${path}`)

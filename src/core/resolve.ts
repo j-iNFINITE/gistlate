@@ -2,11 +2,21 @@ import type { Cue } from '../subtitles/timedtext'
 import { cacheKey } from '../cache/key'
 import { getL1, putL1, type CacheEntry } from '../cache/l1'
 import { readL2, writeL2 } from '../cache/l2github'
-import { translateAllCues } from '../translate/pipeline'
-import { loadSettings, loadSecrets } from '../settings'
+import {
+  translateCues,
+  type TranslationProgress,
+} from '../translate/pipeline'
+import { loadSettings, loadSecrets, normalizeTranslationSettings } from '../settings'
 import type { Source } from './store'
 import { normalizeLang } from '../translate/lang'
 import type { TranslationContext } from '../translate/context'
+import { UsageCollector } from '../usage/contracts'
+import { calculateCostCny, resolvePricing } from '../usage/pricing'
+import {
+  appendUsageResponse,
+  beginUsageOperation,
+  finalizeUsageOperation,
+} from '../usage/ledger'
 
 export interface ResolveResult {
   cues: Cue[]
@@ -19,6 +29,8 @@ export interface ResolveOptions {
   /** Skip L1/L2 reads, but retain the normal full-success write sequence. */
   force?: boolean
   context?: TranslationContext
+  onProgress?: (progress: TranslationProgress) => void
+  getCurrentTime?: () => number
 }
 
 /**
@@ -35,7 +47,14 @@ export async function resolveTranslation(
   cues: Cue[],
   options: ResolveOptions = {},
 ): Promise<ResolveResult> {
-  const { signal, onTranslating, force = false, context } = options
+  const {
+    signal,
+    onTranslating,
+    force = false,
+    context,
+    onProgress,
+    getCurrentTime,
+  } = options
   const settings = loadSettings()
   const secrets = loadSecrets()
   const tgt = normalizeLang(settings.tgt)
@@ -63,39 +82,116 @@ export async function resolveTranslation(
     }
   }
 
-  // 3. Cache miss — translate everything in one shot (adaptive fallback inside).
+  // 3. Genuine translation — start an independent usage operation and run the
+  // complete-sentence progressive pipeline. Cache hits never reach this point.
   console.log(`[Gistlate] Translating ${cues.length} cues: ${key}`)
-  onTranslating?.() // only fires on a genuine translation (not cache hits)
-  const translated = await translateAllCues(
-    cues,
-    tgt,
-    settings.openai,
-    secrets.openaiKey,
-    signal,
-    context,
-  )
+  onTranslating?.()
+  const translationSettings = normalizeTranslationSettings(settings.translation)
+  const pricing = resolvePricing(settings.openai.baseUrl, settings.openai.model)
+  let operationId: string | undefined
 
-  // The model may finish at the same moment SPA navigation aborts this track.
-  // Re-check at the persistence boundary so a stale full result is not cached.
-  throwIfAborted(signal)
-
-  // 4. Write to L1
-  const entry: CacheEntry = {
-    key,
-    videoId,
-    src,
-    tgt,
-    model: settings.openai.model,
-    cues: translated,
-    createdAt: Date.now(),
+  try {
+    const operation = await beginUsageOperation({
+      videoId,
+      src,
+      tgt,
+      baseUrl: settings.openai.baseUrl,
+      model: settings.openai.model,
+      force,
+      strategy: {
+        mode: translationSettings.mode,
+        configuredBatchSize: translationSettings.batchSize,
+      },
+      pricing,
+    })
+    operationId = operation.operationId
+  } catch (error) {
+    // Usage history should not make subtitles unusable if IndexedDB is blocked.
+    console.warn('[Gistlate] Usage ledger unavailable; continuing in memory', error)
   }
-  await putL1(entry)
 
-  // 5. Write to L2 (soft-fail: L1 already has it)
-  throwIfAborted(signal)
-  writeL2(settings.github, secrets.githubPat, entry).catch(() => {})
+  const collector = new UsageCollector(async (stage, usage) => {
+    if (!operationId) return
+    try {
+      await appendUsageResponse(operationId, stage, usage)
+    } catch (error) {
+      console.warn('[Gistlate] Usage ledger update failed', error)
+    }
+  })
 
-  return { cues: translated, source: 'fresh' }
+  try {
+    const translated = await translateCues(
+      cues,
+      tgt,
+      settings.openai,
+      secrets.openaiKey,
+      {
+        signal,
+        context,
+        translation: translationSettings,
+        onProgress,
+        getCurrentTime,
+        onUsage: (stage, usage) => collector.record(stage, usage),
+      },
+    )
+
+    // The model may finish at the same moment SPA navigation aborts this track.
+    throwIfAborted(signal)
+    await collector.flush()
+    const operationUsage = collector.snapshot()
+    const costCny = calculateCostCny(operationUsage.tokens, pricing)
+
+    // 4. One complete-only L1 write with backward-compatible generation metadata.
+    const entry: CacheEntry = {
+      key,
+      videoId,
+      src,
+      tgt,
+      model: settings.openai.model,
+      cues: translated.cues,
+      createdAt: Date.now(),
+      video: context?.title ? { title: context.title } : undefined,
+      generation: {
+        strategy: {
+          mode: translationSettings.mode,
+          configuredBatchSize: translationSettings.batchSize,
+          effectiveRequestCount: translated.diagnostics.translationRequestCount,
+          concurrency: 8,
+          temperature: 0,
+          boundaryThinking: 'enabled',
+          translationThinking: 'disabled',
+        },
+        alignment: {
+          requestCount: translated.diagnostics.alignmentRequestCount,
+          fallbackSentenceCount: translated.diagnostics.fallbackSentenceCount,
+        },
+        usage: operationUsage,
+        pricing,
+        costCny,
+      },
+    }
+    await putL1(entry)
+
+    // 5. One L2 attempt (soft-fail: L1 already contains the complete result).
+    throwIfAborted(signal)
+    writeL2(settings.github, secrets.githubPat, entry, undefined, signal).catch(() => {})
+    if (operationId) {
+      await finalizeUsageOperation(operationId, 'success').catch((error) => {
+        console.warn('[Gistlate] Usage ledger finalization failed', error)
+      })
+    }
+
+    return { cues: translated.cues, source: 'fresh' }
+  } catch (error) {
+    await collector.flush().catch(() => {})
+    if (operationId) {
+      const status = signal?.aborted ? 'aborted' : 'failed'
+      await finalizeUsageOperation(operationId, status, (error as Error).name).catch((ledgerError) => {
+        console.warn('[Gistlate] Usage ledger finalization failed', ledgerError)
+      })
+    }
+    throw error
+  }
 }
 
 function throwIfAborted(signal?: AbortSignal): void {

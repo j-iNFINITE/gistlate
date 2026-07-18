@@ -13,8 +13,9 @@ export interface SentenceRange {
 }
 
 /**
- * Thrown when boundary detection output does not cleanly cover fragments 1..N.
- * The pipeline retries a few times, then falls back to 1:1 translation.
+ * Thrown when boundary detection or deterministic range construction does not
+ * cleanly cover fragments 1..N. The pipeline retries model output, then fails
+ * closed rather than caching a semantically shifted fragment fallback.
  */
 export class SegmentationError extends Error {
   constructor(message: string) {
@@ -40,6 +41,9 @@ export function parseBoundaries(output: string, n: number): boolean[] {
     if (!m) continue
     const idx = Number.parseInt(m[1], 10) - 1
     if (idx < 0 || idx >= n) continue
+    if (isEnd[idx] !== undefined) {
+      throw new SegmentationError(`Boundary detection duplicated fragment: ${idx + 1}`)
+    }
     isEnd[idx] = m[2] === 'E'
   }
 
@@ -232,7 +236,42 @@ function measureRange(
  * speech. Bridges tiny inter-sentence gaps (no flicker) while stopping a
  * subtitle from hanging through a long music/silence gap before the next line.
  */
-const GAP_TOLERANCE = 1200
+export const GAP_TOLERANCE = 1200
+
+export function rangeText(fragments: Cue[], range: SentenceRange): string {
+  return fragments
+    .slice(range.startIdx, range.endIdx + 1)
+    .map((fragment) => fragment.o)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/** Build one timed cue using the shared next-range/gap-tolerance clamp. */
+export function rangeToCue(
+  fragments: Cue[],
+  range: SentenceRange,
+  nextRange?: SentenceRange,
+  translation?: string,
+): Cue {
+  const first = fragments[range.startIdx]
+  const last = fragments[range.endIdx]
+  if (!first || !last) throw new SegmentationError('Cue range is outside the source fragments')
+  const rawEnd = last.s + last.d
+  const nextStart = nextRange ? fragments[nextRange.startIdx]?.s : undefined
+  const end = nextStart === undefined ? rawEnd : Math.min(nextStart, rawEnd + GAP_TOLERANCE)
+  const cue: Cue = {
+    s: first.s,
+    d: Math.max(1, end - first.s),
+    o: rangeText(fragments, range),
+  }
+  if (translation !== undefined) {
+    const target = translation.trim()
+    if (!target) throw new SegmentationError('Empty translation for cue range')
+    cue.t = translation
+  }
+  return cue
+}
 
 /**
  * Convert sentence ranges + their aligned translations into sentence-level
@@ -266,26 +305,12 @@ export function sentencesToCues(
   }
 
   return ranges.map((r, i) => {
-    const first = frags[r.startIdx]
-    const last = frags[r.endIdx]
-    const rawEnd = last.s + last.d
-    const end =
-      i < ranges.length - 1
-        ? Math.min(frags[ranges[i + 1].startIdx].s, rawEnd + GAP_TOLERANCE)
-        : rawEnd // last sentence: raw end
-    const d = Math.max(1, end - first.s)
-    const o = frags
-      .slice(r.startIdx, r.endIdx + 1)
-      .map((f) => f.o)
-      .join(' ')
-      .replace(/\s+/g, ' ')
-      .trim()
     const t = (translations[i] ?? '').trim()
     if (t === '') {
       throw new SegmentationError(
         `Empty sentence translation for fragments [${r.startIdx + 1}-${r.endIdx + 1}]`,
       )
     }
-    return { s: first.s, d, o, t }
+    return rangeToCue(frags, r, ranges[i + 1], t)
   })
 }

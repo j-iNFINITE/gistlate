@@ -27,6 +27,15 @@ export function getVideoId(): string | null {
   return v ?? null
 }
 
+/** Reject late SPA timedtext responses that belong to a different watch video. */
+export function isTimedtextRequestForVideo(
+  params: URLSearchParams,
+  currentVideoId: string | null = getVideoId(),
+): boolean {
+  const requestVideoId = params.get('v')
+  return !!requestVideoId && !!currentVideoId && requestVideoId === currentVideoId
+}
+
 /** Get the player element. */
 export function getPlayer(): HTMLElement | null {
   return document.querySelector('#movie_player')

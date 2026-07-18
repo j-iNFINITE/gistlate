@@ -40,6 +40,10 @@ describe('parseBoundaries', () => {
     expect(() => parseBoundaries('[1] E\n[3] E', 3)).toThrow(SegmentationError)
   })
 
+  it('throws when a fragment ID is duplicated', () => {
+    expect(() => parseBoundaries('[1] C\n[1] E\n[2] E', 2)).toThrow(/duplicated/i)
+  })
+
   it('throws when the output has no parseable boundary lines', () => {
     expect(() => parseBoundaries('sorry, I cannot do that', 3)).toThrow(SegmentationError)
   })

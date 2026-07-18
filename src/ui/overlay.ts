@@ -25,6 +25,7 @@ let originalEl: HTMLDivElement | null = null
 let translatedEl: HTMLDivElement | null = null
 let stylesEl: HTMLStyleElement | null = null
 let previewMode = false
+let currentDisplayMode: DisplayMode = 'bilingual'
 // Watches `#movie_player`'s class to raise/lower the subtitle with the controls.
 let classObserver: MutationObserver | null = null
 
@@ -151,6 +152,18 @@ export interface Overlay {
   destroy(): void
 }
 
+export function resolveOverlayLines(
+  original: string,
+  translated: string | undefined,
+  mode: DisplayMode,
+): { original: string; translated: string } {
+  const normalizedOriginal = original || ''
+  return {
+    original: normalizedOriginal,
+    translated: translated || (mode === 'translation-only' ? normalizedOriginal : ''),
+  }
+}
+
 /**
  * Mount the overlay on `#movie_player`.
  * Idempotent: safe to call multiple times.
@@ -199,8 +212,9 @@ function getExistingOverlay(): Overlay {
     update(original: string, translated?: string) {
       const o = document.querySelector<HTMLDivElement>(`#${CONTAINER_ID} .gl-original`)
       const t = document.querySelector<HTMLDivElement>(`#${CONTAINER_ID} .gl-translated`)
-      let orig = original || ''
-      let trans = translated || ''
+      const lines = resolveOverlayLines(original, translated, currentDisplayMode)
+      let orig = lines.original
+      let trans = lines.translated
       // In preview mode, pin a sample cue whenever the playhead has nothing.
       if (previewMode && !orig && !trans) {
         orig = SAMPLE_ORIGINAL
@@ -213,6 +227,7 @@ function getExistingOverlay(): Overlay {
       }
     },
     setDisplayMode(mode: DisplayMode) {
+      currentDisplayMode = mode
       const c = document.getElementById(CONTAINER_ID)
       if (!c) return
       c.classList.toggle('gl-mode-translation-only', mode === 'translation-only')
@@ -266,6 +281,7 @@ export function destroyOverlay(): void {
   translatedEl = null
   stylesEl = null
   previewMode = false
+  currentDisplayMode = 'bilingual'
   // Restore native captions
   const native = document.querySelector<HTMLElement>('.ytp-caption-window-container')
   if (native) native.style.display = ''
