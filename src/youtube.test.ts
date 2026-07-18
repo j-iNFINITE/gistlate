@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const pageWindow = vi.hoisted(() => ({
+  document: undefined as Document | undefined,
   ytInitialPlayerResponse: undefined as
     | {
         videoDetails?: {
@@ -10,11 +11,12 @@ const pageWindow = vi.hoisted(() => ({
         }
       }
     | undefined,
+  ytcfg: undefined as { get?: (key: string) => string | undefined } | undefined,
 }))
 
 vi.mock('$', () => ({ unsafeWindow: pageWindow }))
 
-import { getVideoContext, isTimedtextRequestForVideo } from './youtube'
+import { getPlayerCaptionData, getVideoContext, isTimedtextRequestForVideo } from './youtube'
 
 const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document')
 
@@ -32,7 +34,9 @@ function installDocument(
 }
 
 afterEach(() => {
+  pageWindow.document = undefined
   pageWindow.ytInitialPlayerResponse = undefined
+  pageWindow.ytcfg = undefined
   if (originalDocument) {
     Object.defineProperty(globalThis, 'document', originalDocument)
   } else {
@@ -94,3 +98,154 @@ describe('timedtext video identity', () => {
     expect(isTimedtextRequestForVideo(new URLSearchParams('v=current'), null)).toBe(false)
   })
 })
+
+describe('YouTube player caption data', () => {
+  it('reads expando player methods from the page-world document', () => {
+    installPlayerDocument({
+      getPlayerResponse: () => ({ videoDetails: { videoId: 'isolated-world' } }),
+    })
+    pageWindow.document = {
+      querySelector: (selector: string) => selector === '#movie_player'
+        ? {
+            getPlayerResponse: () => ({
+              videoDetails: { videoId: 'current' },
+              captions: {
+                playerCaptionsTracklistRenderer: {
+                  captionTracks: [{
+                    baseUrl: '/api/timedtext?v=current&lang=en&vssId=.en',
+                    languageCode: 'en',
+                    vssId: '.en',
+                  }],
+                },
+              },
+            }),
+            getPlayerState: () => 1,
+          }
+        : null,
+    } as unknown as Document
+
+    expect(getPlayerCaptionData('current')).toEqual(expect.objectContaining({
+      videoId: 'current',
+      playerState: 1,
+      captionTracks: [expect.objectContaining({ vssId: '.en' })],
+    }))
+  })
+
+  it('normalizes matching player tracks, selected identity, audio metadata and client params', () => {
+    const player = {
+      getPlayerResponse: () => ({
+        videoDetails: { videoId: 'current', defaultAudioLanguage: 'ja' },
+        captions: {
+          playerCaptionsTracklistRenderer: {
+            captionTracks: [
+              {
+                baseUrl: '/api/timedtext?v=current&lang=ja&vssId=.ja',
+                languageCode: 'ja',
+                vssId: '.ja',
+                name: { simpleText: 'Japanese' },
+              },
+              {
+                baseUrl: 'https://www.youtube.com/api/timedtext?v=current&lang=ja&kind=asr&vssId=a.ja',
+                languageCode: 'ja',
+                kind: 'asr',
+                vssId: 'a.ja',
+              },
+            ],
+          },
+        },
+      }),
+      getOption: () => ({ languageCode: 'ja', vssId: '.ja' }),
+      getAudioTrack: () => ({
+        id: 'ja.4',
+        captionTracks: [{
+          url: 'https://www.youtube.com/api/timedtext?v=current&lang=ja&vssId=.ja&pot=token',
+          vssId: '.ja',
+        }],
+      }),
+      getPlayerState: () => 1,
+      getWebPlayerContextConfig: () => ({ innertubeContextClientVersion: '2.20260718' }),
+    }
+    installPlayerDocument(player)
+    pageWindow.ytcfg = { get: (key) => key === 'DEVICE' ? 'cbr=Chrome&cos=Windows' : undefined }
+
+    expect(getPlayerCaptionData('current')).toEqual({
+      videoId: 'current',
+      captionTracks: [
+        {
+          baseUrl: 'https://www.youtube.com/api/timedtext?v=current&lang=ja&vssId=.ja',
+          languageCode: 'ja',
+          kind: 'manual',
+          vssId: '.ja',
+          name: 'Japanese',
+          selected: true,
+          audioLanguageMatch: true,
+        },
+        {
+          baseUrl: 'https://www.youtube.com/api/timedtext?v=current&lang=ja&kind=asr&vssId=a.ja',
+          languageCode: 'ja',
+          kind: 'asr',
+          vssId: 'a.ja',
+          name: undefined,
+          selected: false,
+          audioLanguageMatch: true,
+        },
+      ],
+      audioCaptionTracks: [{
+        url: 'https://www.youtube.com/api/timedtext?v=current&lang=ja&vssId=.ja&pot=token',
+        vssId: '.ja',
+        languageCode: 'ja',
+        kind: 'manual',
+      }],
+      audioLanguage: 'ja',
+      playerState: 1,
+      device: 'cbr=Chrome&cos=Windows',
+      clientVersion: '2.20260718',
+    })
+  })
+
+  it('rejects player data whose video ID does not match the expected Watch video', () => {
+    installPlayerDocument({
+      getPlayerResponse: () => ({ videoDetails: { videoId: 'previous' } }),
+    })
+    expect(getPlayerCaptionData('current')).toBeNull()
+  })
+
+  it('keeps usable caption inventory when optional player methods throw', () => {
+    installPlayerDocument({
+      getPlayerResponse: () => ({
+        videoDetails: { videoId: 'current', defaultAudioLanguage: 'en' },
+        captions: {
+          playerCaptionsTracklistRenderer: {
+            captionTracks: [{
+              baseUrl: '/api/timedtext?v=current&lang=en&vssId=.en',
+              languageCode: 'en',
+              vssId: '.en',
+            }],
+          },
+        },
+      }),
+      getOption: () => { throw new Error('captions module not ready') },
+      getAudioTrack: () => { throw new Error('audio module not ready') },
+      getPlayerState: () => { throw new Error('state unavailable') },
+      getWebPlayerContextConfig: () => { throw new Error('context unavailable') },
+    })
+    pageWindow.ytcfg = { get: () => { throw new Error('config unavailable') } }
+
+    expect(getPlayerCaptionData('current')).toEqual(expect.objectContaining({
+      videoId: 'current',
+      playerState: -1,
+      audioLanguage: 'en',
+      captionTracks: [expect.objectContaining({ vssId: '.en' })],
+    }))
+  })
+})
+
+function installPlayerDocument(player: object): void {
+  Object.defineProperty(globalThis, 'document', {
+    configurable: true,
+    value: {
+      title: '',
+      querySelector: (selector: string) => selector === '#movie_player' ? player : null,
+    } as unknown as Document,
+  })
+}

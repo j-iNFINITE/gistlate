@@ -17,6 +17,8 @@ import {
   beginUsageOperation,
   finalizeUsageOperation,
 } from '../usage/ledger'
+import { sourceFingerprint, sourceIsCompatible } from '../cache/source'
+import type { CaptionTrackKind } from '../subtitles/tracks'
 
 export interface ResolveResult {
   cues: Cue[]
@@ -31,6 +33,11 @@ export interface ResolveOptions {
   context?: TranslationContext
   onProgress?: (progress: TranslationProgress) => void
   getCurrentTime?: () => number
+  track?: {
+    languageCode: string
+    kind: CaptionTrackKind
+    vssId: string
+  }
 }
 
 /**
@@ -54,6 +61,7 @@ export async function resolveTranslation(
     context,
     onProgress,
     getCurrentTime,
+    track,
   } = options
   const settings = loadSettings()
   const secrets = loadSecrets()
@@ -61,25 +69,36 @@ export async function resolveTranslation(
   const src = normalizeLang(srcLang)
   const key = cacheKey({ videoId, src, tgt })
   const keyInput = { videoId: videoId, src, tgt }
+  const currentSourceFingerprint = await sourceFingerprint(cues)
 
   // 1. L1 lookup
   if (!force && !signal?.aborted) {
     const cached = await getL1(key)
-    if (cached) {
+    if (cached && await sourceIsCompatible(
+      cues,
+      cached.cues,
+      cached.track?.sourceFingerprint,
+    )) {
       console.log(`[Gistlate] L1 cache hit: ${key}`)
       return { cues: cached.cues, source: 'l1' }
     }
+    if (cached) console.warn(`[Gistlate] Ignoring source-incompatible L1 entry: ${key}`)
   }
 
   // 2. L2 lookup
   if (!force && !signal?.aborted && settings.github.owner) {
     const fromL2 = await readL2(settings.github, keyInput)
-    if (fromL2) {
+    if (fromL2 && await sourceIsCompatible(
+      cues,
+      fromL2.cues,
+      fromL2.track?.sourceFingerprint,
+    )) {
       console.log(`[Gistlate] L2 cache hit: ${key}`)
       // Backfill L1 for faster future access
       await putL1(fromL2).catch(() => {})
       return { cues: fromL2.cues, source: 'l2' }
     }
+    if (fromL2) console.warn(`[Gistlate] Ignoring source-incompatible L2 entry: ${key}`)
   }
 
   // 3. Genuine translation — start an independent usage operation and run the
@@ -132,12 +151,14 @@ export async function resolveTranslation(
         onProgress,
         getCurrentTime,
         onUsage: (stage, usage) => collector.record(stage, usage),
+        sourceKind: track?.kind,
       },
     )
 
     // The model may finish at the same moment SPA navigation aborts this track.
     throwIfAborted(signal)
     await collector.flush()
+    throwIfAborted(signal)
     const operationUsage = collector.snapshot()
     const costCny = calculateCostCny(operationUsage.tokens, pricing)
 
@@ -151,6 +172,12 @@ export async function resolveTranslation(
       cues: translated.cues,
       createdAt: Date.now(),
       video: context?.title ? { title: context.title } : undefined,
+      track: track ? {
+        languageCode: track.languageCode,
+        kind: track.kind,
+        vssId: track.vssId,
+        sourceFingerprint: currentSourceFingerprint,
+      } : undefined,
       generation: {
         strategy: {
           mode: translationSettings.mode,

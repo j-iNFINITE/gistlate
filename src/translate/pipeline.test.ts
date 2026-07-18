@@ -72,6 +72,36 @@ describe('complete-sentence translation pipeline', () => {
     }))
   })
 
+  it('trusts manual YouTube cue boundaries and only translates each cue', async () => {
+    const cues: Cue[] = [
+      { s: 0, d: 1000, o: 'A manually authored line.' },
+      // Manual cues are trusted even when the text exceeds ASR false-sentence
+      // safety limits; no reliable timing exists for splitting inside the cue.
+      { s: 1000, d: 35_000, o: 'B'.repeat(260) },
+    ]
+    mockGmFetch.mockImplementation(async (request) => {
+      const ids = targetIds(request.body as string)
+      return chatOk(ids.map((id) =>
+        `[${id}] ${id === 'S002' ? '中'.repeat(260) : '人工字幕。'}`,
+      ).join('\n'))
+    })
+
+    const result = await translateCues(cues, 'zh-Hans', CFG, 'key', {
+      sourceKind: 'manual',
+      translation: { mode: 'sentence', batchSize: 8 },
+    })
+
+    expect(mockGmFetch).toHaveBeenCalledTimes(2)
+    expect(mockGmFetch.mock.calls.every(([request]) =>
+      !(request.body as string).includes('[<n>] E'),
+    )).toBe(true)
+    expect(result.cues.map((cue) => cue.t)).toEqual(['人工字幕。', '中'.repeat(260)])
+    expect(result.diagnostics).toEqual(expect.objectContaining({
+      boundaryMethod: 'manual-cues',
+      boundaryRequestCount: 0,
+    }))
+  })
+
   it('retries a source-copy canonical response with a validation correction', async () => {
     mockGmFetch
       .mockResolvedValueOnce(boundaries('E'))

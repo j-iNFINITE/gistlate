@@ -108,6 +108,11 @@ export function openSettingsPanel(): void {
       selected: settings.displayMode === 'bilingual',
     }),
     h('option', {
+      value: 'original-only',
+      textContent: '仅原文',
+      selected: settings.displayMode === 'original-only',
+    }),
+    h('option', {
       value: 'translation-only',
       textContent: '仅译文',
       selected: settings.displayMode === 'translation-only',
@@ -265,6 +270,7 @@ export function openSettingsPanel(): void {
     const newSettings: Settings = {
       tgt: tgtF.input.value || 'zh-Hans',
       displayMode: displaySelect.value as Settings['displayMode'],
+      autoStart: loadSettings().autoStart,
       openai: {
         baseUrl: oaiUrlF.input.value || 'https://api.openai.com/v1',
         model: oaiModelF.input.value || 'gpt-4o-mini',

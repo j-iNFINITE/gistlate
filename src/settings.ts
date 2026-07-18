@@ -22,32 +22,40 @@ export interface TranslationSettings {
 }
 
 /** Live subtitle overlay styling (driven by CSS custom properties). */
-export interface SubtitleStyle {
+export interface SubtitleTextStyle {
   /** Preset key ('system-sans' | 'serif' | 'mono' | 'yt-noto') or a raw CSS font family. */
   fontFamily: string
-  /** Original line font size (px). */
-  originalSize: number
-  /** Translated line font size (px). */
-  translatedSize: number
-  /** Original line color (#rrggbb). */
-  originalColor: string
-  /** Translated line color (#rrggbb). */
-  translatedColor: string
-  /** Font weight (normal / bold). */
+  /** Font size (px). */
+  size: number
+  /** Text color (#rrggbb). */
+  color: string
   fontWeight: 400 | 700
+}
+
+export interface SubtitlePosition {
+  anchor: 'top' | 'bottom'
+  /** Distance from the selected anchor as a percentage of player height. */
+  percent: number
+}
+
+export interface SubtitleStyle {
+  original: SubtitleTextStyle
+  translated: SubtitleTextStyle
+  translationPosition: 'above' | 'below'
   /** Text-shadow / outline strength (0..4; 0 = none). */
   outline: number
   /** Background box opacity behind text (0..0.8). */
   bgOpacity: number
-  /** Vertical offset from player bottom (%). */
-  bottomOffset: number
+  position: SubtitlePosition
   /** Gap between original and translated lines (px). */
   lineGap: number
 }
 
 export interface Settings {
   tgt: string
-  displayMode: 'bilingual' | 'translation-only'
+  displayMode: 'bilingual' | 'original-only' | 'translation-only'
+  /** Start each newly navigated Watch video without requiring a player click. */
+  autoStart: boolean
   openai: OpenAIConfig
   github: GitHubConfig
   translation: TranslationSettings
@@ -61,6 +69,7 @@ export type DisplayMode = Settings['displayMode']
 export const DEFAULTS: Settings = {
   tgt: 'zh-Hans',
   displayMode: 'bilingual',
+  autoStart: true,
   openai: {
     baseUrl: 'https://api.openai.com/v1',
     model: 'gpt-4o-mini',
@@ -76,15 +85,22 @@ export const DEFAULTS: Settings = {
   },
   // Reproduces the MVP overlay look (see ui/overlay.ts OVERLAY_CSS fallbacks).
   style: {
-    fontFamily: 'yt-noto',
-    originalSize: 26,
-    translatedSize: 21,
-    originalColor: '#ffffff',
-    translatedColor: '#aad6ff',
-    fontWeight: 400,
+    original: {
+      fontFamily: 'yt-noto',
+      size: 26,
+      color: '#ffffff',
+      fontWeight: 400,
+    },
+    translated: {
+      fontFamily: 'yt-noto',
+      size: 21,
+      color: '#aad6ff',
+      fontWeight: 400,
+    },
+    translationPosition: 'below',
     outline: 2,
     bgOpacity: 0,
-    bottomOffset: 10,
+    position: { anchor: 'bottom', percent: 10 },
     lineGap: 0,
   },
 }
@@ -99,8 +115,7 @@ const KEY_SECRET_GITHUB_PAT = 'secret.githubPat'
 
 export function loadSettings(): Settings {
   const stored = GM_getValue<Record<string, unknown> | undefined>(KEY_SETTINGS, undefined)
-  if (!stored) return { ...DEFAULTS }
-  return mergeDefaults(stored)
+  return normalizeSettings(stored)
 }
 
 export function saveSettings(s: Settings): void {
@@ -141,14 +156,17 @@ export function loadSecrets(): { openaiKey: string; githubPat: string } {
 
 // ── Internals ────────────────────────────────────────
 
-function mergeDefaults(stored: Record<string, unknown>): Settings {
+export function normalizeSettings(stored: Record<string, unknown> | undefined): Settings {
   const d = DEFAULTS
+  if (!stored) return cloneDefaults()
   return {
     tgt: typeof stored.tgt === 'string' ? stored.tgt : d.tgt,
     displayMode:
-      stored.displayMode === 'bilingual' || stored.displayMode === 'translation-only'
+      stored.displayMode === 'bilingual' || stored.displayMode === 'original-only' ||
+        stored.displayMode === 'translation-only'
         ? stored.displayMode
         : d.displayMode,
+    autoStart: typeof stored.autoStart === 'boolean' ? stored.autoStart : d.autoStart,
     openai: {
       baseUrl:
         typeof (stored.openai as OpenAIConfig | undefined)?.baseUrl === 'string'
@@ -174,7 +192,7 @@ function mergeDefaults(stored: Record<string, unknown>): Settings {
           : d.github.branch,
     },
     translation: normalizeTranslationSettings(stored.translation),
-    style: mergeStyle(stored.style),
+    style: normalizeSubtitleStyle(stored.style),
   }
 }
 
@@ -196,20 +214,72 @@ export function normalizeTranslationSettings(stored: unknown): TranslationSettin
   }
 }
 
-/** Backward-compatible style merge: missing/partial/invalid fields fall back to defaults. */
-function mergeStyle(stored: unknown): SubtitleStyle {
+/** Backward-compatible style merge from both the old flat and new nested shape. */
+export function normalizeSubtitleStyle(stored: unknown): SubtitleStyle {
   const d = DEFAULTS.style
   const s = (stored && typeof stored === 'object' ? stored : {}) as Record<string, unknown>
+  const original = recordOf(s.original)
+  const translated = recordOf(s.translated)
+  const position = recordOf(s.position)
+  const legacyFont = stringOr(s.fontFamily, d.original.fontFamily)
+  const legacyWeight = fontWeightOr(s.fontWeight, d.original.fontWeight)
   return {
-    fontFamily: typeof s.fontFamily === 'string' ? s.fontFamily : d.fontFamily,
-    originalSize: typeof s.originalSize === 'number' ? s.originalSize : d.originalSize,
-    translatedSize: typeof s.translatedSize === 'number' ? s.translatedSize : d.translatedSize,
-    originalColor: typeof s.originalColor === 'string' ? s.originalColor : d.originalColor,
-    translatedColor: typeof s.translatedColor === 'string' ? s.translatedColor : d.translatedColor,
-    fontWeight: s.fontWeight === 700 ? 700 : s.fontWeight === 400 ? 400 : d.fontWeight,
-    outline: typeof s.outline === 'number' ? s.outline : d.outline,
-    bgOpacity: typeof s.bgOpacity === 'number' ? s.bgOpacity : d.bgOpacity,
-    bottomOffset: typeof s.bottomOffset === 'number' ? s.bottomOffset : d.bottomOffset,
-    lineGap: typeof s.lineGap === 'number' ? s.lineGap : d.lineGap,
+    original: {
+      fontFamily: stringOr(original.fontFamily, legacyFont),
+      size: numberIn(original.size ?? s.originalSize, 12, 64, d.original.size),
+      color: stringOr(original.color ?? s.originalColor, d.original.color),
+      fontWeight: fontWeightOr(original.fontWeight, legacyWeight),
+    },
+    translated: {
+      fontFamily: stringOr(translated.fontFamily, legacyFont),
+      size: numberIn(translated.size ?? s.translatedSize, 12, 64, d.translated.size),
+      color: stringOr(translated.color ?? s.translatedColor, d.translated.color),
+      fontWeight: fontWeightOr(translated.fontWeight, legacyWeight),
+    },
+    translationPosition: s.translationPosition === 'above' || s.translationPosition === 'below'
+      ? s.translationPosition
+      : d.translationPosition,
+    outline: numberIn(s.outline, 0, 4, d.outline),
+    bgOpacity: numberIn(s.bgOpacity, 0, 0.8, d.bgOpacity),
+    position: {
+      anchor: position.anchor === 'top' || position.anchor === 'bottom'
+        ? position.anchor
+        : 'bottom',
+      percent: numberIn(position.percent ?? s.bottomOffset, 0, 90, d.position.percent),
+    },
+    lineGap: numberIn(s.lineGap, 0, 32, d.lineGap),
+  }
+}
+
+function recordOf(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' ? value as Record<string, unknown> : {}
+}
+
+function stringOr(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value.trim() ? value : fallback
+}
+
+function fontWeightOr(value: unknown, fallback: 400 | 700): 400 | 700 {
+  return value === 700 ? 700 : value === 400 ? 400 : fallback
+}
+
+function numberIn(value: unknown, min: number, max: number, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.min(max, Math.max(min, value))
+    : fallback
+}
+
+function cloneDefaults(): Settings {
+  return {
+    ...DEFAULTS,
+    openai: { ...DEFAULTS.openai },
+    github: { ...DEFAULTS.github },
+    translation: { ...DEFAULTS.translation },
+    style: {
+      ...DEFAULTS.style,
+      original: { ...DEFAULTS.style.original },
+      translated: { ...DEFAULTS.style.translated },
+      position: { ...DEFAULTS.style.position },
+    },
   }
 }

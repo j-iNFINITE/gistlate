@@ -59,7 +59,24 @@ function render(text: string, spinner: boolean): HTMLDivElement | null {
 }
 
 export function showTranslating(): void {
-  render('Gistlate 正在分析字幕结构…', true)
+  render('Gistlate 正在翻译字幕…', true)
+}
+
+export function showWaitingPlayer(): void {
+  render('Gistlate 正在等待字幕轨道…', true)
+}
+
+export function showFetchingSubtitles(): void {
+  render('Gistlate 正在获取字幕…', true)
+}
+
+export function showWaitingPot(): void {
+  render('Gistlate 正在等待 YouTube 字幕授权…', true)
+}
+
+export function showDirectReady(): void {
+  render('✓ 已使用现成目标语言字幕', false)
+  autoHide(1800)
 }
 
 export function showProgress(progress: TranslationProgress): void {
@@ -79,6 +96,11 @@ export function showDone(): void {
 export function showError(): void {
   render('翻译失败', false)
   autoHide(3000)
+}
+
+export function showAcquisitionError(message = '未能获取字幕'): void {
+  render(message, false)
+  autoHide(3500)
 }
 
 export function hideStatus(): void {

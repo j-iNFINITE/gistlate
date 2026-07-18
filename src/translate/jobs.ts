@@ -39,6 +39,7 @@ const MAX_INTERNAL_SENTENCE_MARKS = 3
 export function buildSentencePlans(
   fragments: Cue[],
   completeRanges: SentenceRange[],
+  options: { trustedCueBoundaries?: boolean } = {},
 ): SentencePlan[] {
   if (fragments.length === 0 && completeRanges.length === 0) return []
   let expectedStart = 0
@@ -50,7 +51,9 @@ export function buildSentencePlans(
     }
     expectedStart = sourceRange.endIdx + 1
     const sourceText = rangeText(fragments, sourceRange)
-    validateSentenceLimits(fragments, sourceRange, sourceText, index)
+    if (!options.trustedCueBoundaries) {
+      validateSentenceLimits(fragments, sourceRange, sourceText, index)
+    }
     const displayRanges = capSentenceRanges(fragments, [sourceRange])
     validateDisplayCoverage(sourceRange, displayRanges)
     const displayTexts = displayRanges.map((range) => rangeText(fragments, range))

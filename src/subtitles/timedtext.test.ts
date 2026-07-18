@@ -120,6 +120,13 @@ describe('parseTimedtext', () => {
     expect(cues[1].s).toBe(2000)
   })
 
+  it('does not reinterpret explicitly manual tracks as ASR even if segments carry offsets', () => {
+    const cues = parseTimedtext(asrResponse, { kind: 'manual' })
+    expect(cues).toHaveLength(2)
+    expect(cues.map((cue) => cue.o)).toEqual(['Welcome to the show.', 'Today we talk.'])
+    expect(cues.every((cue) => cue.sentenceEnd === undefined)).toBe(true)
+  })
+
   it('joins aAppend continuations into previous cue', () => {
     const cues = parseTimedtext(appendResponse)
     expect(cues).toHaveLength(1)

@@ -3,6 +3,7 @@ import type { Cue } from '../subtitles/timedtext'
 import type { TranslationMode } from '../settings'
 import type { TranslationOperationUsage } from '../usage/contracts'
 import type { PricingSnapshot } from '../usage/pricing'
+import type { CaptionTrackKind } from '../subtitles/tracks'
 
 const DB_NAME = 'gistlate'
 const DB_VERSION = 1
@@ -20,6 +21,12 @@ export interface CacheEntry {
   cues: Cue[]
   createdAt: number
   video?: { title?: string }
+  track?: {
+    languageCode: string
+    kind: CaptionTrackKind
+    vssId: string
+    sourceFingerprint: string
+  }
   generation?: GenerationMetadata
 }
 
@@ -30,7 +37,7 @@ export interface GenerationMetadata {
     effectiveRequestCount: number
     concurrency: number
     temperature: 0
-    boundaryMethod: 'timed-punctuation' | 'llm'
+    boundaryMethod: 'manual-cues' | 'timed-punctuation' | 'llm'
     boundaryRequestCount: number
     boundaryThinking: 'enabled' | 'not-used'
     translationThinking: 'disabled'

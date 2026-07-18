@@ -7,6 +7,7 @@ export function gmFetch(opts: {
   headers?: Record<string, string>
   body?: string
   signal?: AbortSignal
+  timeoutMs?: number
 }): Promise<{ status: number; text: string }> {
   return new Promise((resolve, reject) => {
     if (opts.signal?.aborted) {
@@ -22,6 +23,7 @@ export function gmFetch(opts: {
       url: opts.url,
       headers: opts.headers,
       data: opts.body,
+      timeout: opts.timeoutMs,
       onload: (r) => {
         cleanup()
         resolve({ status: r.status, text: r.responseText })

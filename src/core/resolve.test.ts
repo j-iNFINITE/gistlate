@@ -110,6 +110,41 @@ describe('resolveTranslation', () => {
     expect(result).toEqual({ cues: TRANSLATED_CUES, source: 'l2' })
   })
 
+  it('treats same-key L1/L2 entries from a different source track as misses', async () => {
+    const stale = cacheEntry([{ s: 0, d: 1000, o: 'wrong ASR text', t: '错误' }])
+    mockGetL1.mockResolvedValue(stale)
+    mockReadL2.mockResolvedValue(stale)
+
+    const result = await resolveTranslation('video', 'en', SOURCE_CUES)
+
+    expect(mockTranslateCues).toHaveBeenCalledOnce()
+    expect(mockPutL1).toHaveBeenCalledWith(expect.objectContaining({ cues: TRANSLATED_CUES }))
+    expect(result.source).toBe('fresh')
+  })
+
+  it('passes manual track kind to the pipeline and records optional source metadata', async () => {
+    await resolveTranslation('video', 'en', SOURCE_CUES, {
+      force: true,
+      track: { languageCode: 'en', kind: 'manual', vssId: '.en' },
+    })
+
+    expect(mockTranslateCues).toHaveBeenCalledWith(
+      SOURCE_CUES,
+      'zh-Hans',
+      expect.anything(),
+      'sk-test',
+      expect.objectContaining({ sourceKind: 'manual' }),
+    )
+    expect(mockPutL1).toHaveBeenCalledWith(expect.objectContaining({
+      track: expect.objectContaining({
+        languageCode: 'en',
+        kind: 'manual',
+        vssId: '.en',
+        sourceFingerprint: expect.stringMatching(/^sha256-v1:/),
+      }),
+    }))
+  })
+
   it('force mode skips both reads and replaces caches only after translation succeeds', async () => {
     const onTranslating = vi.fn()
     const context = { title: 'Video title', description: 'Video description' }
@@ -221,6 +256,41 @@ describe('resolveTranslation', () => {
       }),
     ).rejects.toThrow(/abort/i)
 
+    expect(mockPutL1).not.toHaveBeenCalled()
+    expect(mockWriteL2).not.toHaveBeenCalled()
+  })
+
+  it('rechecks navigation abort after pending usage writes and before L1 persistence', async () => {
+    const controller = new AbortController()
+    let releaseUsageWrite: (() => void) | undefined
+    mockAppendUsageResponse.mockImplementationOnce(() => new Promise<void>((resolve) => {
+      releaseUsageWrite = () => {
+        controller.abort()
+        resolve()
+      }
+    }))
+    mockTranslateCues.mockImplementationOnce(async (_cues, _target, _cfg, _key, options) => {
+      void options.onUsage?.('translation', { promptTokens: 1 })
+      return {
+        cues: TRANSLATED_CUES,
+        diagnostics: {
+          boundaryMethod: 'llm',
+          boundaryRequestCount: 1,
+          translationRequestCount: 1,
+          alignmentRequestCount: 0,
+          fallbackSentenceCount: 0,
+        },
+      }
+    })
+
+    const resolving = resolveTranslation('video', 'en', SOURCE_CUES, {
+      force: true,
+      signal: controller.signal,
+    })
+    await vi.waitFor(() => expect(releaseUsageWrite).toBeTypeOf('function'))
+    releaseUsageWrite?.()
+
+    await expect(resolving).rejects.toThrow(/abort/i)
     expect(mockPutL1).not.toHaveBeenCalled()
     expect(mockWriteL2).not.toHaveBeenCalled()
   })

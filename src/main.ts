@@ -1,226 +1,273 @@
 /// <reference types="vite-plugin-monkey/client" />
 import { GM_registerMenuCommand } from '$'
 import { loadSettings } from './settings'
-import { interceptTimedtext } from './intercept/netHook'
+import { clearObservedTimedtext, interceptTimedtext } from './intercept/netHook'
+import {
+  acquireCurrentSubtitles,
+  type AcquisitionStage,
+  type AcquiredSubtitles,
+} from './subtitles/acquire'
 import { parseTimedtext, type Cue } from './subtitles/timedtext'
 import { cleanCues } from './subtitles/clean'
 import { findCueAt } from './subtitles/cues'
 import { normalizeLang } from './translate/lang'
 import {
+  captionTrackNeedsTranslation,
+  type SelectedCaptionTrack,
+} from './subtitles/tracks'
+import {
   getVideoId,
   getVideoContext,
   onVideoChange,
-  ensureCaptions,
   getVideoElement,
-  isTimedtextRequestForVideo,
 } from './youtube'
 import { store } from './core/store'
 import { resolveTranslation } from './core/resolve'
-import { createOverlay, destroyOverlay } from './ui/overlay'
+import { deactivatedVideoId, shouldAutoStartVideo } from './core/activation'
+import { createOverlay, destroyOverlay, type Overlay } from './ui/overlay'
 import { openSettingsPanel } from './ui/settings-panel'
 import { openStylePanel } from './ui/style-panel'
 import { mountStyleButton } from './ui/style-button'
 import {
+  showWaitingPlayer,
+  showFetchingSubtitles,
+  showWaitingPot,
+  showDirectReady,
   showTranslating,
   showProgress,
   showDone,
   showError,
+  showAcquisitionError,
+  hideStatus,
   destroyStatus,
 } from './ui/status'
 import { reconcileStaleUsageOperations } from './usage/ledger'
 
 console.log('[Gistlate] Script loaded on YouTube')
 
-// A tab/browser crash can leave a billed operation marked running. Reconcile
-// it once on the next userscript initialization without fabricating new usage.
 void reconcileStaleUsageOperations().catch((error) => {
   console.warn('[Gistlate] Could not reconcile stale usage operations', error)
 })
 
-// ── Settings ──────────────────────────────────────────
-const settings = loadSettings()
+const initialSettings = loadSettings()
 console.log('[Gistlate] Settings loaded:', {
-  tgt: settings.tgt,
-  displayMode: settings.displayMode,
-  openai: `baseUrl=${settings.openai.baseUrl} model=${settings.openai.model}`,
-  github: `owner=${settings.github.owner} repo=${settings.github.repo}`,
+  tgt: initialSettings.tgt,
+  displayMode: initialSettings.displayMode,
+  autoStart: initialSettings.autoStart,
+  openai: `baseUrl=${initialSettings.openai.baseUrl} model=${initialSettings.openai.model}`,
+  github: `owner=${initialSettings.github.owner} repo=${initialSettings.github.repo}`,
 })
 
-// ── GM menu command → settings panel ────────────────
-GM_registerMenuCommand('Gistlate 设置', () => {
-  openSettingsPanel()
-})
+GM_registerMenuCommand('Gistlate 设置', openSettingsPanel)
+GM_registerMenuCommand('Gistlate 字幕样式', openStylePanel)
+GM_registerMenuCommand('Gistlate 重新翻译当前视频', retranslateCurrentVideo)
 
-// ── GM menu command → live subtitle style panel ─────
-GM_registerMenuCommand('Gistlate 字幕样式', () => {
-  openStylePanel()
-})
-
-// Low-frequency, quota-consuming action: keep it in the userscript menu rather
-// than adding another persistent player control.
-GM_registerMenuCommand('Gistlate 重新翻译当前视频', () => {
-  retranslateCurrentVideo()
-})
-
-// ── Overlay state ─────────────────────────────────────
-let overlay = createOverlay()
-overlay?.setDisplayMode(settings.displayMode)
-
-// ── Playhead tracking ────────────────────────────────
-let lastCueKey = ''
-
-function updateOverlay(timeMs: number): void {
-  if (!store.subtitle) return
-
-  // Lazy (re)create the overlay: it may have been null at document-start
-  // (player not mounted yet) or nulled after SPA navigation.
-  if (!overlay) {
-    overlay = createOverlay()
-    overlay?.setDisplayMode(settings.displayMode)
-    if (!overlay) return
-  }
-
-  const cue = findCueAt(store.subtitle.cues, timeMs)
-  const key = cue ? `${cue.s}|${cue.o}|${cue.t ?? ''}` : ''
-
-  if (key === lastCueKey) return
-  lastCueKey = key
-
-  if (cue) {
-    overlay.update(cue.o, cue.t)
-  } else {
-    overlay.update('')
-  }
-}
-
-// Subscribe to store time changes
-const unsubTime = store.subscribe(updateOverlay)
-
-// ── Video time listener ──────────────────────────────
-let videoEl: HTMLVideoElement | null = null
-let timeHandler: (() => void) | null = null
-
-function attachTimeListener(): void {
-  const v = getVideoElement()
-  if (!v || v === videoEl) return
-  videoEl = v
-
-  timeHandler = () => store.setCurrentTime(v.currentTime * 1000)
-  v.addEventListener('timeupdate', timeHandler)
-  // Seek: force an immediate refresh. Reset the dedup key first so updateOverlay
-  // re-renders even when findCueAt returns a cue whose key looks unchanged —
-  // otherwise the overlay could show a stale line right after a jump.
-  v.addEventListener('seeked', () => {
-    lastCueKey = ''
-    store.setCurrentTime(v.currentTime * 1000)
-  })
-}
-
-// Poll for video element since it may not exist at document-start
-const pollInterval = setInterval(() => {
-  if (!videoEl) {
-    attachTimeListener()
-  }
-  // (Re)inject the style button; survives YouTube rebuilding its controls.
-  mountStyleButton()
-}, 1000)
-
-// ── Subtitle interception ─────────────────────────────
-let handledTrackKey = ''
-let handledVideoId = ''
+// Install the observe-only network hook immediately. It stages URLs/POT/JSON3
+// even when auto-start is off, but never starts translation by itself.
+interceptTimedtext(() => {})
 
 interface CurrentTrack {
   videoId: string
   srcLang: string
-  /** Cleaned original fragments; never replace with reconstructed sentence cues. */
   fragments: Cue[]
+  selected: SelectedCaptionTrack
+  directTarget: boolean
 }
 
+let overlay: Overlay | null = null
 let currentTrack: CurrentTrack | null = null
+let activeVideoId: string | null = null
+let suppressedVideoId: string | null = null
+let translatingVideoId: string | null = null
+let lastCueKey = ''
+let pageVideoId = getVideoId()
 
-interceptTimedtext(({ json, params }) => {
-  const videoId = getVideoId()
-  // A late timedtext response from the previous SPA page must never be parsed,
-  // deduplicated, displayed, or cached under the current watch URL.
-  if (!isTimedtextRequestForVideo(params, videoId)) return
-  if (!videoId) return
-
-  const rawLang = params.get('lang')
-  const tlang = params.get('tlang')
-
-  // Skip auto-translated tracks — we want the original source
-  if (tlang) return
-
-  if (!json.events || json.events.length === 0) return
-
-  const srcLang = rawLang ?? 'unknown'
-  const trackKey = `${videoId}|${srcLang}`
-
-  // Dedup: YouTube requests the same caption track multiple times. Ignoring
-  // repeats is critical — otherwise store.reset() below aborts the in-flight
-  // translation started by the first request, and it never completes.
-  if (trackKey === handledTrackKey) return
-  handledTrackKey = trackKey
-  handledVideoId = videoId
-
-  // Strip non-speech annotations ([Music], 【音乐】, ♪, …) up front so they never
-  // display and never pollute sentence segmentation. Pure-annotation cues drop.
-  const cues = cleanCues(parseTimedtext(json))
-  if (cues.length === 0) {
-    currentTrack = null
-    return
+function updateOverlay(timeMs: number): void {
+  if (!store.subtitle || !activeVideoId) return
+  if (!overlay) {
+    overlay = createOverlay()
+    overlay?.setActive(true)
+    overlay?.setDisplayMode(loadSettings().displayMode)
+    if (!overlay) return
   }
 
-  currentTrack = { videoId, srcLang, fragments: cues }
+  const cue = findCueAt(store.subtitle.cues, timeMs)
+  const key = cue ? `${cue.s}|${cue.o}|${cue.t ?? ''}|${currentTrack?.directTarget ?? false}` : ''
+  if (key === lastCueKey) return
+  lastCueKey = key
 
-  console.log(`[Gistlate] Captured ${cues.length} cues for video=${videoId} lang=${srcLang}`)
+  if (!cue) {
+    overlay.update('')
+    return
+  }
+  const track = currentTrack
+  overlay.update(cue.o, cue.t, {
+    sourceLang: track?.srcLang,
+    targetLang: loadSettings().tgt,
+    directTarget: track?.directTarget,
+  })
+}
 
-  // Reset state for this (new video, or a newly-selected caption track)
+store.subscribe(updateOverlay)
+
+let videoEl: HTMLVideoElement | null = null
+let timeHandler: (() => void) | null = null
+let seekHandler: (() => void) | null = null
+
+function attachTimeListener(): void {
+  const video = getVideoElement()
+  if (!video || video === videoEl) return
+  detachTimeListener()
+  videoEl = video
+  timeHandler = () => store.setCurrentTime(video.currentTime * 1000)
+  seekHandler = () => {
+    lastCueKey = ''
+    store.setCurrentTime(video.currentTime * 1000)
+  }
+  video.addEventListener('timeupdate', timeHandler)
+  video.addEventListener('seeked', seekHandler)
+}
+
+function detachTimeListener(): void {
+  if (videoEl && timeHandler) videoEl.removeEventListener('timeupdate', timeHandler)
+  if (videoEl && seekHandler) videoEl.removeEventListener('seeked', seekHandler)
+  videoEl = null
+  timeHandler = null
+  seekHandler = null
+}
+
+const pollInterval = setInterval(() => {
+  attachTimeListener()
+  if (activeVideoId) {
+    const mountedOverlay = createOverlay()
+    if (mountedOverlay) {
+      overlay = mountedOverlay
+      overlay.setActive(true)
+      overlay.setDisplayMode(loadSettings().displayMode)
+    }
+  }
+  mountStyleButton({
+    active: Boolean(activeVideoId && activeVideoId === getVideoId()),
+    onToggle: toggleCurrentVideo,
+  })
+}, 1000)
+void pollInterval
+
+function toggleCurrentVideo(): void {
+  const videoId = getVideoId()
+  if (!videoId) return
+  if (activeVideoId === videoId) {
+    deactivateCurrentVideo('user')
+  } else {
+    void activateCurrentVideo(videoId, true)
+  }
+}
+
+async function activateCurrentVideo(videoId: string, manual: boolean): Promise<void> {
+  if (activeVideoId === videoId) return
+  if (getVideoId() !== videoId) return
+
+  suppressedVideoId = null
   store.reset()
+  destroyStatus()
+  destroyOverlay()
+  overlay = createOverlay()
+  overlay?.setActive(true)
+  overlay?.setDisplayMode(loadSettings().displayMode)
+  currentTrack = null
+  translatingVideoId = null
+  activeVideoId = videoId
+  lastCueKey = ''
+  const signal = store.signal
+  console.log(`[Gistlate] ${manual ? 'Manual' : 'Automatic'} start: ${videoId}`)
+
+  try {
+    const acquired = await acquireCurrentSubtitles(videoId, loadSettings().tgt, {
+      signal,
+      onStage: showAcquisitionStage,
+    })
+    if (signal.aborted || getVideoId() !== videoId || activeVideoId !== videoId) return
+    handleAcquiredTrack(acquired)
+  } catch (error) {
+    if (signal.aborted) return
+    console.warn('[Gistlate] Subtitle acquisition failed:', error)
+    showAcquisitionError(acquisitionMessage(error))
+    activeVideoId = null
+    currentTrack = null
+    translatingVideoId = null
+    store.reset()
+    destroyOverlay()
+    overlay = null
+  }
+}
+
+function showAcquisitionStage(stage: AcquisitionStage): void {
+  if (stage === 'waiting-player') showWaitingPlayer()
+  else if (stage === 'waiting-pot') showWaitingPot()
+  else showFetchingSubtitles()
+}
+
+function acquisitionMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : ''
+  if (/No YouTube caption tracks/i.test(message)) return '当前视频没有可用字幕'
+  if (/player data/i.test(message)) return '未能连接 YouTube 播放器字幕'
+  if (/authorization|POT/i.test(message)) return 'YouTube 字幕授权失败'
+  return '未能获取当前视频字幕'
+}
+
+function handleAcquiredTrack(acquired: AcquiredSubtitles): void {
+  const { selected } = acquired
+  const cues = cleanCues(parseTimedtext(acquired.json, { kind: selected.track.kind }))
+  if (cues.length === 0) throw new Error('Selected YouTube caption track is empty')
+
+  const srcLang = selected.track.languageCode || 'unknown'
+  const directTarget = !captionTrackNeedsTranslation(selected, loadSettings().tgt)
+  currentTrack = {
+    videoId: selected.videoId,
+    srcLang,
+    fragments: cues,
+    selected,
+    directTarget,
+  }
+  console.log(
+    `[Gistlate] Acquired ${cues.length} cues via ${acquired.source}: ` +
+    `${selected.track.kind} ${srcLang} vss=${selected.track.vssId || '(none)'}`,
+  )
+
   store.setSubtitle(srcLang, cues)
   overlay = createOverlay()
-  overlay?.setDisplayMode(settings.displayMode)
+  overlay?.setActive(true)
+  overlay?.setDisplayMode(loadSettings().displayMode)
   lastCueKey = ''
 
-  // Try enabling captions so next video auto-starts
-  ensureCaptions()
-
-  // Trigger whole-track planning; canonical sentence jobs then run progressively.
-  triggerTranslation(videoId, srcLang, cues)
-})
-
-let translatingVideoId: string | null = null
+  if (directTarget) {
+    showDirectReady()
+    return
+  }
+  void triggerTranslation(selected.videoId, srcLang, cues, selected, false)
+}
 
 async function triggerTranslation(
   videoId: string,
   srcLang: string,
   cues: Cue[],
-  force = false,
+  selected: SelectedCaptionTrack,
+  force: boolean,
 ): Promise<void> {
-  // Settings can change after the userscript starts. Read them at each operation
-  // so explicit retranslation always uses the current target/API configuration.
   const liveSettings = loadSettings()
   const tgt = normalizeLang(liveSettings.tgt)
   const src = normalizeLang(srcLang)
 
-  // Same language → no translation needed
   if (src === tgt) {
-    console.log('[Gistlate] Source and target languages are the same, skipping translation')
+    showDirectReady()
     if (force) window.alert('Gistlate：当前字幕语言与目标语言相同，无需重新翻译。')
     return
   }
-
-  // Guard by videoId (not a global boolean): prevents translating the same
-  // video twice (e.g. manual + ASR tracks firing), but never blocks a *new*
-  // video whose interception arrives while an old translation is aborting.
   if (translatingVideoId === videoId) {
     if (force) window.alert('Gistlate：当前视频正在翻译，请完成后再试。')
     return
   }
   translatingVideoId = videoId
-
-  // Capture the signal now; if navigation resets the store mid-flight, this
-  // signal aborts and we discard the stale result.
   const signal = store.signal
   overlay?.setDisplayMode(liveSettings.displayMode)
 
@@ -232,38 +279,30 @@ async function triggerTranslation(
       force,
       context: getVideoContext(videoId),
       getCurrentTime: () => store.currentTime,
+      track: {
+        languageCode: selected.track.languageCode,
+        kind: selected.track.kind,
+        vssId: selected.track.vssId,
+      },
       onProgress: (progress) => {
-        if (signal.aborted || getVideoId() !== videoId) return
+        if (signal.aborted || getVideoId() !== videoId || activeVideoId !== videoId) return
         showProgress(progress)
-        // Fresh translation may mix completed targets with original-only pending
-        // cues in memory. Force mode keeps the old complete artifact atomically.
-        if (!force && progress.cues.length > 0) {
-          store.setSubtitle(srcLang, progress.cues)
-        }
+        if (!force && progress.cues.length > 0) store.setSubtitle(srcLang, progress.cues)
       },
     })
-
-    // Staleness guard: covers the cache-hit path where resolve returns fast
-    // without re-checking the signal after its async lookups.
-    if (signal.aborted || getVideoId() !== videoId) {
-      console.log('[Gistlate] Discarding stale translation result (navigated away)')
-      return
-    }
-
+    if (signal.aborted || getVideoId() !== videoId || activeVideoId !== videoId) return
     console.log(`[Gistlate] Translation ready (${result.source})`)
-    // Only flash "done" when we actually translated (the pill was shown).
     if (result.source === 'fresh') showDone()
+    else hideStatus()
     store.setSubtitle(srcLang, result.cues)
-  } catch (e) {
+  } catch (error) {
     if (signal.aborted) {
-      console.log('[Gistlate] Translation aborted (superseded by a newer track)')
+      console.log('[Gistlate] Translation aborted (video stopped or superseded)')
     } else {
-      console.warn('[Gistlate] Translation failed (will show original only):', e)
+      console.warn('[Gistlate] Translation failed (showing original only):', error)
       showError()
     }
   } finally {
-    // This is in-flight state, not a permanent "already translated" guard.
-    // Network-track duplicates remain blocked by handledTrackKey.
     if (translatingVideoId === videoId) translatingVideoId = null
   }
 }
@@ -271,44 +310,69 @@ async function triggerTranslation(
 function retranslateCurrentVideo(): void {
   const videoId = getVideoId()
   const track = currentTrack
-
   if (!videoId || !track || track.videoId !== videoId) {
-    window.alert(
-      'Gistlate：尚未捕获当前视频的原始字幕。请先打开 YouTube 字幕（CC）后重试。',
-    )
+    window.alert('Gistlate：当前视频尚未取得规范字幕轨道，请先启动 Gistlate 后重试。')
     return
   }
-
   if (translatingVideoId === videoId) {
     window.alert('Gistlate：当前视频正在翻译，请完成后再试。')
     return
   }
-
-  const confirmed = window.confirm(
+  if (!window.confirm(
     '重新翻译会忽略现有缓存、调用当前配置的 LLM，并在完整成功后覆盖本地及 GitHub 翻译。是否继续？',
-  )
-  if (!confirmed) return
-
-  void triggerTranslation(track.videoId, track.srcLang, track.fragments, true)
+  )) return
+  void triggerTranslation(track.videoId, track.srcLang, track.fragments, track.selected, true)
 }
 
-// ── SPA navigation ────────────────────────────────────
-// `yt-navigate-finish` can fire AFTER the initial interception already started a
-// translation. If it reports the SAME video we're already handling, do nothing —
-// otherwise we'd abort the in-flight translation and re-translate on the repeat
-// interception. Only a genuinely different (or absent) video resets state.
-onVideoChange(() => {
-  const newId = getVideoId()
-  if (newId && newId === handledVideoId) return
-  console.log('[Gistlate] Video changed')
+function deactivateCurrentVideo(
+  reason: 'user' | 'navigation',
+  previousPageVideoId: string | null = null,
+): void {
+  const previousVideoId = deactivatedVideoId({
+    reason,
+    activeVideoId,
+    trackVideoId: currentTrack?.videoId ?? null,
+    currentVideoId: getVideoId(),
+    previousPageVideoId,
+  })
+  if (reason === 'user') suppressedVideoId = previousVideoId
+  if (reason === 'navigation' && previousVideoId) clearObservedTimedtext(previousVideoId)
   store.reset()
+  currentTrack = null
+  activeVideoId = null
+  translatingVideoId = null
+  lastCueKey = ''
   destroyOverlay()
   destroyStatus()
-  overlay = null // force lazy re-creation for the next track
-  translatingVideoId = null // allow the next video to translate
-  handledTrackKey = '' // allow the next video's track to be handled
-  handledVideoId = ''
-  currentTrack = null
-  videoEl = null
-  lastCueKey = ''
+  overlay = null
+}
+
+onVideoChange(() => {
+  const nextVideoId = getVideoId()
+  const previousPageVideoId = pageVideoId
+  pageVideoId = nextVideoId
+  if (nextVideoId && nextVideoId === activeVideoId) return
+  if (nextVideoId && nextVideoId === suppressedVideoId) return
+  console.log('[Gistlate] Video changed')
+  deactivateCurrentVideo('navigation', previousPageVideoId)
+  detachTimeListener()
+  suppressedVideoId = null
+  const autoStartState = {
+    videoId: nextVideoId,
+    autoStart: loadSettings().autoStart,
+    activeVideoId,
+    suppressedVideoId,
+  }
+  if (shouldAutoStartVideo(autoStartState)) void activateCurrentVideo(autoStartState.videoId, false)
 })
+
+const initialVideoId = getVideoId()
+const initialAutoStartState = {
+  videoId: initialVideoId,
+  autoStart: initialSettings.autoStart,
+  activeVideoId,
+  suppressedVideoId,
+}
+if (shouldAutoStartVideo(initialAutoStartState)) {
+  void activateCurrentVideo(initialAutoStartState.videoId, false)
+}

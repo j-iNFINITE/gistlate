@@ -1,4 +1,5 @@
 import type { Cue } from '../subtitles/timedtext'
+import type { CaptionTrackKind } from '../subtitles/tracks'
 import type { OpenAIConfig, TranslationSettings } from '../settings'
 import type { TranslationContext } from './context'
 import {
@@ -46,7 +47,7 @@ export interface TranslationProgress {
 }
 
 export interface PipelineDiagnostics {
-  boundaryMethod: 'timed-punctuation' | 'llm'
+  boundaryMethod: 'manual-cues' | 'timed-punctuation' | 'llm'
   boundaryRequestCount: number
   translationRequestCount: number
   alignmentRequestCount: number
@@ -65,6 +66,8 @@ export interface TranslationPipelineOptions {
   getCurrentTime?: () => number
   onProgress?: (progress: TranslationProgress) => void
   onUsage?: (stage: UsageStage, usage?: RequestUsage) => Promise<void> | void
+  /** Manual YouTube captions already provide complete cue boundaries. */
+  sourceKind?: CaptionTrackKind
 }
 
 function throwIfAborted(signal?: AbortSignal): void {
@@ -94,17 +97,26 @@ export async function translateCues(
 
   const { signal, context, translation, getCurrentTime, onProgress, onUsage } = options
   throwIfAborted(signal)
-  onProgress?.({ stage: 'boundaries', completedSentences: 0, totalSentences: 0, cues })
-
-  const endFlags = await detectBoundaries(
+  let endFlags: boolean[]
+  if (options.sourceKind === 'manual') {
+    diagnostics.boundaryMethod = 'manual-cues'
+    endFlags = cues.map(() => true)
+  } else {
+    onProgress?.({ stage: 'boundaries', completedSentences: 0, totalSentences: 0, cues })
+    endFlags = await detectBoundaries(
+      cues,
+      openaiCfg,
+      apiKey,
+      signal,
+      diagnostics,
+      (usage) => onUsage?.('boundary', usage),
+    )
+  }
+  const plans = buildSentencePlans(
     cues,
-    openaiCfg,
-    apiKey,
-    signal,
-    diagnostics,
-    (usage) => onUsage?.('boundary', usage),
+    groupByBoundaries(endFlags),
+    { trustedCueBoundaries: options.sourceKind === 'manual' },
   )
-  const plans = buildSentencePlans(cues, groupByBoundaries(endFlags))
   const jobs = createSentenceJobs(plans)
   const references: SentenceReference[] = plans.map(({ id, sourceText }) => ({ id, sourceText }))
   const groups = groupPlans(plans, translation.mode, translation.batchSize)

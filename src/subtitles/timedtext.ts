@@ -29,6 +29,28 @@ export interface GetTimedtextResp {
   events: TimedtextEvent[]
 }
 
+/** Validate the minimum JSON3 shape before an active or intercepted response is published. */
+export function isTimedtextResponse(value: unknown): value is GetTimedtextResp {
+  if (!value || typeof value !== 'object') return false
+  const events = (value as { events?: unknown }).events
+  if (!Array.isArray(events) || events.length === 0) return false
+  const validEvents = events.every((event) => {
+    if (!event || typeof event !== 'object') return false
+    const candidate = event as { tStartMs?: unknown; segs?: unknown }
+    if (typeof candidate.tStartMs !== 'number' || !Number.isFinite(candidate.tStartMs)) return false
+    if (candidate.segs === undefined) return true
+    return Array.isArray(candidate.segs) && candidate.segs.every((segment) =>
+      Boolean(segment) && typeof segment === 'object' &&
+      typeof (segment as { utf8?: unknown }).utf8 === 'string',
+    )
+  })
+  return validEvents && events.some((event) =>
+    (event as { segs?: Array<{ utf8?: unknown }> }).segs?.some((segment) =>
+      typeof segment.utf8 === 'string' && segment.utf8.trim().length > 0,
+    ),
+  )
+}
+
 // ── Internal cue (compact, minified key names) ──────
 
 export interface Cue {
@@ -58,11 +80,14 @@ export interface Cue {
  * segs into sentence-ish cues. ASR events often lack dDurationMs; window id
  * and append markers indicate continuation.
  */
-export function parseTimedtext(resp: GetTimedtextResp): Cue[] {
+export function parseTimedtext(
+  resp: GetTimedtextResp,
+  options: { kind?: 'manual' | 'asr' } = {},
+): Cue[] {
   const events = resp.events
   if (!events || events.length === 0) return []
 
-  if (hasUsableWordTiming(events)) return parseWordTimedEvents(events)
+  if (options.kind !== 'manual' && hasUsableWordTiming(events)) return parseWordTimedEvents(events)
 
   return parseLegacyEvents(events)
 }

@@ -1,4 +1,10 @@
-import { loadSettings, saveSettings, DEFAULTS, type SubtitleStyle } from '../settings'
+import {
+  loadSettings,
+  saveSettings,
+  DEFAULTS,
+  type DisplayMode,
+  type SubtitleStyle,
+} from '../settings'
 import { createOverlay } from './overlay'
 
 /**
@@ -15,7 +21,7 @@ import { createOverlay } from './overlay'
 const SP_ID = 'gistlate-style-panel'
 const PANEL_CSS = `
   #${SP_ID} {
-    position: fixed; top: 70px; right: 16px; z-index: 999998;
+    position: absolute; top: 70px; right: 16px; z-index: 10001;
     width: 280px; max-height: 82vh; overflow-y: auto; box-sizing: border-box;
     background: #1a1a2e; color: #e0e0e0; border-radius: 10px;
     padding: 14px 16px; box-shadow: 0 8px 32px rgba(0,0,0,.5);
@@ -151,10 +157,17 @@ export function openStylePanel(): void {
 
   const settings = loadSettings()
   // `saved` is the persisted baseline; `working` is the in-memory edit buffer.
-  const saved: SubtitleStyle = { ...settings.style }
-  const working: SubtitleStyle = { ...settings.style }
+  const saved: SubtitleStyle = cloneStyle(settings.style)
+  const working: SubtitleStyle = cloneStyle(settings.style)
+  let savedDisplayMode: DisplayMode = settings.displayMode
+  let workingDisplayMode: DisplayMode = settings.displayMode
+  let savedAutoStart = settings.autoStart
+  let workingAutoStart = settings.autoStart
 
-  const apply = () => overlay?.applyStyle(working)
+  const apply = () => {
+    overlay?.applyStyle(working)
+    overlay?.setDisplayMode(workingDisplayMode)
+  }
 
   // Inject styles (idempotent)
   if (!document.getElementById(`${SP_ID}-style`)) {
@@ -162,40 +175,105 @@ export function openStylePanel(): void {
   }
 
   // ── Controls (each live-previews as it changes) ───────
-  const font = selectField(
-    '字体',
+  const displayMode = selectField(
+    '显示模式',
+    [
+      { value: 'bilingual', label: '双语' },
+      { value: 'original-only', label: '仅原文' },
+      { value: 'translation-only', label: '仅译文' },
+    ],
+    workingDisplayMode,
+    (v) => {
+      workingDisplayMode = v as DisplayMode
+      apply()
+    },
+  )
+
+  const translationPosition = selectField(
+    '译文位置',
+    [
+      { value: 'above', label: '原文上方' },
+      { value: 'below', label: '原文下方' },
+    ],
+    working.translationPosition,
+    (v) => {
+      working.translationPosition = v === 'above' ? 'above' : 'below'
+      apply()
+    },
+  )
+
+  const autoStart = selectField(
+    '自动启动',
+    [
+      { value: 'on', label: '开启（兼容当前行为）' },
+      { value: 'off', label: '关闭（手动启动当前视频）' },
+    ],
+    workingAutoStart ? 'on' : 'off',
+    (v) => { workingAutoStart = v === 'on' },
+  )
+
+  const originalFont = selectField(
+    '原文字体',
     [
       { value: 'yt-noto', label: 'YouTube Noto' },
       { value: 'system-sans', label: '系统无衬线' },
       { value: 'serif', label: '衬线 Serif' },
       { value: 'mono', label: '等宽 Mono' },
     ],
-    working.fontFamily,
+    working.original.fontFamily,
     (v) => {
-      working.fontFamily = v
+      working.original.fontFamily = v
       apply()
     },
   )
 
-  const weight = selectField(
-    '字重',
+  const translatedFont = selectField(
+    '译文字体',
+    [
+      { value: 'yt-noto', label: 'YouTube Noto' },
+      { value: 'system-sans', label: '系统无衬线' },
+      { value: 'serif', label: '衬线 Serif' },
+      { value: 'mono', label: '等宽 Mono' },
+    ],
+    working.translated.fontFamily,
+    (v) => {
+      working.translated.fontFamily = v
+      apply()
+    },
+  )
+
+  const originalWeight = selectField(
+    '原文字重',
     [
       { value: '400', label: '常规' },
       { value: '700', label: '加粗' },
     ],
-    String(working.fontWeight),
+    String(working.original.fontWeight),
     (v) => {
-      working.fontWeight = Number(v) === 700 ? 700 : 400
+      working.original.fontWeight = Number(v) === 700 ? 700 : 400
       apply()
     },
   )
 
-  const oSize = rangeField('原文字号', 12, 48, 1, working.originalSize, (v) => `${v}px`, (v) => {
-    working.originalSize = v
+  const translatedWeight = selectField(
+    '译文字重',
+    [
+      { value: '400', label: '常规' },
+      { value: '700', label: '加粗' },
+    ],
+    String(working.translated.fontWeight),
+    (v) => {
+      working.translated.fontWeight = Number(v) === 700 ? 700 : 400
+      apply()
+    },
+  )
+
+  const oSize = rangeField('原文字号', 12, 64, 1, working.original.size, (v) => `${v}px`, (v) => {
+    working.original.size = v
     apply()
   })
-  const tSize = rangeField('译文字号', 12, 48, 1, working.translatedSize, (v) => `${v}px`, (v) => {
-    working.translatedSize = v
+  const tSize = rangeField('译文字号', 12, 64, 1, working.translated.size, (v) => `${v}px`, (v) => {
+    working.translated.size = v
     apply()
   })
   const outline = rangeField('描边/阴影', 0, 4, 1, working.outline, (v) => String(v), (v) => {
@@ -206,8 +284,20 @@ export function openStylePanel(): void {
     working.bgOpacity = v
     apply()
   })
-  const bottom = rangeField('底部位置', 0, 40, 1, working.bottomOffset, (v) => `${v}%`, (v) => {
-    working.bottomOffset = v
+  const anchor = selectField(
+    '位置锚点',
+    [
+      { value: 'bottom', label: '底部' },
+      { value: 'top', label: '顶部' },
+    ],
+    working.position.anchor,
+    (v) => {
+      working.position.anchor = v === 'top' ? 'top' : 'bottom'
+      apply()
+    },
+  )
+  const position = rangeField('锚点距离', 0, 90, 1, working.position.percent, (v) => `${v}%`, (v) => {
+    working.position.percent = v
     apply()
   })
   const gap = rangeField('行间距', 0, 24, 1, working.lineGap, (v) => `${v}px`, (v) => {
@@ -215,12 +305,12 @@ export function openStylePanel(): void {
     apply()
   })
 
-  const oColor = colorField('原文颜色', working.originalColor, (v) => {
-    working.originalColor = v
+  const oColor = colorField('原文颜色', working.original.color, (v) => {
+    working.original.color = v
     apply()
   })
-  const tColor = colorField('译文颜色', working.translatedColor, (v) => {
-    working.translatedColor = v
+  const tColor = colorField('译文颜色', working.translated.color, (v) => {
+    working.translated.color = v
     apply()
   })
 
@@ -232,49 +322,78 @@ export function openStylePanel(): void {
 
   const panel = h('div', { id: SP_ID }, [
     h('h2', { textContent: 'Gistlate 字幕样式' }),
-    font.field,
+    displayMode.field,
+    h('div', { className: 'gl-two' }, [translationPosition.field, autoStart.field]),
+    h('div', { className: 'gl-two' }, [originalFont.field, translatedFont.field]),
     h('div', { className: 'gl-two' }, [oSize.field, tSize.field]),
     h('div', { className: 'gl-two' }, [oColor.field, tColor.field]),
-    weight.field,
+    h('div', { className: 'gl-two' }, [originalWeight.field, translatedWeight.field]),
     outline.field,
     bgOpacity.field,
-    bottom.field,
+    h('div', { className: 'gl-two' }, [anchor.field, position.field]),
     gap.field,
     h('div', { className: 'gl-actions' }, [saveBtn, resetBtn, closeBtn]),
     status,
   ])
-  document.body.appendChild(panel)
+  const host = document.querySelector<HTMLElement>('#movie_player') ?? document.body
+  host.appendChild(panel)
 
   // Turn on the pinned-sample preview and paint the current working style.
   overlay?.setPreviewMode(true)
   apply()
 
   saveBtn.addEventListener('click', () => {
-    saveSettings({ ...loadSettings(), style: { ...working } })
-    Object.assign(saved, working) // new baseline so Close won't revert saved work
+    saveSettings({
+      ...loadSettings(),
+      displayMode: workingDisplayMode,
+      autoStart: workingAutoStart,
+      style: cloneStyle(working),
+    })
+    Object.assign(saved, cloneStyle(working))
+    savedDisplayMode = workingDisplayMode
+    savedAutoStart = workingAutoStart
     status.textContent = '已保存'
     console.log('[Gistlate] Subtitle style saved')
   })
 
   resetBtn.addEventListener('click', () => {
-    Object.assign(working, DEFAULTS.style)
-    font.setValue(working.fontFamily)
-    weight.setValue(String(working.fontWeight))
-    oSize.setValue(working.originalSize)
-    tSize.setValue(working.translatedSize)
+    Object.assign(working, cloneStyle(DEFAULTS.style))
+    workingDisplayMode = DEFAULTS.displayMode
+    workingAutoStart = DEFAULTS.autoStart
+    displayMode.setValue(workingDisplayMode)
+    translationPosition.setValue(working.translationPosition)
+    autoStart.setValue(workingAutoStart ? 'on' : 'off')
+    originalFont.setValue(working.original.fontFamily)
+    translatedFont.setValue(working.translated.fontFamily)
+    originalWeight.setValue(String(working.original.fontWeight))
+    translatedWeight.setValue(String(working.translated.fontWeight))
+    oSize.setValue(working.original.size)
+    tSize.setValue(working.translated.size)
     outline.setValue(working.outline)
     bgOpacity.setValue(working.bgOpacity)
-    bottom.setValue(working.bottomOffset)
+    anchor.setValue(working.position.anchor)
+    position.setValue(working.position.percent)
     gap.setValue(working.lineGap)
-    oColor.input.value = working.originalColor
-    tColor.input.value = working.translatedColor
+    oColor.input.value = working.original.color
+    tColor.input.value = working.translated.color
     apply()
     status.textContent = '已重置为默认（未保存）'
   })
 
   closeBtn.addEventListener('click', () => {
-    overlay?.applyStyle(saved) // discard unsaved working changes
+    overlay?.applyStyle(saved)
+    overlay?.setDisplayMode(savedDisplayMode)
+    workingAutoStart = savedAutoStart
     overlay?.setPreviewMode(false)
     panel.remove()
   })
+}
+
+function cloneStyle(style: SubtitleStyle): SubtitleStyle {
+  return {
+    ...style,
+    original: { ...style.original },
+    translated: { ...style.translated },
+    position: { ...style.position },
+  }
 }
