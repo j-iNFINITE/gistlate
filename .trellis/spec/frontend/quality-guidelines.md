@@ -139,11 +139,15 @@ translateCues(cues, target, config, key, options):
   Promise<{ cues: Cue[]; diagnostics: PipelineDiagnostics }>
 
 interface PipelineDiagnostics {
-  boundaryMethod: 'timed-punctuation' | 'llm'
+  boundaryMethod: 'manual-cues' | 'timed-punctuation' | 'llm'
   boundaryRequestCount: number
   translationRequestCount: number
   alignmentRequestCount: number
   fallbackSentenceCount: number
+}
+
+interface TranslationPipelineOptions {
+  sourceKind?: 'manual' | 'asr'
 }
 
 // IndexedDB `gistlate-usage`, version 1
@@ -160,10 +164,14 @@ Provider usage is decoded once at the HTTP boundary and propagated as
 
 ### 3. Contracts
 
+- Track kind is explicit once the canonical YouTube track is selected. A
+  `manual` track treats every visible YouTube cue as one complete translation
+  owner, skips boundary analysis, and records `manual-cues` with zero boundary
+  requests. Do not reinterpret incidental manual `tOffsetMs` as ASR.
 - When a clear majority of Google ASR segments carry `tOffsetMs`, recover
   absolute segment time, split after sentence punctuation, attach a leading
   next-event sentence mark to the preceding fragment, and set `sentenceEnd` on
-  every source Cue. Preserve the cleaned source exactly. Sparse/untimed/manual
+  every source Cue. Preserve the cleaned source exactly. Sparse/untimed ASR
   tracks stay on the legacy event parser.
 - If every source Cue has `sentenceEnd`, use it locally and record
   `timed-punctuation` with zero boundary requests. Otherwise boundary output
@@ -208,6 +216,7 @@ Provider usage is decoded once at the HTTP boundary and propagated as
 | Condition | Required behavior |
 |---|---|
 | Usable Google word offsets | Recover timed fragments/hints locally; exact source preservation |
+| Explicit manual track | One complete owner per YouTube cue; `manual-cues`; zero boundary calls |
 | Complete timed hints | Zero boundary calls; `boundaryThinking: not-used` |
 | Boundary missing/duplicate/truncated after retries | Fail operation; no translation artifact |
 | One range exceeds 30s/240 code points/3 stops | Reject as a false sentence before display capping |
@@ -230,8 +239,11 @@ Provider usage is decoded once at the HTTP boundary and propagated as
 - **Good:** Google ASR has dense `tOffsetMs` -> recover internal punctuation
   fragments -> joined cleaned source remains identical -> use local boundary
   flags with zero boundary API calls.
-- **Base:** manual/untimed captions -> keep legacy event Cues -> use validated
-  DeepSeek E/C detection and the same sentence-plan safety limits.
+- **Good:** manual captions -> keep legacy event cues -> trust each authored cue
+  as a complete owner -> translate only; no E/C request or ASR safety-limit
+  rejection. A long cue stays intact because no reliable intra-cue timing exists.
+- **Base:** untimed ASR -> keep legacy event cues -> use validated DeepSeek E/C
+  detection and the normal false-sentence safety limits.
 - **Good:** long complete sentence -> one canonical target -> validated code-point
   cuts -> several timed cues whose targets rejoin exactly.
 - **Base:** one display range -> validated canonical target becomes that cue; no
@@ -257,6 +269,8 @@ Provider usage is decoded once at the HTTP boundary and propagated as
 - Timedtext tests cover internal event stops, a stop at the next event start,
   sparse-offset legacy fallback, missing-offset inference, decimals/punctuation
   runs, exact text, and positive non-overlapping times.
+- Manual-track tests prove incidental offsets stay on the legacy parser, every
+  cue is one owner, and boundary usage/request count remains zero.
 - Sentence/batch/whole grouping changes request grouping only, not ownership.
 - Scheduler tests current-playhead warm-up, live dequeue reprioritization,
   out-of-order completion, group progress, failure, and abort.
@@ -426,4 +440,242 @@ const result = await resolveTranslation(track.videoId, track.srcLang, track.frag
   context: getVideoContext(track.videoId),
 })
 store.setSubtitle(track.srcLang, result.cues)
+```
+
+## Scenario: canonical YouTube track acquisition, cache safety and player activation
+
+### 1. Scope / Trigger
+
+Use this contract whenever YouTube caption tracks are discovered/fetched,
+intercepted timedtext is matched to a track, an artifact is accepted for the
+current source, or the player overlay is activated/deactivated. It prevents an
+ASR/manual race from choosing different sources and prevents same-text but
+differently timed artifacts from recreating subtitle/audio drift.
+
+### 2. Signatures
+
+```ts
+type CaptionTrackKind = 'manual' | 'asr'
+type TrackPurpose = 'direct-target' | 'translate-manual' | 'translate-asr'
+
+interface CaptionTrack {
+  baseUrl: string
+  languageCode: string
+  kind: CaptionTrackKind
+  vssId: string
+  name?: string
+  selected?: boolean
+  audioLanguageMatch?: boolean
+}
+
+interface SelectedCaptionTrack {
+  videoId: string
+  track: CaptionTrack
+  purpose: TrackPurpose
+}
+
+acquireCurrentSubtitles(videoId, targetLanguage, { signal, onStage }):
+  Promise<{ selected: SelectedCaptionTrack; json: GetTimedtextResp; source: 'intercept' | 'direct' }>
+
+interface CacheEntry {
+  // existing fields/cues unchanged
+  track?: {
+    languageCode: string
+    kind: CaptionTrackKind
+    vssId: string
+    sourceFingerprint: string
+  }
+}
+
+type DisplayMode = 'bilingual' | 'original-only' | 'translation-only'
+type SubtitlePosition = { anchor: 'top' | 'bottom'; percent: number }
+```
+
+### 3. Contracts
+
+- Select exactly one canonical track before any cache read or translation:
+  target-language manual (direct display) → audio-language manual → other
+  deterministic manual → audio-language ASR → other ASR. All manual tracks stay
+  ahead of ASR unless the manual track is already the no-translation target.
+- Runtime identity is `videoId:normalizedLanguage:manual|asr:vssId`. A timedtext
+  URL without `vssId` may match by language/kind only when the complete player
+  inventory proves that tuple unique. Never use that fallback for ambiguity.
+- Keep the observe-only fetch/XHR hook and active request as converging inputs.
+  Validate response video ID/track and deliver once; never reconstruct or mutate
+  YouTube's original Request.
+- Active JSON3 uses `gmFetch` and the selected `baseUrl` with
+  `fmt=json3`, `xorb=2`, `xobt=3`, `xovt=3`, `c=WEB`,
+  `cplayer=UNIPLAYER`, available device fields and `cver`.
+- POT fallback is bounded: matching audio-caption POT → observed same-video POT
+  → enable CC once → poll player audio caption data → wait for YouTube's own
+  timedtext → retry. External requests have an explicit timeout and AbortSignal.
+- A target-language manual track publishes cues directly and creates no LLM
+  request, usage operation or translation artifact.
+- Keep the canonical pool path unchanged. Before accepting L1/L2, validate both
+  normalized source text and source timeline. Partition persisted `cue.o` ranges
+  back over current contiguous source fragments and verify starts/derived ends
+  within tolerance; same text with different timings is a cache miss.
+- `autoStart` defaults true. Player disable is current-video state: abort work,
+  clear overlay/status, restore native captions, and suppress only that video's
+  automatic restart. The next video follows `autoStart` again.
+- Native captions are hidden only while the Gistlate player state is active.
+  Overlay root is pointer-transparent; only the high-z drag grip accepts input.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+|---|---|
+| Player response video ID differs from Watch URL | Reject all tracks as stale |
+| Target-language manual exists | Direct display; zero provider/cache/ledger calls |
+| Manual and ASR both exist | Select approved manual tier before ASR |
+| Observed URL omits `vssId`, tuple unique | Allow language/kind match |
+| Observed URL omits `vssId`, tuple ambiguous | Do not satisfy canonical session |
+| Fast JSON3 returns authorization failure | Enter bounded POT flow |
+| 404 or 429 | Terminal acquisition error; no pointless POT retry |
+| Invalid/empty JSON3 | Retry only under bounded policy; publish nothing |
+| Navigation/player disable | Abort acquisition/translation; no persistence; restore native captions |
+| Cached text differs | Cache miss |
+| Cached text matches but timeline differs | Cache miss |
+| Legacy artifact matches text and derived timeline | Accept without path/schema migration |
+| Target translation pending in translation-only mode | Show source fallback with source `lang/dir`, never blank |
+
+### 5. Good / Base / Bad Cases
+
+- **Good:** player inventory selects `ja` ASR; YouTube's own timedtext URL has no
+  `vssId` but `ja/asr` is unique and carries POT → accept the observed response,
+  preserve word timings, zero boundary calls.
+- **Good:** Chinese manual captions exist for target `zh-Hans` → render once using
+  target styling and RTL/lang rules as applicable; cost remains zero.
+- **Base:** player expando methods are temporarily unavailable → enable CC once,
+  wait a bounded interval, select the best staged intercepted candidate.
+- **Bad:** process the first response immediately. An early ASR request can abort
+  a later higher-quality manual translation and overwrite the canonical pool file.
+- **Bad:** accept a cache hit because joined source text matches. A different
+  track may carry the same transcript at shifted timestamps.
+
+### 6. Tests Required
+
+- Table-test every canonical selection tier, aliases such as `zh-CN/zh-Hans`,
+  selected/unnamed tie-breaks and same-language no-translation behavior.
+- Player adapter tests matching/stale video IDs, relative base URLs, audio
+  metadata, selection and device/client fields.
+- Network-hook tests response pass-through, POT capture before JSON parsing,
+  `tlang` exclusion, full identity and unique missing-`vssId` fallback.
+- Acquisition tests direct success, intercepted success, 403→matching POT retry,
+  terminal status, timeout and abort.
+- Cache tests regrouped compatible cues, different text, shifted timeline and an
+  old long-gap artifact that violates the 1.2-second cap.
+- Settings/render tests legacy migration, three modes, direct target, pending
+  fallback language, RTL and top/bottom position calculations.
+- Real `Ru7H092hFAI` replay retains 439 fragments, 5,618 source characters,
+  complete boolean boundary hints and strictly increasing times.
+- Final build remains one IIFE with zero SystemJS/dynamic import/HTML sinks.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```ts
+// First network response wins, and cache identity ignores the actual source.
+interceptTimedtext(({ json, params }) => {
+  resolveTranslation(videoId, params.get('lang')!, parseTimedtext(json))
+})
+```
+
+#### Correct
+
+```ts
+const acquired = await acquireCurrentSubtitles(videoId, settings.tgt, { signal })
+const cues = cleanCues(parseTimedtext(acquired.json, {
+  kind: acquired.selected.track.kind,
+}))
+
+if (!captionTrackNeedsTranslation(acquired.selected, settings.tgt)) {
+  store.setSubtitle(acquired.selected.track.languageCode, cues) // no LLM/cache/usage
+} else {
+  await resolveTranslation(videoId, acquired.selected.track.languageCode, cues, {
+    signal,
+    track: acquired.selected.track,
+  })
+}
+```
+
+## Scenario: userscript release-line versioning
+
+### 1. Scope / Trigger
+
+Use this contract whenever the userscript minor release line changes, the
+GitHub release workflow changes, or a local build is compared with the asset
+served through Tampermonkey's `@updateURL`.
+
+### 2. Signatures
+
+```text
+package.json.version                  = local/source baseline, e.g. 0.2.0
+.github/workflows/release.yml version = 0.2.${github.run_number}
+dist/gistlate.user.js @version        = package version visible at build time
+release tag/name                      = v0.2.${github.run_number}
+```
+
+### 3. Contracts
+
+- A local `pnpm build` uses the committed or working-tree `package.json`
+  version. For the 0.2 line it emits `@version 0.2.0`.
+- GitHub Actions checks out only committed/pushed `master` content, then
+  temporarily runs `npm pkg set version="0.2.${{ github.run_number }}"`. That
+  temporary patch is not committed back to the repository.
+- The release asset and tag must use the same CI version. Tampermonkey compares
+  that emitted `@version` through `releases/latest/download/gistlate.meta.js`.
+- A dirty working tree is never part of a GitHub release. `git add` is also
+  insufficient; changes must be committed and pushed before Actions can build
+  them.
+- Advancing the minor line requires changing the source baseline plus every CI
+  version/tag occurrence together. Search the old prefix before editing.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+|---|---|
+| Local build before CI | Emit the `package.json` baseline version |
+| Push contains committed source changes | Actions builds the pushed `HEAD` |
+| Working tree changes are uncommitted | Release excludes them |
+| CI release build | Asset `@version`, tag and release name use one `0.2.<run>` value |
+| Installed version is higher than a local build | Do not use version alone to claim the local code is newer |
+| Minor prefix changed in only one place | Fail review; update package/workflow occurrences together |
+
+### 5. Good / Base / Bad Cases
+
+- **Good:** commit and push the complete feature, CI emits `0.2.<run>`, and the
+  release asset contains both the expected version and feature markers.
+- **Base:** a local dirty build emits `0.2.0`; it is suitable for explicit local
+  testing but is not evidence that GitHub contains those changes.
+- **Bad:** observe GitHub `0.1.11` and local `0.1.0`, then assume the higher
+  number contains uncommitted local code. CI cannot see the working tree.
+
+### 6. Tests Required
+
+- `pnpm build` and assert the local userscript/meta `@version` equals
+  `package.json.version`.
+- Inspect the workflow so its build version, tag and release name share the same
+  minor prefix and `${{ github.run_number }}`.
+- After push, verify the remote meta/user assets share one version and contain a
+  marker from the pushed feature (for this release, `gistlate-toggle-btn`).
+- Keep the normal one-IIFE/SystemJS/Trusted Types build checks in the same gate.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```powershell
+# A push cannot publish uncommitted source changes.
+git push origin master
+```
+
+#### Correct
+
+```powershell
+git add <task-files>
+git commit -m "feat: ..."
+git push origin master
+# Then verify the Actions-built release asset, not only its numeric version.
 ```

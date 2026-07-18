@@ -13,9 +13,12 @@ A single `Store` instance (`src/core/store.ts`) holds:
 
 `src/main.ts` separately owns the captured original-track snapshot:
 
-- `CurrentTrack { videoId, srcLang, fragments }` — cleaned source fragments used
-  for initial translation and explicit retranslation
+- `CurrentTrack { videoId, srcLang, fragments, selected, directTarget }` — cleaned
+  canonical source fragments + stable track identity used for initial translation
+  and explicit retranslation
 - `translatingVideoId` — in-flight state only; cleared in `finally`
+- `activeVideoId` / `suppressedVideoId` — current-video activation and manual
+  auto-restart suppression; suppression is cleared on the next different video
 
 Do not derive `CurrentTrack` from `store.subtitle` after translation: Store cues
 have already been reconstructed into sentence/display ranges and no longer
@@ -51,6 +54,9 @@ On SPA navigation or new subtitle track, call `store.reset()` to:
 - Explicit retranslation does not call `store.reset()` and does not clear current
   cues. It replaces Store state only after full success.
 - Clear `CurrentTrack` and in-flight state on genuine video navigation.
+- Acquiring/translation share the Store AbortSignal. Current-video disable calls
+  `store.reset()`, destroys overlay/status, restores native captions, and leaves
+  completed caches/usage history untouched.
 
 ## Progressive Translation State
 

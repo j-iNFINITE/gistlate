@@ -5,9 +5,11 @@
 
 ## Overlay Component (`src/ui/overlay.ts`)
 
-Mounts on `#movie_player` with two stacked divs:
-- `.gl-original` — original text (white, larger)
-- `.gl-translated` — translated text (blue tint, smaller)
+Mounts on `#movie_player` as a player-sized pointer-transparent root containing:
+- `.gl-stack` — anchored top/bottom position container
+- `.gl-drag-handle` — the only pointer-interactive overlay element
+- `.gl-text-box` — shared background + original/translated line ordering
+- `.gl-original` / `.gl-translated` — independently styled and directed text
 
 ### Pattern
 
@@ -19,7 +21,7 @@ export function createOverlay(): Overlay | null {
   // ...append children, inject scoped CSS
   player.appendChild(container)
   return {
-    update(original, translated?) { /* set textContent */ },
+    update(original, translated?, { sourceLang, targetLang, directTarget }) { /* textContent */ },
     setDisplayMode(mode) { /* toggle class */ },
     destroy() { /* remove DOM + restore native captions */ },
   }
@@ -30,7 +32,8 @@ export function createOverlay(): Overlay | null {
 
 - All overlay CSS uses `#gistlate-overlay` as a namespace prefix
 - Injected via `<style id="gistlate-styles">` in `<head>` (not inline)
-- Native captions hidden with `.ytp-caption-window-container { display: none !important; }`
+- Native captions hidden only under `#movie_player.gistlate-active`; deactivate
+  or acquisition failure removes that class immediately
 - No Shadow DOM needed (YouTube's player overlay is above the video, our overlay sits on top)
 
 ## Settings Panel (`src/ui/settings-panel.ts`)
@@ -101,11 +104,12 @@ complete replacement succeeds.
   controls are shown: `bottom: calc(var(--gl-bottom) + var(--gl-ctrl-offset))`,
   `--gl-ctrl-offset` = ~56px when shown / 0 when auto-hidden. Disconnect the
   observer in `destroy`/`destroyOverlay`.
-- **Don't try to make the overlay draggable via pointer events.** YouTube's
-  transparent click-capture layer sits ABOVE our `z-index:40` overlay, so
-  `pointer-events:auto` on the subtitle text never receives `pointerdown` — drag
-  silently does nothing. (Attempted and reverted.) A future drag would need a
-  higher-z handle or to hook the player's own layer.
+- **Drag only through the dedicated high-z grip.** YouTube's transparent
+  click-capture layer sits above the old `z-index:40` subtitle text, so making the
+  text draggable silently fails and also risks stealing play/pause clicks. Keep a
+  player-sized `pointer-events:none` root at high z-index and enable pointer events
+  only on the small grip. Persist `{anchor:'top'|'bottom', percent}`; exclude the
+  temporary control-bar clearance from the stored percent and clamp on resize.
 - **Sentence-cue duration must be capped** so a subtitle doesn't linger through a
   long music/silence gap: `end = min(nextSentenceStart, rawEnd + ~1.2s)` (see the
   sentence-reconstruction rules in quality-guidelines). Keeps cues non-overlapping.

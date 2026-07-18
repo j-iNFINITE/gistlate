@@ -13,6 +13,7 @@ Current-video transcript panel with search, click-to-seek, active-cue highlight 
 - Clicking a transcript row seeks the YouTube player to that cue.
 - Highlight and keep the current playback cue visible as the playhead changes.
 - Add a local subtitle-library view over existing L1 IndexedDB entries.
+- Export the current/opened artifact as source SRT or translated SRT using its canonical non-overlapping display-cue timeline.
 - Show available video title, generation strategy, measured provider usage and
   actual CNY cost when optional artifact metadata exists; older artifacts must
   remain browsable.
@@ -26,6 +27,7 @@ Current-video transcript panel with search, click-to-seek, active-cue highlight 
 - [ ] Clicking a cue seeks accurately; playback changes highlight the active row.
 - [ ] Local L1 entries can be listed and opened without downloading GitHub data.
 - [ ] Old artifacts without optional title/generation/usage metadata render safely.
+- [ ] Source and translated SRT downloads preserve cue order, valid timestamps and the selected text channel; translated export reports incomplete artifacts instead of silently emitting source fallbacks.
 - [ ] Existing overlay, translation, retranslation, cache and usage-ledger tests pass.
 - [ ] Production output remains one IIFE with no SystemJS/dynamic import.
 

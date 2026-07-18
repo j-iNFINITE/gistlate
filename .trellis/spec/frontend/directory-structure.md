@@ -13,6 +13,8 @@ src/
   intercept/
     netHook.ts           # unsafeWindow.fetch + XMLHttpRequest patch (observe-only)
   subtitles/
+    tracks.ts            # Canonical YouTube track identity + selection policy
+    acquire.ts           # Active JSON3/POT + intercepted-response convergence
     timedtext.ts         # YouTube timedtext API types + JSON→Cue[] parser
     sentence-marks.ts    # Shared sentence-mark detection/counting contract
     clean.ts             # Strip non-speech annotations before segmentation
@@ -34,7 +36,9 @@ src/
     key.ts               # CacheKeyInput type + cacheKey/shard/repoPath helpers
     l1.ts                # IndexedDB per-video cache (idb wrapper)
     l2github.ts          # GitHub repo read (raw.githubusercontent.com) + write (Contents API)
+    source.ts            # Source text/timeline compatibility for safe cache hits
   core/
+    activation.ts        # Pure current-video auto-start/suppression policy
     store.ts             # Singleton Store: cues, currentTime, abort, subscribe
     resolve.ts           # L1→L2→translate→write orchestration
   ui/
