@@ -150,6 +150,19 @@ interface TranslationPipelineOptions {
   sourceKind?: 'manual' | 'asr'
 }
 
+interface TranslationJobFailureDetail {
+  id: string
+  sourceText: string       // whitespace-normalized and console-bounded
+  startMs?: number
+  endMs?: number
+  causeName: string
+  causeMessage: string     // control-stripped and console-bounded
+}
+
+class TranslationJobsIncompleteError extends Error {
+  readonly failures: TranslationJobFailureDetail[]
+}
+
 // IndexedDB `gistlate-usage`, version 1
 operations: { keyPath: 'operationId'; indexes: videoId, endedAt, status }
 totals:     { keyPath: 'videoId' }
@@ -173,6 +186,12 @@ Provider usage is decoded once at the HTTP boundary and propagated as
   next-event sentence mark to the preceding fragment, and set `sentenceEnd` on
   every source Cue. Preserve the cleaned source exactly. Sparse/untimed ASR
   tracks stay on the legacy event parser.
+- A word-timed track may still contain an isolated Google segment with several
+  punctuated sentences but only one usable offset. Keep the first start exact;
+  place later intra-token sentence starts proportionally by Unicode character
+  position over the token window ending at the next timed segment or next
+  visible event. Newline-only `aAppend` events are not timing anchors. Never use
+  `tokenStart + 1ms` as the normal timing for each packed sentence.
 - If every source Cue has `sentenceEnd`, use it locally and record
   `timed-punctuation` with zero boundary requests. Otherwise boundary output
   contains every fragment exactly once as `E`/`C`; missing/duplicate IDs are
@@ -186,6 +205,10 @@ Provider usage is decoded once at the HTTP boundary and propagated as
   Traditional-only zh-Hans characters, and severe long-source omission. Retry
   with only a compact correction at the changing tail; do not cache a rejected
   canonical target. Requests keep the same whole-video reference prefix.
+- For zh-Hans, an exact Katakana product-name run already present in the source
+  may remain inside an otherwise Chinese target. Hiragana and Katakana runs not
+  owned by the source still count toward the Japanese-heavy rejection. This
+  permits terms such as `クリアパーツ`/`シルバー` without accepting source echo.
 - Translation/alignment use official DeepSeek thinking disabled,
   `temperature: 0`, and no `top_p`.
 - Multi-range sentences run a separate alignment request returning `K-1`
@@ -198,6 +221,10 @@ Provider usage is decoded once at the HTTP boundary and propagated as
   this preflight may reject impossible work but must never choose semantic cuts.
 - After three invalid alignments, emit one full-source/full-target long cue.
   Never guess proportional cuts and never translate fragments independently.
+- If any SentenceJob still fails, throw `TranslationJobsIncompleteError` with
+  bounded per-job ID, source/time context, original error name and sanitized
+  message. Preserve the fail-closed/no-artifact behavior; do not collapse the
+  model/HTTP/validation cause into only a list of IDs or log prompts/secrets.
 - Clamp every cue to the next emitted range start and the shared 1.2s gap
   tolerance so output stays sorted/non-overlapping for binary search.
 - Fresh progress is Store-only; force progress is status-only. L1/L2 persist
@@ -216,17 +243,20 @@ Provider usage is decoded once at the HTTP boundary and propagated as
 | Condition | Required behavior |
 |---|---|
 | Usable Google word offsets | Recover timed fragments/hints locally; exact source preservation |
+| One segment packs multiple punctuated sentences without offsets | Distribute internal starts over its bounded token window; no 1 ms cues |
 | Explicit manual track | One complete owner per YouTube cue; `manual-cues`; zero boundary calls |
 | Complete timed hints | Zero boundary calls; `boundaryThinking: not-used` |
 | Boundary missing/duplicate/truncated after retries | Fail operation; no translation artifact |
 | One range exceeds 30s/240 code points/3 stops | Reject as a false sentence before display capping |
 | Canonical ID missing/duplicate/extra/empty | Retry; split only contiguous multi-sentence groups; single sentence fails closed |
 | Canonical source echo/wrong zh-Hans script/severe omission | Retry with correction tail; then split/fail closed |
+| Chinese target retains a source-owned Katakana product run | Accept that run; validate the remaining Japanese characters normally |
 | Alignment cut wrong count/type/order/range | Retry with compact validation error |
 | Alignment cut inside Latin/Han or before closing punctuation | Retry; safe full-sentence fallback after exhaustion |
 | Fewer safe positions than required cuts | Immediate full-sentence fallback; zero alignment requests |
 | Three alignment attempts invalid | One complete long cue; increment fallback count |
 | One independent group permanently fails | Other fresh groups may display; final persistence fails |
+| Final job failure | Throw bounded structured cause/source/time details; no prompt or secret logging |
 | Navigation/user abort | Abort requests, discard persistence, ledger `aborted` |
 | Force failure | Keep prior complete Store/cache result visible |
 | Provider usage absent/partial | Keep known tokens, mark incomplete, do not fabricate cost |
@@ -239,6 +269,9 @@ Provider usage is decoded once at the HTTP boundary and propagated as
 - **Good:** Google ASR has dense `tOffsetMs` -> recover internal punctuation
   fragments -> joined cleaned source remains identical -> use local boundary
   flags with zero boundary API calls.
+- **Good:** one otherwise word-timed event contains `句一。句二。句三。` in one
+  untimed segment -> preserve all text -> derive three increasing starts over
+  the interval to the next visible event -> no sentence flashes for 1 ms.
 - **Good:** manual captions -> keep legacy event cues -> trust each authored cue
   as a complete owner -> translate only; no E/C request or ASR safety-limit
   rejection. A long cue stays intact because no reliable intra-cue timing exists.
@@ -252,6 +285,9 @@ Provider usage is decoded once at the HTTP boundary and propagated as
   IDs. The model can move the next clause forward while count/timing tests pass.
 - **Bad:** event segments are joined while `tOffsetMs` is discarded. Visible
   text tests pass, but internal sentence boundaries become inexpressible.
+- **Bad:** every sentence split inside one untimed segment receives `+1 ms`.
+  Earlier translations disappear immediately and the last sentence occupies
+  the remaining speech interval, visibly drifting from the audio.
 - **Bad:** canonical ID/count or target reconstruction is treated as semantic
   validation. Japanese source echo and cuts inside `LiberNovo`/`腰痛` can pass
   those structural checks.
@@ -261,19 +297,22 @@ Provider usage is decoded once at the HTTP boundary and propagated as
 - Plans prove complete and display ranges each cover source fragments exactly.
 - Canonical parser rejects missing, duplicate, extra, empty, and prose output.
 - Canonical validator covers source echo/prefix, kana-heavy output, Traditional
-  output, severe omission, and a valid Simplified-Chinese base case.
+  output, severe omission, source-owned Katakana terms, and a valid
+  Simplified-Chinese base case.
 - Cut parser covers Unicode supplementary characters, exact reconstruction, and
   unsafe Latin/Han/pre-punctuation cuts.
 - Alignment preflight asserts an all-Han target performs zero alignment calls
   and increments the fallback count once.
 - Timedtext tests cover internal event stops, a stop at the next event start,
   sparse-offset legacy fallback, missing-offset inference, decimals/punctuation
-  runs, exact text, and positive non-overlapping times.
+  runs, exact text, positive non-overlapping times, and proportional starts for
+  several sentences packed into one untimed segment.
 - Manual-track tests prove incidental offsets stay on the legacy parser, every
   cue is one owner, and boundary usage/request count remains zero.
 - Sentence/batch/whole grouping changes request grouping only, not ownership.
 - Scheduler tests current-playhead warm-up, live dequeue reprioritization,
-  out-of-order completion, group progress, failure, and abort.
+  out-of-order completion, group progress, failure, abort, and preservation of
+  the failed job's original cause/source/time at the pipeline boundary.
 - Usage tests count parse-invalid HTTP 200 retries before format validation and
   verify no reasoning-token double charge.
 - Ledger integration tests cover running/success/fail/abort, stale reconciliation,
@@ -299,6 +338,11 @@ const text = event.segs.map((segment) => segment.utf8).join('')
 cues.push({ s: event.tStartMs, d: duration, o: text })
 ```
 
+```ts
+// Packed sentences flash for 1 ms and leave the final line covering all audio.
+nextSentenceStart = tokenStart + 1
+```
+
 #### Correct
 
 ```ts
@@ -315,6 +359,14 @@ const sourceCues = parseTimedtextWithOffsets(events)
 const flags = sourceCues.every(hasSentenceEnd)
   ? sourceCues.map((cue) => cue.sentenceEnd)
   : await detectBoundaries(sourceCues)
+```
+
+```ts
+// When a token has no internal offsets, retain its external timing anchors and
+// allocate punctuation boundaries by Unicode character position.
+nextSentenceStart = tokenStart + Math.round(
+  (tokenEnd - tokenStart) * (consumedCodePoints / tokenCodePoints),
+)
 ```
 
 Always strip non-speech annotations before this flow (`[...]`/`【...】`, musical

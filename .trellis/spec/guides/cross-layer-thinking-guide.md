@@ -127,6 +127,11 @@ Checklist for adapters:
       type may safely be richer than its serialized artifact.
 - [ ] Add a real-payload replay when synthetic fixtures cannot reveal upstream
       granularity or provider-specific event behavior.
+- [ ] Distinguish **ordering** from **timing fidelity**. Adding `+1 ms` can make
+      timestamps strictly increasing while still collapsing several spoken
+      sentences into invisible cues. When precision is missing, preserve the
+      surrounding exact anchors, derive bounded intermediate times explicitly,
+      and test minimum useful duration as well as monotonic order.
 
 For Gistlate's executable timedtext/translation contract, see
 `.trellis/spec/frontend/quality-guidelines.md`, “Scenario: semantic-aligned
