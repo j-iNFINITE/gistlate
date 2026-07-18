@@ -30,7 +30,9 @@ export interface GenerationMetadata {
     effectiveRequestCount: number
     concurrency: number
     temperature: 0
-    boundaryThinking: 'enabled'
+    boundaryMethod: 'timed-punctuation' | 'llm'
+    boundaryRequestCount: number
+    boundaryThinking: 'enabled' | 'not-used'
     translationThinking: 'disabled'
   }
   alignment: {

@@ -158,7 +158,9 @@ export async function resolveTranslation(
           effectiveRequestCount: translated.diagnostics.translationRequestCount,
           concurrency: 8,
           temperature: 0,
-          boundaryThinking: 'enabled',
+          boundaryMethod: translated.diagnostics.boundaryMethod,
+          boundaryRequestCount: translated.diagnostics.boundaryRequestCount,
+          boundaryThinking: translated.diagnostics.boundaryMethod === 'llm' ? 'enabled' : 'not-used',
           translationThinking: 'disabled',
         },
         alignment: {

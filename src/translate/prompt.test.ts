@@ -4,6 +4,7 @@ import {
   fillPrompt,
   fillBoundaryPrompt,
   fillCanonicalPrompt,
+  hasEnoughSafeAlignmentCuts,
   parseGlobalTranslations,
   parseAlignmentCuts,
   sliceByCodePoints,
@@ -150,10 +151,10 @@ describe('canonical sentence translation contract', () => {
 
 describe('cut-position alignment contract', () => {
   it('uses Unicode code-point offsets and reconstructs the immutable target exactly', () => {
-    const target = '甲😀乙丙'
-    const cuts = parseAlignmentCuts('{"S017":[2,3]}', 'S017', 2, target)
-    expect(cuts).toEqual([2, 3])
-    expect(sliceByCodePoints(target, cuts)).toEqual(['甲😀', '乙', '丙'])
+    const target = '甲😀，乙。丙'
+    const cuts = parseAlignmentCuts('{"S017":[3,5]}', 'S017', 2, target)
+    expect(cuts).toEqual([3, 5])
+    expect(sliceByCodePoints(target, cuts)).toEqual(['甲😀，', '乙。', '丙'])
     expect(sliceByCodePoints(target, cuts).join('')).toBe(target)
   })
 
@@ -163,5 +164,21 @@ describe('cut-position alignment contract', () => {
     expect(() => parseAlignmentCuts('{"S017":[2,1]}', 'S017', 2, 'abcd')).toThrow(/unordered/i)
     expect(() => parseAlignmentCuts('{"S017":[4]}', 'S017', 1, 'abcd')).toThrow(/range/i)
     expect(() => parseAlignmentCuts('{"S017":[2],"S018":[]}', 'S017', 1, 'abcd')).toThrow(/only/i)
+  })
+
+  it('rejects cuts inside Latin product names and adjacent CJK text', () => {
+    expect(() => parseAlignmentCuts('{"S017":[2]}', 'S017', 1, 'LiberNovo')).toThrow(/word|boundary/i)
+    expect(() => parseAlignmentCuts('{"S017":[6]}', 'S017', 1, "Liber'Novo")).toThrow(/word|boundary/i)
+    expect(() => parseAlignmentCuts('{"S017":[1]}', 'S017', 1, '腰痛')).toThrow(/word|boundary/i)
+  })
+
+  it('rejects a cut that leaves closing punctuation at the start of the next slice', () => {
+    expect(() => parseAlignmentCuts('{"S017":[1]}', 'S017', 1, '甲，乙'))
+      .toThrow(/punctuation/i)
+  })
+
+  it('detects when a target has too few structurally safe alignment positions', () => {
+    expect(hasEnoughSafeAlignmentCuts('连续汉字没有标点', 1)).toBe(false)
+    expect(hasEnoughSafeAlignmentCuts('第一段，第二段。第三段', 2)).toBe(true)
   })
 })

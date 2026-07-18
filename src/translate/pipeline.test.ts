@@ -39,6 +39,7 @@ function translations(ids: string[]) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockGmFetch.mockReset()
   vi.useFakeTimers()
 })
 
@@ -53,12 +54,49 @@ describe('complete-sentence translation pipeline', () => {
     expect(mockGmFetch).not.toHaveBeenCalled()
   })
 
+  it('uses deterministic ASR sentence-end hints without a boundary API request', async () => {
+    const cues: Cue[] = [
+      { s: 0, d: 1000, o: 'こんにちは。', sentenceEnd: true },
+      { s: 1000, d: 1000, o: '模型です。', sentenceEnd: true },
+    ]
+    mockGmFetch.mockImplementation(async (request) => translations(targetIds(request.body as string)))
+    const result = await translateCues(cues, 'zh-Hans', CFG, 'key', {
+      translation: { mode: 'sentence', batchSize: 8 },
+    })
+    expect(mockGmFetch).toHaveBeenCalledTimes(2)
+    expect(mockGmFetch.mock.calls.every(([request]) => !(request.body as string).includes('[<n>] E'))).toBe(true)
+    expect(result.cues.map((cue) => cue.t)).toEqual(['T-S001', 'T-S002'])
+    expect(result.diagnostics).toEqual(expect.objectContaining({
+      boundaryMethod: 'timed-punctuation',
+      boundaryRequestCount: 0,
+    }))
+  })
+
+  it('retries a source-copy canonical response with a validation correction', async () => {
+    mockGmFetch
+      .mockResolvedValueOnce(boundaries('E'))
+      .mockResolvedValueOnce(chatOk('[S001] モデラーの皆様には照明も重要です。'))
+      .mockResolvedValueOnce(chatOk('[S001] 对模型制作者来说，照明也很重要。'))
+    const promise = translateCues(
+      [{ s: 0, d: 2000, o: 'モデラーの皆様には照明も重要です。' }],
+      'zh-Hans',
+      CFG,
+      'key',
+      { translation: { mode: 'sentence', batchSize: 8 } },
+    )
+    await vi.runAllTimersAsync()
+    const result = await promise
+    expect(result.cues[0].t).toBe('对模型制作者来说，照明也很重要。')
+    const retryBody = JSON.parse(mockGmFetch.mock.calls[2][0].body as string)
+    expect(retryBody.messages[1].content).toContain('PREVIOUS RESPONSE ERROR')
+  })
+
   it('translates one complete sentence once, then aligns its immutable target to short cues', async () => {
     const cues = makeCues(20)
     mockGmFetch
       .mockResolvedValueOnce(boundaries(`${'C'.repeat(19)}E`))
-      .mockResolvedValueOnce(chatOk('[S001] 甲乙丙丁'))
-      .mockResolvedValueOnce(chatOk('{"S001":[2]}'))
+      .mockResolvedValueOnce(chatOk('[S001] 甲乙，丙丁'))
+      .mockResolvedValueOnce(chatOk('{"S001":[3]}'))
 
     const result = await translateCues(cues, 'zh-Hans', CFG, 'key', {
       context: { title: 'Gundam Marker' },
@@ -67,8 +105,8 @@ describe('complete-sentence translation pipeline', () => {
 
     expect(mockGmFetch).toHaveBeenCalledTimes(3)
     expect(result.cues).toHaveLength(2)
-    expect(result.cues.map((cue) => cue.t)).toEqual(['甲乙', '丙丁'])
-    expect(result.cues.map((cue) => cue.t).join('')).toBe('甲乙丙丁')
+    expect(result.cues.map((cue) => cue.t)).toEqual(['甲乙，', '丙丁'])
+    expect(result.cues.map((cue) => cue.t).join('')).toBe('甲乙，丙丁')
     expect(result.cues[0].o).toBe(makeCues(15).map((cue) => cue.o).join(' '))
     expect(result.cues[1].o).toBe('L16 L17 L18 L19 L20')
 
@@ -123,7 +161,7 @@ describe('complete-sentence translation pipeline', () => {
     const cues = makeCues(20)
     mockGmFetch
       .mockResolvedValueOnce(boundaries(`${'C'.repeat(19)}E`))
-      .mockResolvedValueOnce(chatOk('[S001] 完整中文译文'))
+      .mockResolvedValueOnce(chatOk('[S001] 完整中文，译文内容'))
       .mockResolvedValueOnce(chatOk('{"S001":[]}'))
       .mockResolvedValueOnce(chatOk('{"S001":[999]}'))
       .mockResolvedValueOnce(chatOk('not json'))
@@ -132,9 +170,26 @@ describe('complete-sentence translation pipeline', () => {
       translation: { mode: 'sentence', batchSize: 8 },
     })
     expect(result.cues).toEqual([
-      { s: 0, d: 20000, o: cues.map((cue) => cue.o).join(' '), t: '完整中文译文' },
+      { s: 0, d: 20000, o: cues.map((cue) => cue.o).join(' '), t: '完整中文，译文内容' },
     ])
     expect(result.diagnostics.alignmentRequestCount).toBe(3)
+    expect(result.diagnostics.fallbackSentenceCount).toBe(1)
+  })
+
+  it('falls back without futile alignment requests when no safe cut can exist', async () => {
+    const cues = makeCues(20)
+    mockGmFetch
+      .mockResolvedValueOnce(boundaries(`${'C'.repeat(19)}E`))
+      .mockResolvedValueOnce(chatOk('[S001] 连续汉字没有标点'))
+
+    const result = await translateCues(cues, 'zh-Hans', CFG, 'key', {
+      translation: { mode: 'sentence', batchSize: 8 },
+    })
+    expect(mockGmFetch).toHaveBeenCalledTimes(2)
+    expect(result.cues).toEqual([
+      { s: 0, d: 20000, o: cues.map((cue) => cue.o).join(' '), t: '连续汉字没有标点' },
+    ])
+    expect(result.diagnostics.alignmentRequestCount).toBe(0)
     expect(result.diagnostics.fallbackSentenceCount).toBe(1)
   })
 

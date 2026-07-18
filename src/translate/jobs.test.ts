@@ -35,6 +35,16 @@ describe('complete sentence plans', () => {
     expect(() => buildSentencePlans(fragments(3), [{ startIdx: 1, endIdx: 2 }])).toThrow(/coverage/i)
     expect(() => buildSentencePlans(fragments(3), [{ startIdx: 0, endIdx: 1 }])).toThrow(/cover/i)
   })
+
+  it('rejects a boundary result that calls a multi-sentence minute-long paragraph one sentence', () => {
+    const source = Array.from({ length: 35 }, (_, index): Cue => ({
+      s: index * 2000,
+      d: 2000,
+      o: index % 3 === 2 ? `段落${index}。` : `段落${index}`,
+    }))
+    expect(() => buildSentencePlans(source, [{ startIdx: 0, endIdx: source.length - 1 }]))
+      .toThrow(/sentence.*limit|too long/i)
+  })
 })
 
 describe('grouping and assembly', () => {
@@ -62,9 +72,9 @@ describe('grouping and assembly', () => {
     const longPlan = buildSentencePlans(source, [{ startIdx: 0, endIdx: 19 }])
     const jobs = createSentenceJobs(longPlan)
     expect(assembleJobs(source, jobs).every((cue) => cue.t === undefined)).toBe(true)
-    completeAlignedJob(jobs[0], '甲乙丙丁', [2])
+    completeAlignedJob(jobs[0], '甲乙，丙丁', [3])
     const translated = assembleJobs(source, jobs)
-    expect(translated.map((cue) => cue.t).join('')).toBe('甲乙丙丁')
+    expect(translated.map((cue) => cue.t).join('')).toBe('甲乙，丙丁')
   })
 
   it('uses one full-source/full-target long cue for the safe fallback', () => {

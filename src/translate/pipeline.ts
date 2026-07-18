@@ -25,11 +25,13 @@ import {
 import {
   fillAlignmentPrompt,
   fillCanonicalPrompt,
+  hasEnoughSafeAlignmentCuts,
   parseAlignmentCuts,
   parseGlobalTranslations,
   type SentenceReference,
 } from './prompt'
 import type { RequestUsage, UsageStage } from '../usage/contracts'
+import { validateCanonicalTarget } from './validation'
 
 const BOUNDARY_RETRIES = 2
 const TRANSLATION_RETRIES = 3
@@ -44,6 +46,8 @@ export interface TranslationProgress {
 }
 
 export interface PipelineDiagnostics {
+  boundaryMethod: 'timed-punctuation' | 'llm'
+  boundaryRequestCount: number
   translationRequestCount: number
   alignmentRequestCount: number
   fallbackSentenceCount: number
@@ -80,6 +84,8 @@ export async function translateCues(
   options: TranslationPipelineOptions,
 ): Promise<TranslationPipelineResult> {
   const diagnostics: PipelineDiagnostics = {
+    boundaryMethod: 'llm',
+    boundaryRequestCount: 0,
     translationRequestCount: 0,
     alignmentRequestCount: 0,
     fallbackSentenceCount: 0,
@@ -95,6 +101,7 @@ export async function translateCues(
     openaiCfg,
     apiKey,
     signal,
+    diagnostics,
     (usage) => onUsage?.('boundary', usage),
   )
   const plans = buildSentencePlans(cues, groupByBoundaries(endFlags))
@@ -211,13 +218,21 @@ async function detectBoundaries(
   cfg: OpenAIConfig,
   apiKey: string,
   signal: AbortSignal | undefined,
+  diagnostics: PipelineDiagnostics,
   onUsage: (usage?: RequestUsage) => Promise<void> | void,
 ): Promise<boolean[]> {
+  if (cues.every((cue) => typeof cue.sentenceEnd === 'boolean')) {
+    diagnostics.boundaryMethod = 'timed-punctuation'
+    return cues.map((cue) => cue.sentenceEnd as boolean)
+  }
+
+  diagnostics.boundaryMethod = 'llm'
   const texts = cues.map((cue) => cue.o)
   let lastError: Error | undefined
   for (let attempt = 0; attempt <= BOUNDARY_RETRIES; attempt++) {
     throwIfAborted(signal)
     try {
+      diagnostics.boundaryRequestCount += 1
       const result = await boundaryBatch(texts, cfg, apiKey, signal, onUsage)
       if (result.finishReason === 'length') {
         throw new TruncationError(`Boundary output truncated for ${cues.length} fragments`)
@@ -284,12 +299,19 @@ async function translateCanonicalGroup(
   onUsage: (usage?: RequestUsage) => Promise<void> | void,
 ): Promise<Map<string, string>> {
   const ids = plans.map((plan) => plan.id)
-  const { system, user } = fillCanonicalPrompt(references, ids, targetLang, context)
   let lastError: Error | undefined
+  let previousError: string | undefined
   for (let attempt = 0; attempt < TRANSLATION_RETRIES; attempt++) {
     throwIfAborted(signal)
     diagnostics.translationRequestCount += 1
     try {
+      const { system, user } = fillCanonicalPrompt(
+        references,
+        ids,
+        targetLang,
+        context,
+        previousError,
+      )
       const completion = await completePrompt(system, user, cfg, apiKey, signal, {
         role: 'translation',
         onUsage,
@@ -298,13 +320,18 @@ async function translateCanonicalGroup(
         throw new TruncationError(`Canonical translation truncated for ${ids.join(', ')}`)
       }
       try {
-        return parseGlobalTranslations(completion.content, ids)
+        const translations = parseGlobalTranslations(completion.content, ids)
+        for (const plan of plans) {
+          validateCanonicalTarget(plan.sourceText, translations.get(plan.id) ?? '', targetLang)
+        }
+        return translations
       } catch (error) {
         throw new CountMismatchError((error as Error).message)
       }
     } catch (error) {
       if (signal?.aborted || error instanceof TruncationError) throw error
       lastError = error as Error
+      previousError = lastError.message
       if (attempt < TRANSLATION_RETRIES - 1) {
         await new Promise((resolve) => setTimeout(resolve, 1000 * 2 ** attempt))
       }
@@ -324,6 +351,13 @@ async function alignJob(
   diagnostics: PipelineDiagnostics,
   onUsage: (usage?: RequestUsage) => Promise<void> | void,
 ): Promise<void> {
+  const requiredCutCount = job.plan.displayRanges.length - 1
+  if (!hasEnoughSafeAlignmentCuts(target, requiredCutCount)) {
+    completeFallbackJob(job, target)
+    diagnostics.fallbackSentenceCount += 1
+    return
+  }
+
   let previousError: string | undefined
   for (let attempt = 0; attempt < ALIGNMENT_ATTEMPTS; attempt++) {
     throwIfAborted(signal)
@@ -346,7 +380,7 @@ async function alignJob(
       const cuts = parseAlignmentCuts(
         completion.content,
         job.plan.id,
-        job.plan.displayRanges.length - 1,
+        requiredCutCount,
         target,
       )
       completeAlignedJob(job, target, cuts)

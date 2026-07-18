@@ -1,5 +1,6 @@
 import type { TranslationMode } from '../settings'
 import type { Cue } from '../subtitles/timedtext'
+import { countSentenceMarks } from '../subtitles/sentence-marks'
 import {
   capSentenceRanges,
   rangeText,
@@ -31,6 +32,10 @@ export interface PlanGroup {
   plans: SentencePlan[]
 }
 
+const MAX_SENTENCE_DURATION_MS = 30_000
+const MAX_SENTENCE_CODE_POINTS = 240
+const MAX_INTERNAL_SENTENCE_MARKS = 3
+
 export function buildSentencePlans(
   fragments: Cue[],
   completeRanges: SentenceRange[],
@@ -44,9 +49,10 @@ export function buildSentencePlans(
       throw new SegmentationError(`Invalid complete sentence coverage at sentence ${index + 1}`)
     }
     expectedStart = sourceRange.endIdx + 1
+    const sourceText = rangeText(fragments, sourceRange)
+    validateSentenceLimits(fragments, sourceRange, sourceText, index)
     const displayRanges = capSentenceRanges(fragments, [sourceRange])
     validateDisplayCoverage(sourceRange, displayRanges)
-    const sourceText = rangeText(fragments, sourceRange)
     const displayTexts = displayRanges.map((range) => rangeText(fragments, range))
     if (!sourceText || displayTexts.some((text) => !text)) {
       throw new SegmentationError(`Empty source text at sentence ${index + 1}`)
@@ -63,6 +69,28 @@ export function buildSentencePlans(
     throw new SegmentationError(`Complete sentences cover ${expectedStart}/${fragments.length} fragments`)
   }
   return plans
+}
+
+function validateSentenceLimits(
+  fragments: Cue[],
+  range: SentenceRange,
+  sourceText: string,
+  index: number,
+): void {
+  const first = fragments[range.startIdx]
+  const last = fragments[range.endIdx]
+  const duration = last.s + last.d - first.s
+  const codePoints = Array.from(sourceText).length
+  const sentenceMarks = countSentenceMarks(sourceText)
+  if (
+    duration > MAX_SENTENCE_DURATION_MS ||
+    codePoints > MAX_SENTENCE_CODE_POINTS ||
+    sentenceMarks > MAX_INTERNAL_SENTENCE_MARKS
+  ) {
+    throw new SegmentationError(
+      `Sentence ${index + 1} exceeds safety limit (${duration}ms, ${codePoints} chars, ${sentenceMarks} stops)`,
+    )
+  }
 }
 
 function validateDisplayCoverage(source: SentenceRange, ranges: SentenceRange[]): void {

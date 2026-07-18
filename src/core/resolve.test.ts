@@ -72,6 +72,8 @@ beforeEach(() => {
   mockTranslateCues.mockResolvedValue({
     cues: TRANSLATED_CUES,
     diagnostics: {
+      boundaryMethod: 'llm',
+      boundaryRequestCount: 1,
       translationRequestCount: 1,
       alignmentRequestCount: 0,
       fallbackSentenceCount: 0,
@@ -139,7 +141,13 @@ describe('resolveTranslation', () => {
         key: 'video|en|zh-Hans',
         cues: TRANSLATED_CUES,
         generation: expect.objectContaining({
-          strategy: expect.objectContaining({ mode: 'sentence', effectiveRequestCount: 1 }),
+          strategy: expect.objectContaining({
+            mode: 'sentence',
+            effectiveRequestCount: 1,
+            boundaryMethod: 'llm',
+            boundaryRequestCount: 1,
+            boundaryThinking: 'enabled',
+          }),
         }),
       }),
     )
@@ -197,6 +205,8 @@ describe('resolveTranslation', () => {
       return {
         cues: TRANSLATED_CUES,
         diagnostics: {
+          boundaryMethod: 'llm',
+          boundaryRequestCount: 1,
           translationRequestCount: 1,
           alignmentRequestCount: 0,
           fallbackSentenceCount: 0,
@@ -227,6 +237,8 @@ describe('resolveTranslation', () => {
       return {
         cues: TRANSLATED_CUES,
         diagnostics: {
+          boundaryMethod: 'llm',
+          boundaryRequestCount: 1,
           translationRequestCount: 1,
           alignmentRequestCount: 0,
           fallbackSentenceCount: 0,
@@ -246,6 +258,31 @@ describe('resolveTranslation', () => {
         usage: expect.objectContaining({
           requestCount: 1,
           tokens: expect.objectContaining({ completionTokens: 4 }),
+        }),
+      }),
+    }))
+  })
+
+  it('records local timed boundaries without claiming boundary thinking was used', async () => {
+    mockTranslateCues.mockResolvedValueOnce({
+      cues: TRANSLATED_CUES,
+      diagnostics: {
+        boundaryMethod: 'timed-punctuation',
+        boundaryRequestCount: 0,
+        translationRequestCount: 1,
+        alignmentRequestCount: 0,
+        fallbackSentenceCount: 0,
+      },
+    })
+
+    await resolveTranslation('video', 'en', SOURCE_CUES, { force: true })
+
+    expect(mockPutL1).toHaveBeenCalledWith(expect.objectContaining({
+      generation: expect.objectContaining({
+        strategy: expect.objectContaining({
+          boundaryMethod: 'timed-punctuation',
+          boundaryRequestCount: 0,
+          boundaryThinking: 'not-used',
         }),
       }),
     }))

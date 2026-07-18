@@ -31,6 +31,7 @@ Rules:
 - For K source chunks return exactly K-1 integer cuts.
 - Cuts are offsets between Unicode code points, strictly increasing, greater than 0, and less than the target's code-point length.
 - Choose cuts so each target slice semantically belongs to the corresponding source chunk.
+- Cut only at a safe word or punctuation boundary. Never split a Latin/ASCII product token, never split adjacent Han characters, and never place closing punctuation at the start of the next slice.
 - Return the requested ID only and no prose or markdown.`
 
 export const SYSTEM_PROMPT_TEMPLATE = `You are a subtitle translator. You receive numbered lines and return their translations in {{Target Language}}, nothing else.
@@ -114,9 +115,13 @@ export function fillCanonicalPrompt(
   requestedIds: string[],
   targetLang: string,
   context?: TranslationContext,
+  previousError?: string,
 ): { system: string; user: string } {
   const system = CANONICAL_SYSTEM_PROMPT.replaceAll('{{Target Language}}', langName(targetLang))
-  const user = `${formatContextPrefix(context)}IMMUTABLE REFERENCE TRANSCRIPT\n${referenceTranscript(references)}\nEND IMMUTABLE REFERENCE TRANSCRIPT\n\nTARGET IDS: ${requestedIds.join(', ')}\nTranslate only the requested complete sentences.`
+  const correction = previousError
+    ? `\n\nPREVIOUS RESPONSE ERROR: ${previousError.slice(0, 300)}\nReturn a complete ${langName(targetLang)} translation for every requested ID; do not copy or summarize the source.`
+    : ''
+  const user = `${formatContextPrefix(context)}IMMUTABLE REFERENCE TRANSCRIPT\n${referenceTranscript(references)}\nEND IMMUTABLE REFERENCE TRANSCRIPT\n\nTARGET IDS: ${requestedIds.join(', ')}\nTranslate only the requested complete sentences.${correction}`
   return { system, user }
 }
 
@@ -189,6 +194,7 @@ export function parseAlignmentCuts(
     throw new Error(`Alignment requires exactly ${expectedCutCount} cuts`)
   }
   const targetLength = Array.from(immutableTarget).length
+  const targetCodePoints = Array.from(immutableTarget)
   let previous = 0
   for (const cut of cuts) {
     if (!Number.isInteger(cut)) throw new Error('Alignment cuts must be integers')
@@ -199,11 +205,53 @@ export function parseAlignmentCuts(
     previous = value
   }
   const normalized = cuts as number[]
+  for (const cut of normalized) validateSafeCut(targetCodePoints, cut)
   const slices = sliceByCodePoints(immutableTarget, normalized)
   if (slices.some((slice) => slice.length === 0) || slices.join('') !== immutableTarget) {
     throw new Error('Alignment slices do not reconstruct the immutable target')
   }
   return normalized
+}
+
+const ASCII_TOKEN_CHAR_RE = /[A-Za-z0-9_+./'\u2019-]/u
+const HAN_RE = /\p{Script=Han}/u
+const CLOSING_PUNCTUATION_RE = /[,.!?;:\u3001\u3002\uff0c\uff01\uff1f\uff1b\uff1a)\]\}\uff09\u2019\u201d\u3009\u300b\u300d\u300f\u3011\u3015\u3017\u3019\u301b]/u
+
+function validateSafeCut(codePoints: string[], cut: number): void {
+  const reason = unsafeCutReason(codePoints, cut)
+  if (reason) throw new Error(`Alignment cut ${cut} ${reason}`)
+}
+
+function unsafeCutReason(codePoints: string[], cut: number): string | undefined {
+  const left = codePoints[cut - 1]
+  const right = codePoints[cut]
+  if (ASCII_TOKEN_CHAR_RE.test(left) && ASCII_TOKEN_CHAR_RE.test(right)) {
+    return 'is inside an ASCII word boundary'
+  }
+  if (HAN_RE.test(left) && HAN_RE.test(right)) {
+    return 'is inside a Han word boundary'
+  }
+  if (CLOSING_PUNCTUATION_RE.test(right)) {
+    return 'is before closing punctuation'
+  }
+  return undefined
+}
+
+/** True when the immutable target has enough structurally legal cut positions. */
+export function hasEnoughSafeAlignmentCuts(
+  immutableTarget: string,
+  requiredCutCount: number,
+): boolean {
+  if (requiredCutCount <= 0) return true
+  const codePoints = Array.from(immutableTarget)
+  let safeCount = 0
+  for (let cut = 1; cut < codePoints.length; cut++) {
+    if (!unsafeCutReason(codePoints, cut)) {
+      safeCount += 1
+      if (safeCount >= requiredCutCount) return true
+    }
+  }
+  return false
 }
 
 export function sliceByCodePoints(value: string, cuts: number[]): string[] {
