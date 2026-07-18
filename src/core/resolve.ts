@@ -23,6 +23,7 @@ import type { CaptionTrackKind } from '../subtitles/tracks'
 export interface ResolveResult {
   cues: Cue[]
   source: Source
+  artifact: CacheEntry
 }
 
 export interface ResolveOptions {
@@ -80,7 +81,7 @@ export async function resolveTranslation(
       cached.track?.sourceFingerprint,
     )) {
       console.log(`[Gistlate] L1 cache hit: ${key}`)
-      return { cues: cached.cues, source: 'l1' }
+      return { cues: cached.cues, source: 'l1', artifact: cached }
     }
     if (cached) console.warn(`[Gistlate] Ignoring source-incompatible L1 entry: ${key}`)
   }
@@ -96,7 +97,7 @@ export async function resolveTranslation(
       console.log(`[Gistlate] L2 cache hit: ${key}`)
       // Backfill L1 for faster future access
       await putL1(fromL2).catch(() => {})
-      return { cues: fromL2.cues, source: 'l2' }
+      return { cues: fromL2.cues, source: 'l2', artifact: fromL2 }
     }
     if (fromL2) console.warn(`[Gistlate] Ignoring source-incompatible L2 entry: ${key}`)
   }
@@ -210,7 +211,7 @@ export async function resolveTranslation(
       })
     }
 
-    return { cues: translated.cues, source: 'fresh' }
+    return { cues: translated.cues, source: 'fresh', artifact: entry }
   } catch (error) {
     await collector.flush().catch(() => {})
     if (operationId) {

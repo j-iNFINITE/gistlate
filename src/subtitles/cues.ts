@@ -5,6 +5,12 @@ import type { Cue } from './timedtext'
  * Returns `undefined` if no matching cue.
  */
 export function findCueAt(cues: Cue[], timeMs: number): Cue | undefined {
+  const index = findCueIndexAt(cues, timeMs)
+  return index >= 0 ? cues[index] : undefined
+}
+
+/** Find the canonical cue index covering `timeMs`, or -1 between cues. */
+export function findCueIndexAt(cues: Cue[], timeMs: number): number {
   // Binary search since cues are ordered by start time
   let lo = 0
   let hi = cues.length - 1
@@ -16,10 +22,10 @@ export function findCueAt(cues: Cue[], timeMs: number): Cue | undefined {
     } else if (timeMs >= c.s + c.d) {
       lo = mid + 1
     } else {
-      return c
+      return mid
     }
   }
-  return undefined
+  return -1
 }
 
 /**

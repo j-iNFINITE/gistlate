@@ -28,6 +28,7 @@ import { createOverlay, destroyOverlay, type Overlay } from './ui/overlay'
 import { openSettingsPanel } from './ui/settings-panel'
 import { openStylePanel } from './ui/style-panel'
 import { mountStyleButton } from './ui/style-button'
+import { openSubtitleBrowser } from './ui/subtitle-browser'
 import {
   showWaitingPlayer,
   showFetchingSubtitles,
@@ -61,6 +62,7 @@ console.log('[Gistlate] Settings loaded:', {
 GM_registerMenuCommand('Gistlate 设置', openSettingsPanel)
 GM_registerMenuCommand('Gistlate 字幕样式', openStylePanel)
 GM_registerMenuCommand('Gistlate 重新翻译当前视频', retranslateCurrentVideo)
+GM_registerMenuCommand('Gistlate 字幕浏览器', openSubtitleBrowserForPage)
 
 // Install the observe-only network hook immediately. It stages URLs/POT/JSON3
 // even when auto-start is off, but never starts translation by itself.
@@ -149,6 +151,7 @@ const pollInterval = setInterval(() => {
   mountStyleButton({
     active: Boolean(activeVideoId && activeVideoId === getVideoId()),
     onToggle: toggleCurrentVideo,
+    onBrowse: openSubtitleBrowserForPage,
   })
 }, 1000)
 void pollInterval
@@ -161,6 +164,23 @@ function toggleCurrentVideo(): void {
   } else {
     void activateCurrentVideo(videoId, true)
   }
+}
+
+function openSubtitleBrowserForPage(): void {
+  openSubtitleBrowser({
+    getCurrentVideoId: getVideoId,
+    getCurrentVideoTitle: () => {
+      const videoId = getVideoId()
+      return videoId ? getVideoContext(videoId)?.title : undefined
+    },
+    seekCurrentVideo: (timeMs) => {
+      const video = getVideoElement()
+      if (!video) return
+      video.currentTime = Math.max(0, timeMs / 1000)
+      lastCueKey = ''
+      store.setCurrentTime(video.currentTime * 1000)
+    },
+  })
 }
 
 async function activateCurrentVideo(videoId: string, manual: boolean): Promise<void> {
@@ -294,7 +314,7 @@ async function triggerTranslation(
     console.log(`[Gistlate] Translation ready (${result.source})`)
     if (result.source === 'fresh') showDone()
     else hideStatus()
-    store.setSubtitle(srcLang, result.cues)
+    store.setSubtitle(srcLang, result.cues, result.artifact)
   } catch (error) {
     if (signal.aborted) {
       console.log('[Gistlate] Translation aborted (video stopped or superseded)')

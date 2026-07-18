@@ -1,4 +1,5 @@
 import type { Cue } from '../subtitles/timedtext'
+import type { CacheEntry } from '../cache/l1'
 
 export type Source = 'l1' | 'l2' | 'fresh'
 export type Listener = (currentTime: number) => void
@@ -10,11 +11,8 @@ export interface SubtitleState {
   srcLang: string
   /** All cues for the current video. */
   cues: Cue[]
-}
-
-export interface ResolveResult {
-  cues: Cue[]
-  source: Source
+  /** Complete producing artifact; absent for source-only/progressive/direct states. */
+  artifact?: CacheEntry
 }
 
 /**
@@ -30,8 +28,8 @@ class Store {
 
   // ── Subtitle data ─────────────────────────────
 
-  setSubtitle(srcLang: string, cues: Cue[]): void {
-    this.subtitle = { loaded: true, srcLang, cues }
+  setSubtitle(srcLang: string, cues: Cue[], artifact?: CacheEntry): void {
+    this.subtitle = { loaded: true, srcLang, cues, artifact }
     this.notify()
   }
 
@@ -40,6 +38,7 @@ class Store {
     this.subtitle = null
     this.currentTime = 0
     this.abortController = new AbortController()
+    this.notify()
   }
 
   // ── Playhead ──────────────────────────────────

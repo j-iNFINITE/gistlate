@@ -80,6 +80,26 @@ export async function getL1(key: string): Promise<CacheEntry | undefined> {
   return entry
 }
 
+/** List valid, unexpired local artifacts newest-first for the subtitle library. */
+export async function listL1(): Promise<CacheEntry[]> {
+  const db = await getDb()
+  const tx = db.transaction(STORE_NAME, 'readwrite')
+  const index = tx.store.index('createdAt')
+  const entries: CacheEntry[] = []
+  let cursor = await index.openCursor(null, 'prev')
+  const now = Date.now()
+  while (cursor) {
+    const value = cursor.value as unknown
+    if (isCacheEntry(value)) {
+      if (now - value.createdAt > MAX_AGE_MS) await cursor.delete()
+      else entries.push(value)
+    }
+    cursor = await cursor.continue()
+  }
+  await tx.done
+  return entries
+}
+
 export async function putL1(entry: CacheEntry): Promise<void> {
   const db = await getDb()
   await db.put(STORE_NAME, { ...entry, createdAt: entry.createdAt ?? Date.now() })
@@ -103,4 +123,16 @@ export async function putL1(entry: CacheEntry): Promise<void> {
 export async function clearL1(): Promise<void> {
   const db = await getDb()
   await db.clear(STORE_NAME)
+}
+
+function isCacheEntry(value: unknown): value is CacheEntry {
+  if (!value || typeof value !== 'object') return false
+  const entry = value as Partial<CacheEntry>
+  return typeof entry.key === 'string' && typeof entry.videoId === 'string' &&
+    typeof entry.src === 'string' && typeof entry.tgt === 'string' &&
+    typeof entry.model === 'string' && typeof entry.createdAt === 'number' &&
+    Number.isFinite(entry.createdAt) && Array.isArray(entry.cues) &&
+    entry.cues.every((cue) => Boolean(cue) && typeof cue.o === 'string' &&
+      typeof cue.s === 'number' && Number.isFinite(cue.s) &&
+      typeof cue.d === 'number' && Number.isFinite(cue.d))
 }

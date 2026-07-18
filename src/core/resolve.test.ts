@@ -87,7 +87,7 @@ describe('resolveTranslation', () => {
 
     const result = await resolveTranslation('video', 'en', SOURCE_CUES)
 
-    expect(result).toEqual({ cues: TRANSLATED_CUES, source: 'l1' })
+    expect(result).toEqual({ cues: TRANSLATED_CUES, source: 'l1', artifact: cacheEntry() })
     expect(mockReadL2).not.toHaveBeenCalled()
     expect(mockTranslateCues).not.toHaveBeenCalled()
     expect(mockBeginUsageOperation).not.toHaveBeenCalled()
@@ -107,7 +107,7 @@ describe('resolveTranslation', () => {
     expect(mockPutL1).toHaveBeenCalledWith(entry)
     expect(mockTranslateCues).not.toHaveBeenCalled()
     expect(mockBeginUsageOperation).not.toHaveBeenCalled()
-    expect(result).toEqual({ cues: TRANSLATED_CUES, source: 'l2' })
+    expect(result).toEqual({ cues: TRANSLATED_CUES, source: 'l2', artifact: entry })
   })
 
   it('treats same-key L1/L2 entries from a different source track as misses', async () => {
@@ -193,7 +193,11 @@ describe('resolveTranslation', () => {
       undefined,
       undefined,
     )
-    expect(result).toEqual({ cues: TRANSLATED_CUES, source: 'fresh' })
+    expect(result).toMatchObject({
+      cues: TRANSLATED_CUES,
+      source: 'fresh',
+      artifact: { key: 'video|en|zh-Hans', cues: TRANSLATED_CUES },
+    })
     expect(mockFinalizeUsageOperation).toHaveBeenCalledWith('op-1', 'success')
   })
 
