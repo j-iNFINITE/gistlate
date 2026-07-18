@@ -29,6 +29,14 @@ describe('canonical target validation', () => {
     )).toThrow(/Simplified|traditional/i)
   })
 
+  it('allows source-owned Katakana product names inside a Chinese translation', () => {
+    expect(() => validateCanonicalTarget(
+      'あとクリアパーツがはまる箇所の裏側もシルバーにして多少は見栄えくなるようにしておきましょう。',
+      '另外，安装クリアパーツ的位置背面也涂成シルバー，让外观看起来更好一些。',
+      'zh-Hans',
+    )).not.toThrow()
+  })
+
   it('rejects a severe summary that omits most of a long source paragraph', () => {
     const source = Array.from({ length: 12 }, (_, index) => `これは重要な説明${index}です。`).join('')
     expect(() => validateCanonicalTarget(source, '这是最后一句说明。', 'zh-Hans'))

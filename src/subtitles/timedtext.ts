@@ -164,12 +164,14 @@ function parseWordTimedEvents(events: TimedtextEvent[]): Cue[] {
   const fragments: TimedFragment[] = []
   let trackEnd = 0
 
-  for (const event of events) {
+  for (let eventIndex = 0; eventIndex < events.length; eventIndex++) {
+    const event = events[eventIndex]
     const segments = event.segs ?? []
     const visibleText = segments.map((segment) => segment.utf8).join('')
     if (!hasVisibleText(visibleText)) continue
 
     const eventEnd = event.tStartMs + (event.dDurationMs ?? 4000)
+    const nextEventStart = findNextVisibleEventStart(events, eventIndex)
     trackEnd = Math.max(trackEnd, eventEnd)
     const offsets = inferOffsets(segments)
     let fragmentText = ''
@@ -196,6 +198,13 @@ function parseWordTimedEvents(events: TimedtextEvent[]): Cue[] {
       let text = segment.utf8.replace(/[\r\n]+/gu, '')
       if (!text) continue
       const tokenStart = event.tStartMs + offsets[index]
+      const nextOffset = offsets.slice(index + 1).find((offset) => offset > offsets[index])
+      const tokenEnd = Math.max(
+        tokenStart + 1,
+        nextOffset === undefined
+          ? (nextEventStart ?? eventEnd)
+          : event.tStartMs + nextOffset,
+      )
 
       // Google sometimes emits the full stop as the first token of the next
       // event. It closes the preceding fragment and must not start a new cue.
@@ -218,9 +227,14 @@ function parseWordTimedEvents(events: TimedtextEvent[]): Cue[] {
         if (isSentenceBreak(codePoints, charIndex)) {
           appendFragment(true)
           if (charIndex < codePoints.length - 1) {
-            // No true intra-token timing exists. Keep ordering deterministic;
-            // the following token normally supplies the next precise start.
-            fragmentStart = tokenStart + 1
+            // A rare Google ASR segment can contain several complete sentences
+            // but expose only one token offset. Allocate the internal boundary
+            // over this token's known time window by Unicode character position
+            // instead of collapsing every sentence into a 1 ms cue.
+            const proportionalStart = tokenStart + Math.round(
+              (tokenEnd - tokenStart) * ((charIndex + 1) / codePoints.length),
+            )
+            fragmentStart = Math.max(tokenStart + 1, proportionalStart)
           }
         }
       }
@@ -250,6 +264,15 @@ function parseWordTimedEvents(events: TimedtextEvent[]): Cue[] {
       sentenceEnd: fragment.sentenceEnd,
     }
   })
+}
+
+/** Skip Google's newline-only window events when finding the next timing anchor. */
+function findNextVisibleEventStart(events: TimedtextEvent[], eventIndex: number): number | undefined {
+  for (let index = eventIndex + 1; index < events.length; index++) {
+    const text = (events[index].segs ?? []).map((segment) => segment.utf8).join('')
+    if (hasVisibleText(text)) return events[index].tStartMs
+  }
+  return undefined
 }
 
 function hasVisibleText(value: string): boolean {

@@ -1,6 +1,7 @@
 import { countSentenceMarks } from '../subtitles/sentence-marks'
 
-const KANA_RE = /[\p{Script=Hiragana}\p{Script=Katakana}]/gu
+const HIRAGANA_RE = /\p{Script=Hiragana}/gu
+const KATAKANA_RUN_RE = /[\p{Script=Katakana}ー]+/gu
 
 // High-signal characters whose zh-Hans forms differ. This intentionally is
 // not a general script converter; it catches a model returning an obviously
@@ -44,12 +45,16 @@ export function validateCanonicalTarget(
     throw new Error('Canonical target has incomplete multi-sentence coverage')
   }
 
-  if (targetLang === 'zh-Hans') validateSimplifiedChineseTarget(target)
+  if (targetLang === 'zh-Hans') validateSimplifiedChineseTarget(source, target)
 }
 
-function validateSimplifiedChineseTarget(target: string): void {
+function validateSimplifiedChineseTarget(source: string, target: string): void {
   const visible = Array.from(target).filter((char) => !/[\s\p{P}\p{S}]/u.test(char)).length
-  const kana = target.match(KANA_RE)?.length ?? 0
+  const hiragana = target.match(HIRAGANA_RE)?.length ?? 0
+  const unexplainedKatakana = (target.match(KATAKANA_RUN_RE) ?? [])
+    .filter((run) => !source.includes(run))
+    .reduce((total, run) => total + Array.from(run).length, 0)
+  const kana = hiragana + unexplainedKatakana
   if (kana >= 4 && kana / Math.max(1, visible) > 0.08) {
     throw new Error('Canonical target is Japanese-heavy and not in the target language')
   }

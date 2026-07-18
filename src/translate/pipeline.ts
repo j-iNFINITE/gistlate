@@ -204,7 +204,7 @@ export async function translateCues(
     Array.from({ length: Math.min(TRANSLATION_CONCURRENCY, pending.length) }, () => worker()),
   )
   throwIfAborted(signal)
-  assertAllJobsComplete(jobs)
+  assertAllJobsComplete(jobs, cues)
   return { cues: assembleJobs(cues, jobs), diagnostics }
 }
 

@@ -248,6 +248,44 @@ describe('parseTimedtext', () => {
     expect(cues.map((cue) => cue.o)).toEqual(['Version 4.0 works!', 'Wait...', 'Done.'])
     expect(cues.every((cue) => cue.sentenceEnd)).toBe(true)
   })
+
+  it('distributes sentence starts inside one untimed Google segment', () => {
+    const cues = parseTimedtext({
+      events: [
+        {
+          tStartMs: 0,
+          segs: [
+            { utf8: '前置', tOffsetMs: 0 },
+            { utf8: '。', tOffsetMs: 500 },
+          ],
+        },
+        {
+          tStartMs: 1000,
+          dDurationMs: 3000,
+          segs: [{ utf8: '最初の説明。次の説明です。最後です。' }],
+        },
+        {
+          tStartMs: 7000,
+          dDurationMs: 2000,
+          segs: [
+            { utf8: '続き', tOffsetMs: 0 },
+            { utf8: '。', tOffsetMs: 500 },
+          ],
+        },
+      ],
+    })
+
+    expect(cues.map((cue) => cue.o)).toEqual([
+      '前置。',
+      '最初の説明。',
+      '次の説明です。',
+      '最後です。',
+      '続き。',
+    ])
+    expect(cues.slice(1, 4).map((cue) => cue.s)).toEqual([1000, 3000, 5333])
+    expect(cues.slice(1, 4).every((cue) => cue.d > 1000)).toBe(true)
+    expect(cues[3].s + cues[3].d).toBe(7000)
+  })
 })
 
 describe('findCueAt', () => {

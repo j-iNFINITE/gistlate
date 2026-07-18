@@ -27,6 +27,33 @@ export interface SentenceJob {
   error?: Error
 }
 
+export interface TranslationJobFailureDetail {
+  id: string
+  sourceText: string
+  startMs?: number
+  endMs?: number
+  causeName: string
+  causeMessage: string
+}
+
+/** Complete-only pipeline failure that preserves each failed job's local cause. */
+export class TranslationJobsIncompleteError extends Error {
+  readonly failures: TranslationJobFailureDetail[]
+
+  constructor(failures: TranslationJobFailureDetail[]) {
+    const summary = failures.map((failure) => {
+      const timing = failure.startMs === undefined || failure.endMs === undefined
+        ? 'time-unknown'
+        : `${failure.startMs}-${failure.endMs}ms`
+      return `${failure.id} ${timing} ${failure.causeName}: ${failure.causeMessage} ` +
+        `source=${JSON.stringify(failure.sourceText)}`
+    }).join('; ')
+    super(`Translation incomplete: ${summary}`)
+    this.name = 'TranslationJobsIncompleteError'
+    this.failures = failures
+  }
+}
+
 export interface PlanGroup {
   id: string
   plans: SentencePlan[]
@@ -203,11 +230,33 @@ export function assembleJobs(fragments: Cue[], jobs: SentenceJob[]): Cue[] {
   )
 }
 
-export function assertAllJobsComplete(jobs: SentenceJob[]): void {
+export function assertAllJobsComplete(jobs: SentenceJob[], fragments: Cue[] = []): void {
   const failed = jobs.filter((job) => job.status !== 'done')
   if (failed.length > 0) {
-    throw new Error(`Translation incomplete for: ${failed.map((job) => job.plan.id).join(', ')}`)
+    throw new TranslationJobsIncompleteError(failed.map((job) => {
+      const first = fragments[job.plan.sourceRange.startIdx]
+      const last = fragments[job.plan.sourceRange.endIdx]
+      return {
+        id: job.plan.id,
+        sourceText: summarizeFailureText(job.plan.sourceText, 160),
+        startMs: first?.s,
+        endMs: last ? last.s + last.d : undefined,
+        causeName: summarizeFailureText(job.error?.name || 'Error', 80),
+        causeMessage: summarizeFailureText(
+          job.error?.message || 'Unknown translation job failure',
+          240,
+        ),
+      }
+    }))
   }
   const cues = jobs.flatMap((job) => job.targetSlices ?? [])
   if (cues.some((target) => !target)) throw new Error('Translation contains an empty target slice')
+}
+
+function summarizeFailureText(value: string, maxCodePoints: number): string {
+  const normalized = value.replace(/[\s\p{Cc}]+/gu, ' ').trim()
+  const codePoints = Array.from(normalized)
+  return codePoints.length <= maxCodePoints
+    ? normalized
+    : `${codePoints.slice(0, maxCodePoints).join('')}…`
 }

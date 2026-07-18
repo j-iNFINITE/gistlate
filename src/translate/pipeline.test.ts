@@ -323,6 +323,33 @@ describe('complete-sentence translation pipeline', () => {
     expect(mockGmFetch).toHaveBeenCalledTimes(3)
   })
 
+  it('preserves the failed sentence cause, source and timing at the pipeline boundary', async () => {
+    mockGmFetch.mockResolvedValue(chatOk('[S001] モデラーの皆様には照明も重要です。'))
+    const promise = translateCues(
+      [{ s: 12_340, d: 2340, o: '照明について詳しく説明します。', sentenceEnd: true }],
+      'zh-Hans',
+      CFG,
+      'key',
+      { translation: { mode: 'sentence', batchSize: 8 } },
+    ).catch((error: unknown) => error)
+
+    await vi.runAllTimersAsync()
+    const error = await promise
+    expect(error).toMatchObject({
+      name: 'TranslationJobsIncompleteError',
+      failures: [{
+        id: 'S001',
+        sourceText: '照明について詳しく説明します。',
+        startMs: 12_340,
+        endMs: 14_680,
+        causeName: 'CountMismatchError',
+        causeMessage: 'Canonical target is Japanese-heavy and not in the target language',
+      }],
+    })
+    expect((error as Error).message).toContain('S001 12340-14680ms CountMismatchError')
+    expect((error as Error).message).toContain('照明について詳しく説明します。')
+  })
+
   it('aborts without fallback or a completed artifact', async () => {
     const controller = new AbortController()
     mockGmFetch.mockImplementationOnce(async () => {
