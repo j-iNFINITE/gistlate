@@ -132,6 +132,10 @@ Checklist for adapters:
       sentences into invisible cues. When precision is missing, preserve the
       surrounding exact anchors, derive bounded intermediate times explicitly,
       and test minimum useful duration as well as monotonic order.
+- [ ] Distinguish **continuity** from **natural coverage**. The next item's start
+      is not automatically the previous item's end. Preserve both anchors,
+      allow real gaps, and replay a long-silence case so normalization cannot
+      convert idle time into content duration.
 
 For Gistlate's executable timedtext/translation contract, see
 `.trellis/spec/frontend/quality-guidelines.md`, “Scenario: semantic-aligned

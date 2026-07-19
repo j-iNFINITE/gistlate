@@ -120,6 +120,13 @@ interface Cue {
   sentenceEnd?: boolean // internal source hint; omitted from final artifact cues
 }
 
+interface TimedFragment {
+  s: number             // natural speech start
+  e: number             // exclusive natural speech end; not the next fragment start
+  o: string
+  sentenceEnd: boolean
+}
+
 interface SentencePlan {
   id: string                    // global S001...
   sourceRange: SentenceRange    // complete translation owner
@@ -184,8 +191,18 @@ Provider usage is decoded once at the HTTP boundary and propagated as
 - When a clear majority of Google ASR segments carry `tOffsetMs`, recover
   absolute segment time, split after sentence punctuation, attach a leading
   next-event sentence mark to the preceding fragment, and set `sentenceEnd` on
-  every source Cue. Preserve the cleaned source exactly. Sparse/untimed ASR
-  tracks stay on the legacy event parser.
+  every source Cue. Preserve the cleaned source exactly.
+- A word-timed fragment owns both a natural start and natural exclusive end.
+  Bound its final token by the earlier of the reported/fallback event end and
+  the next visible event start. Emitted cues are positive, sorted and
+  non-overlapping, but a real long silence remains a gap; never make the
+  sequence gap-free by assigning every interval to the preceding speech.
+- When an explicitly selected ASR track lacks dense offsets but its coarse
+  events contain terminal punctuation, split those events locally by Unicode
+  code-point position over each event's bounded duration. Mark punctuation
+  fragments `sentenceEnd: true`, event tails false, and the final visible cue
+  true. Manual tracks and sparse ASR with no recoverable punctuation retain the
+  legacy/model-boundary path.
 - A word-timed track may still contain an isolated Google segment with several
   punctuated sentences but only one usable offset. Keep the first start exact;
   place later intra-token sentence starts proportionally by Unicode character
@@ -246,6 +263,8 @@ Provider usage is decoded once at the HTTP boundary and propagated as
 | Condition | Required behavior |
 |---|---|
 | Usable Google word offsets | Recover timed fragments/hints locally; exact source preservation |
+| Word-timed event followed by long silence | End at the event's natural speech end; leave a subtitle-free gap |
+| Explicit ASR coarse event has internal punctuation | Split inside the event with proportional positive timing and complete boolean hints |
 | One segment packs multiple punctuated sentences without offsets | Distribute internal starts over its bounded token window; no 1 ms cues |
 | Explicit manual track | One complete owner per YouTube cue; `manual-cues`; zero boundary calls |
 | Complete timed hints | Zero boundary calls; `boundaryThinking: not-used` |
@@ -272,6 +291,12 @@ Provider usage is decoded once at the HTTP boundary and propagated as
 - **Good:** Google ASR has dense `tOffsetMs` -> recover internal punctuation
   fragments -> joined cleaned source remains identical -> use local boundary
   flags with zero boundary API calls.
+- **Good:** a 2.5-second punctuated ASR event is followed by 35 seconds of
+  silence -> the cue ends at 2.5 seconds, `findCueAt` returns no subtitle during
+  the gap, and sentence planning does not see a 38-second spoken sentence.
+- **Good:** an explicitly ASR three-second event contains `One. Two. Tail` with
+  no dense offsets -> expose two completed fragments plus one continuing tail
+  inside that event so a later cue can complete the tail.
 - **Good:** one otherwise word-timed event contains `句一。句二。句三。` in one
   untimed segment -> preserve all text -> derive three increasing starts over
   the interval to the next visible event -> no sentence flashes for 1 ms.
@@ -280,8 +305,9 @@ Provider usage is decoded once at the HTTP boundary and propagated as
   rejection. A long cue stays intact because no reliable intra-cue timing exists.
 - **Good:** a 321-code-point, one-stop English ASR sentence spans 14 seconds ->
   keep one canonical translation owner -> cap only its nested display ranges.
-- **Base:** untimed ASR -> keep legacy event cues -> use validated DeepSeek E/C
-  detection and the normal false-sentence safety limits.
+- **Base:** sparse/untimed ASR with no recoverable terminal punctuation -> keep
+  legacy event cues -> use validated DeepSeek E/C detection and the normal
+  false-sentence safety limits.
 - **Good:** long complete sentence -> one canonical target -> validated code-point
   cuts -> several timed cues whose targets rejoin exactly.
 - **Base:** one display range -> validated canonical target becomes that cue; no
@@ -293,6 +319,9 @@ Provider usage is decoded once at the HTTP boundary and propagated as
 - **Bad:** every sentence split inside one untimed segment receives `+1 ms`.
   Earlier translations disappear immediately and the last sentence occupies
   the remaining speech interval, visibly drifting from the audio.
+- **Bad:** `cue.d = nextFragment.s - cue.s` for every word-timed fragment. A
+  short sentence before a long silent section becomes a false 38-second spoken
+  sentence and trips the safety gate.
 - **Bad:** canonical ID/count or target reconstruction is treated as semantic
   validation. Japanese source echo and cuts inside `LiberNovo`/`腰痛` can pass
   those structural checks.
@@ -312,6 +341,12 @@ Provider usage is decoded once at the HTTP boundary and propagated as
   sparse-offset legacy fallback, missing-offset inference, decimals/punctuation
   runs, exact text, positive non-overlapping times, and proportional starts for
   several sentences packed into one untimed segment.
+- Timedtext/planning integration covers a short punctuated event followed by a
+  roughly 38-second next-event gap: the first cue ends naturally, the gap stays
+  uncovered, and the 30-second sentence guard accepts both real sentences.
+- Explicit-ASR coarse-event tests cover internal English punctuation, a tail
+  continuing into the next event, full boolean hints, Unicode-proportional
+  timing, source conservation, and manual/unknown legacy compatibility.
 - Manual-track tests prove incidental offsets stay on the legacy parser, every
   cue is one owner, and boundary usage/request count remains zero.
 - Sentence/batch/whole grouping changes request grouping only, not ownership.
@@ -352,6 +387,11 @@ nextSentenceStart = tokenStart + 1
 ```
 
 ```ts
+// Gap-free is not timing fidelity: this converts silence into spoken duration.
+cue.d = nextFragment.s - cue.s
+```
+
+```ts
 // 240 is a display-scale guess, not a safe universal sentence-owner limit.
 if (codePoints > 240) throw new SegmentationError('false sentence')
 ```
@@ -380,6 +420,12 @@ const flags = sourceCues.every(hasSentenceEnd)
 nextSentenceStart = tokenStart + Math.round(
   (tokenEnd - tokenStart) * (consumedCodePoints / tokenCodePoints),
 )
+```
+
+```ts
+// Keep the provider's natural end separate and clamp only to prevent overlap.
+const naturalEnd = Math.min(reportedEventEnd, nextVisibleStart ?? Infinity)
+cue.d = Math.min(fragment.e, nextFragment?.s ?? Infinity) - fragment.s
 ```
 
 ```ts
@@ -823,6 +869,7 @@ package.json.version                  = local/source baseline, e.g. 0.2.0
 .github/workflows/release.yml version = 0.2.${github.run_number}
 dist/gistlate.user.js @version        = package version visible at build time
 release tag/name                      = v0.2.${github.run_number}
+GM_info.script.version                = version of the currently injected instance
 ```
 
 ### 3. Contracts
@@ -837,6 +884,12 @@ release tag/name                      = v0.2.${github.run_number}
 - A dirty working tree is never part of a GitHub release. `git add` is also
   insufficient; changes must be committed and pushed before Actions can build
   them.
+- The startup log reads only `GM_info.script.version` and keeps the stable
+  `[Gistlate]` prefix. It identifies the instance injected into this document;
+  do not infer that version from build line numbers, local `package.json`, or a
+  Tampermonkey dashboard entry that may have updated after the tab loaded.
+- Updating a userscript does not hot-replace an already running YouTube SPA tab.
+  A full document reload is required before the new stored version is injected.
 - Advancing the minor line requires changing the source baseline plus every CI
   version/tag occurrence together. Search the old prefix before editing.
 
@@ -849,6 +902,7 @@ release tag/name                      = v0.2.${github.run_number}
 | Working tree changes are uncommitted | Release excludes them |
 | CI release build | Asset `@version`, tag and release name use one `0.2.<run>` value |
 | Installed version is higher than a local build | Do not use version alone to claim the local code is newer |
+| Tampermonkey updates while YouTube tab remains open | Existing page logs its old injected version until a full reload |
 | Minor prefix changed in only one place | Fail review; update package/workflow occurrences together |
 
 ### 5. Good / Base / Bad Cases
@@ -857,6 +911,8 @@ release tag/name                      = v0.2.${github.run_number}
   release asset contains both the expected version and feature markers.
 - **Base:** a local dirty build emits `0.2.0`; it is suitable for explicit local
   testing but is not evidence that GitHub contains those changes.
+- **Base:** Tampermonkey stores `0.2.17` while an open SPA tab logs `0.2.16` ->
+  both observations are valid; reload the document before diagnosing CI.
 - **Bad:** observe GitHub `0.1.11` and local `0.1.0`, then assume the higher
   number contains uncommitted local code. CI cannot see the working tree.
 
@@ -864,6 +920,8 @@ release tag/name                      = v0.2.${github.run_number}
 
 - `pnpm build` and assert the local userscript/meta `@version` equals
   `package.json.version`.
+- Assert the production userscript grants `GM_info` and its startup log reads
+  only `GM_info.script.version` while retaining the `[Gistlate]` prefix.
 - Inspect the workflow so its build version, tag and release name share the same
   minor prefix and `${{ github.run_number }}`.
 - After push, verify the remote meta/user assets share one version and contain a
