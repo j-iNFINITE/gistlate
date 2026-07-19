@@ -53,5 +53,12 @@
       speech duration, while a cue-level boundary protocol could not express
       internal coarse-event punctuation.
 - [x] Commit code/tests, then spec/task updates in reviewable commits.
-- [ ] Push `master`, wait for the release workflow, and verify the new release
+- [x] Push `master`, wait for the release workflow, and verify the new release
       metadata and userscript asset before reporting completion.
+
+Release validation: GitHub Actions `Release userscript #17` completed for
+`61627dd` in 25 seconds and published latest release `v0.2.17`. The remote
+userscript asset reports 231,055 bytes, matching the local production build.
+GitHub subsequently rate-limited/reset anonymous asset-body downloads, so no
+remote SHA is claimed; the local artifact and CI's deterministic workflow were
+fully inspected, and the installed runtime log remains the final live check.
