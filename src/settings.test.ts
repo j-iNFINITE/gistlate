@@ -15,24 +15,50 @@ import {
 
 describe('translation settings', () => {
   it('defaults older settings to sentence mode with remembered batch size 8', () => {
-    expect(DEFAULTS.translation).toEqual({ mode: 'sentence', batchSize: 8 })
+    expect(DEFAULTS.translation).toEqual({
+      mode: 'sentence',
+      batchSize: 8,
+      autoTranslateLimitMinutes: 45,
+    })
     expect(normalizeTranslationSettings(undefined)).toEqual(DEFAULTS.translation)
   })
 
   it.each(['sentence', 'batch', 'whole'] as const)('accepts mode %s', (mode) => {
-    expect(normalizeTranslationSettings({ mode, batchSize: 12 })).toEqual({ mode, batchSize: 12 })
+    expect(normalizeTranslationSettings({ mode, batchSize: 12 })).toEqual({
+      mode,
+      batchSize: 12,
+      autoTranslateLimitMinutes: 45,
+    })
   })
 
   it('rejects unknown modes and clamps integer batch size to 2..32', () => {
     expect(normalizeTranslationSettings({ mode: 'unsafe', batchSize: 1.9 })).toEqual({
       mode: 'sentence',
       batchSize: 2,
+      autoTranslateLimitMinutes: 45,
     })
     expect(normalizeTranslationSettings({ mode: 'batch', batchSize: 99 })).toEqual({
       mode: 'batch',
       batchSize: 32,
+      autoTranslateLimitMinutes: 45,
     })
   })
+
+  it.each([15, 30, 45, 60, 90, 120, null] as const)(
+    'accepts automatic finite-replay limit %s',
+    (autoTranslateLimitMinutes) => {
+      expect(normalizeTranslationSettings({ autoTranslateLimitMinutes }))
+        .toMatchObject({ autoTranslateLimitMinutes })
+    },
+  )
+
+  it.each([undefined, 0, 44, 180, Number.NaN, '45'])(
+    'falls back to 45 for malformed automatic limit %s',
+    (autoTranslateLimitMinutes) => {
+      expect(normalizeTranslationSettings({ autoTranslateLimitMinutes }))
+        .toMatchObject({ autoTranslateLimitMinutes: 45 })
+    },
+  )
 })
 
 describe('subtitle display settings migration', () => {

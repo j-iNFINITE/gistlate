@@ -2,6 +2,7 @@ import type { TranslationProgress } from '../translate/pipeline'
 
 const ID = 'gistlate-status'
 const CSS_ID = 'gistlate-status-css'
+const GUARD_NOTICE_MS = 8_000
 
 const CSS = `
   #${ID} {
@@ -12,6 +13,7 @@ const CSS = `
     background: rgba(0,0,0,.72); color: #fff; border-radius: 14px;
     padding: 5px 12px; font-size: 13px; line-height: 1.3;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    white-space: pre-line; text-align: center;
     opacity: 0; transition: opacity .2s;
   }
   #${ID}.gl-show { opacity: 1; }
@@ -101,6 +103,16 @@ export function showError(): void {
 export function showAcquisitionError(message = '未能获取字幕'): void {
   render(message, false)
   autoHide(3500)
+}
+
+export function showLongVideoGuarded(span: string): void {
+  render(`字幕跨度 ${span}，已跳过自动翻译\n点击 GL 可手动翻译整个视频`, false)
+  autoHide(GUARD_NOTICE_MS)
+}
+
+export function showLiveGuarded(): void {
+  render('当前视频仍在直播，已跳过完整翻译\n请在直播结束后重试', false)
+  autoHide(GUARD_NOTICE_MS)
 }
 
 export function hideStatus(): void {

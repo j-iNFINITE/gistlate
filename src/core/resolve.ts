@@ -20,11 +20,29 @@ import {
 import { sourceFingerprint, sourceIsCompatible } from '../cache/source'
 import type { CaptionTrackKind } from '../subtitles/tracks'
 
-export interface ResolveResult {
+export type TranslationSkipReason =
+  | 'long-video'
+  | 'current-live'
+  | 'user-declined'
+  | 'settings-opened'
+
+export type TranslationPreflightDecision =
+  | { action: 'continue' }
+  | { action: 'skip'; reason: TranslationSkipReason }
+
+export interface ResolveReadyResult {
+  status: 'ready'
   cues: Cue[]
   source: Source
   artifact: CacheEntry
 }
+
+export interface ResolveSkippedResult {
+  status: 'skipped'
+  reason: TranslationSkipReason
+}
+
+export type ResolveResult = ResolveReadyResult | ResolveSkippedResult
 
 export interface ResolveOptions {
   signal?: AbortSignal
@@ -39,6 +57,8 @@ export interface ResolveOptions {
     kind: CaptionTrackKind
     vssId: string
   }
+  /** Runs only after cache reads miss and before secrets, usage or provider work. */
+  beforeFreshTranslation?: () => Promise<TranslationPreflightDecision>
 }
 
 /**
@@ -63,9 +83,9 @@ export async function resolveTranslation(
     onProgress,
     getCurrentTime,
     track,
+    beforeFreshTranslation,
   } = options
   const settings = loadSettings()
-  const secrets = loadSecrets()
   const tgt = normalizeLang(settings.tgt)
   const src = normalizeLang(srcLang)
   const key = cacheKey({ videoId, src, tgt })
@@ -81,7 +101,7 @@ export async function resolveTranslation(
       cached.track?.sourceFingerprint,
     )) {
       console.log(`[Gistlate] L1 cache hit: ${key}`)
-      return { cues: cached.cues, source: 'l1', artifact: cached }
+      return { status: 'ready', cues: cached.cues, source: 'l1', artifact: cached }
     }
     if (cached) console.warn(`[Gistlate] Ignoring source-incompatible L1 entry: ${key}`)
   }
@@ -97,15 +117,28 @@ export async function resolveTranslation(
       console.log(`[Gistlate] L2 cache hit: ${key}`)
       // Backfill L1 for faster future access
       await putL1(fromL2).catch(() => {})
-      return { cues: fromL2.cues, source: 'l2', artifact: fromL2 }
+      return { status: 'ready', cues: fromL2.cues, source: 'l2', artifact: fromL2 }
     }
     if (fromL2) console.warn(`[Gistlate] Ignoring source-incompatible L2 entry: ${key}`)
   }
 
-  // 3. Genuine translation — start an independent usage operation and run the
-  // complete-sentence progressive pipeline. Cache hits never reach this point.
+  // 3. Genuine translation preflight. This is the only safe budget-guard
+  // boundary: compatible cache hits returned above, while secrets/ledger/model
+  // work has not started yet. A skip is intentional control flow, not failure.
+  throwIfAborted(signal)
+  if (beforeFreshTranslation) {
+    const decision = await beforeFreshTranslation()
+    throwIfAborted(signal)
+    if (decision.action === 'skip') {
+      return { status: 'skipped', reason: decision.reason }
+    }
+  }
+
+  // 4. Start an independent usage operation and run the complete-sentence
+  // progressive pipeline. Cache hits and guarded attempts never reach here.
   console.log(`[Gistlate] Translating ${cues.length} cues: ${key}`)
   onTranslating?.()
+  const secrets = loadSecrets()
   const translationSettings = normalizeTranslationSettings(settings.translation)
   const pricing = resolvePricing(settings.openai.baseUrl, settings.openai.model)
   let operationId: string | undefined
@@ -163,7 +196,7 @@ export async function resolveTranslation(
     const operationUsage = collector.snapshot()
     const costCny = calculateCostCny(operationUsage.tokens, pricing)
 
-    // 4. One complete-only L1 write with backward-compatible generation metadata.
+    // 5. One complete-only L1 write with backward-compatible generation metadata.
     const entry: CacheEntry = {
       key,
       videoId,
@@ -202,7 +235,7 @@ export async function resolveTranslation(
     }
     await putL1(entry)
 
-    // 5. One L2 attempt (soft-fail: L1 already contains the complete result).
+    // 6. One L2 attempt (soft-fail: L1 already contains the complete result).
     throwIfAborted(signal)
     writeL2(settings.github, secrets.githubPat, entry, undefined, signal).catch(() => {})
     if (operationId) {
@@ -211,7 +244,7 @@ export async function resolveTranslation(
       })
     }
 
-    return { cues: translated.cues, source: 'fresh', artifact: entry }
+    return { status: 'ready', cues: translated.cues, source: 'fresh', artifact: entry }
   } catch (error) {
     await collector.flush().catch(() => {})
     if (operationId) {

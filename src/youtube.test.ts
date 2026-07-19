@@ -8,7 +8,18 @@ const pageWindow = vi.hoisted(() => ({
           videoId?: string
           title?: string
           shortDescription?: string
+          isLive?: boolean
+          isLiveContent?: boolean
         }
+        microformat?: {
+          playerMicroformatRenderer?: {
+            liveBroadcastDetails?: {
+              isLiveNow?: boolean
+              endTimestamp?: string
+            }
+          }
+        }
+        playabilityStatus?: { liveStreamability?: unknown }
       }
     | undefined,
   ytcfg: undefined as { get?: (key: string) => string | undefined } | undefined,
@@ -16,7 +27,12 @@ const pageWindow = vi.hoisted(() => ({
 
 vi.mock('$', () => ({ unsafeWindow: pageWindow }))
 
-import { getPlayerCaptionData, getVideoContext, isTimedtextRequestForVideo } from './youtube'
+import {
+  getPlaybackFacts,
+  getPlayerCaptionData,
+  getVideoContext,
+  isTimedtextRequestForVideo,
+} from './youtube'
 
 const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document')
 
@@ -240,12 +256,101 @@ describe('YouTube player caption data', () => {
   })
 })
 
-function installPlayerDocument(player: object): void {
+describe('YouTube playback facts', () => {
+  it('detects a matching current live stream with a finite DVR duration', () => {
+    installPlayerDocument({
+      getPlayerResponse: () => ({
+        videoDetails: { videoId: 'current', isLiveContent: true },
+        microformat: {
+          playerMicroformatRenderer: {
+            liveBroadcastDetails: { isLiveNow: true },
+          },
+        },
+      }),
+    }, 7_200)
+
+    expect(getPlaybackFacts('current')).toEqual({
+      currentLive: true,
+      durationMs: 7_200_000,
+    })
+  })
+
+  it('treats ended live content as a finite replay', () => {
+    installPlayerDocument({
+      getPlayerResponse: () => ({
+        videoDetails: { videoId: 'current', isLiveContent: true },
+        microformat: {
+          playerMicroformatRenderer: {
+            liveBroadcastDetails: {
+              isLiveNow: false,
+              endTimestamp: '2026-07-19T01:00:00Z',
+            },
+          },
+        },
+        playabilityStatus: { liveStreamability: {} },
+      }),
+    }, 10_800)
+
+    expect(getPlaybackFacts('current')).toEqual({
+      currentLive: false,
+      durationMs: 10_800_000,
+    })
+  })
+
+  it('merges same-video responses so end metadata wins over partial live fields', () => {
+    installPlayerDocument({
+      getPlayerResponse: () => ({
+        videoDetails: { videoId: 'current', isLiveContent: true },
+        playabilityStatus: { liveStreamability: {} },
+      }),
+    }, 10_800)
+    pageWindow.ytInitialPlayerResponse = {
+      videoDetails: { videoId: 'current', isLiveContent: true },
+      microformat: {
+        playerMicroformatRenderer: {
+          liveBroadcastDetails: {
+            isLiveNow: false,
+            endTimestamp: '2026-07-19T01:00:00Z',
+          },
+        },
+      },
+    }
+
+    expect(getPlaybackFacts('current')).toEqual({
+      currentLive: false,
+      durationMs: 10_800_000,
+    })
+  })
+
+  it('uses an infinite native duration as a strong live signal', () => {
+    installPlayerDocument({
+      getPlayerResponse: () => ({ videoDetails: { videoId: 'current' } }),
+    }, Number.POSITIVE_INFINITY)
+
+    expect(getPlaybackFacts('current')).toEqual({ currentLive: true })
+  })
+
+  it('does not treat unknown duration or stale live metadata as current live', () => {
+    installPlayerDocument({
+      getPlayerResponse: () => ({
+        videoDetails: { videoId: 'previous', isLive: true },
+      }),
+    }, Number.NaN)
+
+    expect(getPlaybackFacts('current')).toEqual({ currentLive: false })
+  })
+})
+
+function installPlayerDocument(player: object, duration?: number): void {
   Object.defineProperty(globalThis, 'document', {
     configurable: true,
     value: {
       title: '',
-      querySelector: (selector: string) => selector === '#movie_player' ? player : null,
+      querySelector: (selector: string) => {
+        if (selector === '#movie_player') return player
+        if (selector === '#movie_player video' && duration !== undefined) return { duration }
+        return null
+      },
     } as unknown as Document,
   })
 }

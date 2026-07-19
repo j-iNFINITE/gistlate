@@ -3,13 +3,16 @@ export interface AutoStartState {
   autoStart: boolean
   activeVideoId: string | null
   suppressedVideoId: string | null
+  guardedVideoId: string | null
 }
 
 /** Pure policy used by initial load and every YouTube SPA navigation. */
 export function shouldAutoStartVideo(state: AutoStartState): state is AutoStartState & { videoId: string } {
   return Boolean(
     state.videoId && state.autoStart &&
-    state.videoId !== state.activeVideoId && state.videoId !== state.suppressedVideoId,
+    state.videoId !== state.activeVideoId &&
+    state.videoId !== state.suppressedVideoId &&
+    state.videoId !== state.guardedVideoId,
   )
 }
 

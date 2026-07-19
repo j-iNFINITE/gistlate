@@ -5,28 +5,51 @@ describe('current-video activation policy', () => {
   it('auto-starts a new Watch video only when enabled', () => {
     expect(shouldAutoStartVideo({
       videoId: 'new', autoStart: true, activeVideoId: null, suppressedVideoId: null,
+      guardedVideoId: null,
     })).toBe(true)
     expect(shouldAutoStartVideo({
       videoId: 'new', autoStart: false, activeVideoId: null, suppressedVideoId: null,
+      guardedVideoId: null,
     })).toBe(false)
   })
 
   it('does not restart an active or manually suppressed current video', () => {
     expect(shouldAutoStartVideo({
       videoId: 'same', autoStart: true, activeVideoId: 'same', suppressedVideoId: null,
+      guardedVideoId: null,
     })).toBe(false)
     expect(shouldAutoStartVideo({
       videoId: 'same', autoStart: true, activeVideoId: null, suppressedVideoId: 'same',
+      guardedVideoId: null,
     })).toBe(false)
   })
 
   it('allows the next different video after a current-video suppression', () => {
     expect(shouldAutoStartVideo({
       videoId: 'next', autoStart: true, activeVideoId: null, suppressedVideoId: 'previous',
+      guardedVideoId: null,
     })).toBe(true)
     expect(shouldAutoStartVideo({
       videoId: null, autoStart: true, activeVideoId: null, suppressedVideoId: null,
+      guardedVideoId: null,
     })).toBe(false)
+  })
+
+  it('does not automatically restart the same guarded video', () => {
+    expect(shouldAutoStartVideo({
+      videoId: 'long',
+      autoStart: true,
+      activeVideoId: null,
+      suppressedVideoId: null,
+      guardedVideoId: 'long',
+    })).toBe(false)
+    expect(shouldAutoStartVideo({
+      videoId: 'next',
+      autoStart: true,
+      activeVideoId: null,
+      suppressedVideoId: null,
+      guardedVideoId: 'long',
+    })).toBe(true)
   })
 })
 

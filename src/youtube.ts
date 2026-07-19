@@ -17,6 +17,19 @@ interface PlayerResponse {
     shortDescription?: string
     defaultLanguage?: string
     defaultAudioLanguage?: string
+    isLive?: boolean
+    isLiveContent?: boolean
+  }
+  microformat?: {
+    playerMicroformatRenderer?: {
+      liveBroadcastDetails?: {
+        isLiveNow?: boolean
+        endTimestamp?: string
+      }
+    }
+  }
+  playabilityStatus?: {
+    liveStreamability?: unknown
   }
   captions?: {
     playerCaptionsTracklistRenderer?: {
@@ -73,6 +86,11 @@ export interface PlayerCaptionData {
   clientVersion?: string
 }
 
+export interface PlaybackFacts {
+  currentLive: boolean
+  durationMs?: number
+}
+
 let videoIdCache: string | null = null
 
 /** Extract the current video ID from the YouTube page URL. */
@@ -107,6 +125,48 @@ function getYouTubePlayer(): YouTubePlayer | null {
 /** Get the native <video> element inside the player. */
 export function getVideoElement(): HTMLVideoElement | null {
   return document.querySelector<HTMLVideoElement>('#movie_player video')
+}
+
+/** Read current-live and finite-duration facts without treating ended replays as live. */
+export function getPlaybackFacts(expectedVideoId: string): PlaybackFacts {
+  const pageWindow = unsafeWindow as typeof unsafeWindow & {
+    ytInitialPlayerResponse?: PlayerResponse
+  }
+  const player = getYouTubePlayer()
+  const responses = [
+    safePlayerCall(() => player?.getPlayerResponse?.()),
+    pageWindow.ytInitialPlayerResponse,
+  ].filter((candidate): candidate is PlayerResponse =>
+    candidate?.videoDetails?.videoId === expectedVideoId,
+  )
+  const rawDurationSeconds = getVideoElement()?.duration
+  const infiniteDuration = rawDurationSeconds === Number.POSITIVE_INFINITY
+  const rawDurationMs = typeof rawDurationSeconds === 'number' &&
+    Number.isFinite(rawDurationSeconds) && rawDurationSeconds >= 0
+    ? rawDurationSeconds * 1000
+    : undefined
+  const durationMs = typeof rawDurationMs === 'number' && Number.isFinite(rawDurationMs)
+    ? rawDurationMs
+    : undefined
+  // YouTube's expando and initial response may each omit different live fields;
+  // merge all same-video facts rather than trusting the first matching object.
+  const ended = responses.some((response) => Boolean(
+    response.microformat?.playerMicroformatRenderer?.liveBroadcastDetails?.endTimestamp,
+  ))
+  const currentLive = !ended && (
+    responses.some((response) =>
+      response.microformat?.playerMicroformatRenderer?.liveBroadcastDetails?.isLiveNow === true,
+    ) ||
+    responses.some((response) => response.videoDetails?.isLive === true) ||
+    infiniteDuration ||
+    responses.some((response) => Boolean(
+      response.playabilityStatus?.liveStreamability && response.videoDetails?.isLiveContent,
+    ))
+  )
+  return {
+    currentLive,
+    ...(durationMs === undefined ? {} : { durationMs }),
+  }
 }
 
 /**

@@ -62,7 +62,7 @@ export interface TranslationPipelineResult {
 export interface TranslationPipelineOptions {
   signal?: AbortSignal
   context?: TranslationContext
-  translation: TranslationSettings
+  translation: Pick<TranslationSettings, 'mode' | 'batchSize'>
   getCurrentTime?: () => number
   onProgress?: (progress: TranslationProgress) => void
   onUsage?: (stage: UsageStage, usage?: RequestUsage) => Promise<void> | void

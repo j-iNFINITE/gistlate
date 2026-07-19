@@ -15,10 +15,16 @@ export interface GitHubConfig {
 
 export type TranslationMode = 'sentence' | 'batch' | 'whole'
 
+export const AUTO_TRANSLATE_LIMIT_MINUTES = [15, 30, 45, 60, 90, 120] as const
+export type AutoTranslateFiniteLimitMinutes = typeof AUTO_TRANSLATE_LIMIT_MINUTES[number]
+export type AutoTranslateLimitMinutes = AutoTranslateFiniteLimitMinutes | null
+
 export interface TranslationSettings {
   mode: TranslationMode
   /** Remembered while another mode is selected. Valid range: 2..32. */
   batchSize: number
+  /** `null` removes the finite-replay limit; current live streams remain guarded. */
+  autoTranslateLimitMinutes: AutoTranslateLimitMinutes
 }
 
 /** Live subtitle overlay styling (driven by CSS custom properties). */
@@ -82,6 +88,7 @@ export const DEFAULTS: Settings = {
   translation: {
     mode: 'sentence',
     batchSize: 8,
+    autoTranslateLimitMinutes: 45,
   },
   // Reproduces the MVP overlay look (see ui/overlay.ts OVERLAY_CSS fallbacks).
   style: {
@@ -211,7 +218,24 @@ export function normalizeTranslationSettings(stored: unknown): TranslationSettin
   return {
     mode,
     batchSize: Math.min(32, Math.max(2, rawBatchSize)),
+    autoTranslateLimitMinutes: autoTranslateLimitOr(
+      value.autoTranslateLimitMinutes,
+      d.autoTranslateLimitMinutes,
+    ),
   }
+}
+
+function autoTranslateLimitOr(
+  value: unknown,
+  fallback: AutoTranslateLimitMinutes,
+): AutoTranslateLimitMinutes {
+  return value === null || isAutoTranslateFiniteLimit(value)
+    ? value
+    : fallback
+}
+
+function isAutoTranslateFiniteLimit(value: unknown): value is AutoTranslateFiniteLimitMinutes {
+  return AUTO_TRANSLATE_LIMIT_MINUTES.some((limit) => limit === value)
 }
 
 /** Backward-compatible style merge from both the old flat and new nested shape. */

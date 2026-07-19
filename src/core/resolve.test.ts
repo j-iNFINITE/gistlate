@@ -37,6 +37,7 @@ import {
   beginUsageOperation,
   finalizeUsageOperation,
 } from '../usage/ledger'
+import { loadSecrets } from '../settings'
 import { resolveTranslation } from './resolve'
 
 const mockGetL1 = vi.mocked(getL1)
@@ -47,6 +48,7 @@ const mockTranslateCues = vi.mocked(translateCues)
 const mockBeginUsageOperation = vi.mocked(beginUsageOperation)
 const mockAppendUsageResponse = vi.mocked(appendUsageResponse)
 const mockFinalizeUsageOperation = vi.mocked(finalizeUsageOperation)
+const mockLoadSecrets = vi.mocked(loadSecrets)
 
 const SOURCE_CUES: Cue[] = [{ s: 0, d: 1000, o: 'hello' }]
 const TRANSLATED_CUES: Cue[] = [{ s: 0, d: 1000, o: 'hello', t: '你好' }]
@@ -85,10 +87,19 @@ describe('resolveTranslation', () => {
   it('returns an L1 hit without reading L2 or translating', async () => {
     mockGetL1.mockResolvedValue(cacheEntry())
 
-    const result = await resolveTranslation('video', 'en', SOURCE_CUES)
+    const beforeFreshTranslation = vi.fn()
+    const result = await resolveTranslation('video', 'en', SOURCE_CUES, {
+      beforeFreshTranslation,
+    })
 
-    expect(result).toEqual({ cues: TRANSLATED_CUES, source: 'l1', artifact: cacheEntry() })
+    expect(result).toEqual({
+      status: 'ready',
+      cues: TRANSLATED_CUES,
+      source: 'l1',
+      artifact: cacheEntry(),
+    })
     expect(mockReadL2).not.toHaveBeenCalled()
+    expect(beforeFreshTranslation).not.toHaveBeenCalled()
     expect(mockTranslateCues).not.toHaveBeenCalled()
     expect(mockBeginUsageOperation).not.toHaveBeenCalled()
   })
@@ -97,7 +108,10 @@ describe('resolveTranslation', () => {
     const entry = cacheEntry()
     mockReadL2.mockResolvedValue(entry)
 
-    const result = await resolveTranslation('video', 'en', SOURCE_CUES)
+    const beforeFreshTranslation = vi.fn()
+    const result = await resolveTranslation('video', 'en', SOURCE_CUES, {
+      beforeFreshTranslation,
+    })
 
     expect(mockGetL1).toHaveBeenCalledWith('video|en|zh-Hans')
     expect(mockReadL2).toHaveBeenCalledWith(
@@ -107,7 +121,13 @@ describe('resolveTranslation', () => {
     expect(mockPutL1).toHaveBeenCalledWith(entry)
     expect(mockTranslateCues).not.toHaveBeenCalled()
     expect(mockBeginUsageOperation).not.toHaveBeenCalled()
-    expect(result).toEqual({ cues: TRANSLATED_CUES, source: 'l2', artifact: entry })
+    expect(beforeFreshTranslation).not.toHaveBeenCalled()
+    expect(result).toEqual({
+      status: 'ready',
+      cues: TRANSLATED_CUES,
+      source: 'l2',
+      artifact: entry,
+    })
   })
 
   it('treats same-key L1/L2 entries from a different source track as misses', async () => {
@@ -119,7 +139,7 @@ describe('resolveTranslation', () => {
 
     expect(mockTranslateCues).toHaveBeenCalledOnce()
     expect(mockPutL1).toHaveBeenCalledWith(expect.objectContaining({ cues: TRANSLATED_CUES }))
-    expect(result.source).toBe('fresh')
+    expect(result).toMatchObject({ status: 'ready', source: 'fresh' })
   })
 
   it('passes manual track kind to the pipeline and records optional source metadata', async () => {
@@ -194,6 +214,7 @@ describe('resolveTranslation', () => {
       undefined,
     )
     expect(result).toMatchObject({
+      status: 'ready',
       cues: TRANSLATED_CUES,
       source: 'fresh',
       artifact: { key: 'video|en|zh-Hans', cues: TRANSLATED_CUES },
@@ -213,10 +234,9 @@ describe('resolveTranslation', () => {
     expect(mockFinalizeUsageOperation).toHaveBeenCalledWith('op-1', 'failed', 'Error')
   })
 
-  it('passes an aborted signal through without writing', async () => {
+  it('rejects an already aborted signal before secrets, usage or translation', async () => {
     const controller = new AbortController()
     controller.abort()
-    mockTranslateCues.mockRejectedValue(new Error('Translation pipeline aborted'))
 
     await expect(
       resolveTranslation('video', 'en', SOURCE_CUES, {
@@ -225,16 +245,73 @@ describe('resolveTranslation', () => {
       }),
     ).rejects.toThrow(/abort/i)
 
-    expect(mockTranslateCues).toHaveBeenCalledWith(
-      SOURCE_CUES,
-      'zh-Hans',
-      expect.any(Object),
-      'sk-test',
-      expect.objectContaining({ signal: controller.signal, context: undefined }),
-    )
+    expect(mockLoadSecrets).not.toHaveBeenCalled()
+    expect(mockBeginUsageOperation).not.toHaveBeenCalled()
+    expect(mockTranslateCues).not.toHaveBeenCalled()
     expect(mockPutL1).not.toHaveBeenCalled()
     expect(mockWriteL2).not.toHaveBeenCalled()
-    expect(mockFinalizeUsageOperation).toHaveBeenCalledWith('op-1', 'aborted', 'Error')
+    expect(mockFinalizeUsageOperation).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    'long-video',
+    'current-live',
+    'user-declined',
+    'settings-opened',
+  ] as const)('returns a typed %s skip with zero billable side effects', async (reason) => {
+    const onTranslating = vi.fn()
+    const beforeFreshTranslation = vi.fn().mockResolvedValue({ action: 'skip', reason })
+
+    const result = await resolveTranslation('video', 'en', SOURCE_CUES, {
+      onTranslating,
+      beforeFreshTranslation,
+    })
+
+    expect(result).toEqual({ status: 'skipped', reason })
+    expect(beforeFreshTranslation).toHaveBeenCalledOnce()
+    expect(onTranslating).not.toHaveBeenCalled()
+    expect(mockLoadSecrets).not.toHaveBeenCalled()
+    expect(mockBeginUsageOperation).not.toHaveBeenCalled()
+    expect(mockTranslateCues).not.toHaveBeenCalled()
+    expect(mockPutL1).not.toHaveBeenCalled()
+    expect(mockWriteL2).not.toHaveBeenCalled()
+    expect(mockFinalizeUsageOperation).not.toHaveBeenCalled()
+  })
+
+  it('runs the preflight in force mode after skipping cache reads', async () => {
+    const beforeFreshTranslation = vi.fn().mockResolvedValue({
+      action: 'skip',
+      reason: 'long-video',
+    })
+
+    const result = await resolveTranslation('video', 'en', SOURCE_CUES, {
+      force: true,
+      beforeFreshTranslation,
+    })
+
+    expect(result).toEqual({ status: 'skipped', reason: 'long-video' })
+    expect(mockGetL1).not.toHaveBeenCalled()
+    expect(mockReadL2).not.toHaveBeenCalled()
+    expect(beforeFreshTranslation).toHaveBeenCalledOnce()
+    expect(mockBeginUsageOperation).not.toHaveBeenCalled()
+    expect(mockTranslateCues).not.toHaveBeenCalled()
+  })
+
+  it('rechecks abort after an awaited preflight and before billable work', async () => {
+    const controller = new AbortController()
+    const beforeFreshTranslation = vi.fn().mockImplementation(async () => {
+      controller.abort()
+      return { action: 'continue' as const }
+    })
+
+    await expect(resolveTranslation('video', 'en', SOURCE_CUES, {
+      signal: controller.signal,
+      beforeFreshTranslation,
+    })).rejects.toThrow(/abort/i)
+
+    expect(mockLoadSecrets).not.toHaveBeenCalled()
+    expect(mockBeginUsageOperation).not.toHaveBeenCalled()
+    expect(mockTranslateCues).not.toHaveBeenCalled()
   })
 
   it('does not write when navigation aborts just as translation completes', async () => {

@@ -1,4 +1,6 @@
 import {
+  AUTO_TRANSLATE_LIMIT_MINUTES,
+  DEFAULTS,
   loadSettings,
   saveSettings,
   loadOpenAIKey,
@@ -159,6 +161,27 @@ export function openSettingsPanel(): void {
   strategySelect.addEventListener('change', updateBatchVisibility)
   updateBatchVisibility()
 
+  const autoLimitSelect = h('select', { id: 'gl-auto-translation-limit' }, [
+    ...AUTO_TRANSLATE_LIMIT_MINUTES.map((minutes) => h('option', {
+      value: String(minutes),
+      textContent: `${minutes} 分钟${minutes === 45 ? '（默认）' : ''}`,
+      selected: settings.translation.autoTranslateLimitMinutes === minutes,
+    })),
+    h('option', {
+      value: 'unlimited',
+      textContent: '不限制有限回放',
+      selected: settings.translation.autoTranslateLimitMinutes === null,
+    }),
+  ])
+  const autoLimitLabel = h('label', {
+    textContent: '自动完整翻译的字幕跨度上限',
+    htmlFor: 'gl-auto-translation-limit',
+  })
+  const autoLimitHint = h('p', {
+    className: 'gl-hint',
+    textContent: '目标语言字幕和已有缓存不受限制；当前直播始终等待直播结束后再完整翻译。',
+  })
+
   const oaiUrlF = labeledInput('Base URL', 'gl-openai-url', 'text', settings.openai.baseUrl, 'https://api.openai.com/v1')
   const oaiModelF = labeledInput('模型', 'gl-openai-model', 'text', settings.openai.model, 'gpt-4o-mini')
   const oaiKeyF = labeledInput('API Key', 'gl-openai-key', 'password', openaiKey, 'sk-...')
@@ -186,6 +209,8 @@ export function openSettingsPanel(): void {
     strategyLabel, strategySelect,
     batchSizeBox,
     strategyHint,
+    autoLimitLabel, autoLimitSelect,
+    autoLimitHint,
 
     h('h3', { textContent: 'OpenAI' }),
     oaiUrlF.label, oaiUrlF.input,
@@ -267,6 +292,11 @@ export function openSettingsPanel(): void {
   cancelBtn.addEventListener('click', () => backdrop.remove())
 
   saveBtn.addEventListener('click', () => {
+    const autoTranslateLimit = autoLimitSelect.value === 'unlimited'
+      ? null
+      : AUTO_TRANSLATE_LIMIT_MINUTES.find(
+          (minutes) => String(minutes) === autoLimitSelect.value,
+        ) ?? DEFAULTS.translation.autoTranslateLimitMinutes
     const newSettings: Settings = {
       tgt: tgtF.input.value || 'zh-Hans',
       displayMode: displaySelect.value as Settings['displayMode'],
@@ -283,6 +313,7 @@ export function openSettingsPanel(): void {
       translation: {
         mode: strategySelect.value as Settings['translation']['mode'],
         batchSize: Math.min(32, Math.max(2, Math.trunc(Number(batchSizeF.input.value) || 8))),
+        autoTranslateLimitMinutes: autoTranslateLimit,
       },
       // Preserve subtitle style — it is edited only in the style panel. Re-read
       // at save time so a style saved there while this modal is open (both can be

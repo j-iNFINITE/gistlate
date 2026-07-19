@@ -77,13 +77,14 @@ function makeButton(id: string): HTMLButtonElement {
 function makeToggleButton(
   id: string,
   active: boolean,
+  inactiveTitle?: string,
   onToggle?: () => void,
 ): HTMLButtonElement {
   const btn = document.createElement('button')
   btn.id = id
   btn.type = 'button'
   btn.textContent = 'GL'
-  updateToggleButton(btn, active)
+  updateToggleButton(btn, active, inactiveTitle)
   btn.addEventListener('click', (event) => {
     event.stopPropagation()
     event.preventDefault()
@@ -92,9 +93,15 @@ function makeToggleButton(
   return btn
 }
 
-function updateToggleButton(button: HTMLButtonElement, active: boolean): void {
+function updateToggleButton(
+  button: HTMLButtonElement,
+  active: boolean,
+  inactiveTitle?: string,
+): void {
   button.setAttribute('aria-pressed', String(active))
-  button.title = active ? '关闭当前视频的 Gistlate 字幕' : '启动当前视频的 Gistlate 字幕'
+  button.title = active
+    ? '关闭当前视频的 Gistlate 字幕'
+    : inactiveTitle || '启动当前视频的 Gistlate 字幕'
 }
 
 function makeTranscriptButton(id: string, onBrowse?: () => void): HTMLButtonElement {
@@ -113,6 +120,7 @@ function makeTranscriptButton(id: string, onBrowse?: () => void): HTMLButtonElem
 
 export interface PlayerButtonOptions {
   active?: boolean
+  inactiveTitle?: string
   onToggle?: () => void
   onBrowse?: () => void
 }
@@ -126,7 +134,9 @@ export function mountStyleButton(options: PlayerButtonOptions = {}): void {
   const active = options.active ?? false
   for (const id of [TOGGLE_ID, TOGGLE_FAB_ID]) {
     const existing = document.getElementById(id)
-    if (existing instanceof HTMLButtonElement) updateToggleButton(existing, active)
+    if (existing instanceof HTMLButtonElement) {
+      updateToggleButton(existing, active, options.inactiveTitle)
+    }
   }
 
   const controls = document.querySelector('.ytp-right-controls')
@@ -141,7 +151,12 @@ export function mountStyleButton(options: PlayerButtonOptions = {}): void {
     document.getElementById(TRANSCRIPT_ID)?.remove()
     try {
       const btn = makeButton(BTN_ID)
-      const toggle = makeToggleButton(TOGGLE_ID, active, options.onToggle)
+      const toggle = makeToggleButton(
+        TOGGLE_ID,
+        active,
+        options.inactiveTitle,
+        options.onToggle,
+      )
       const transcript = makeTranscriptButton(TRANSCRIPT_ID, options.onBrowse)
       const settingsBtn = controls.querySelector('.ytp-settings-button')
       // Insert relative to the settings button *within its own parent* — it is
@@ -179,7 +194,12 @@ export function mountStyleButton(options: PlayerButtonOptions = {}): void {
     document.getElementById(TOGGLE_FAB_ID)?.remove()
     document.getElementById(TRANSCRIPT_FAB_ID)?.remove()
     player.appendChild(makeButton(FAB_ID))
-    player.appendChild(makeToggleButton(TOGGLE_FAB_ID, active, options.onToggle))
+    player.appendChild(makeToggleButton(
+      TOGGLE_FAB_ID,
+      active,
+      options.inactiveTitle,
+      options.onToggle,
+    ))
     player.appendChild(makeTranscriptButton(TRANSCRIPT_FAB_ID, options.onBrowse))
     logState('mounted-fab', 'control bar unavailable, using floating button')
     return

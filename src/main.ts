@@ -20,10 +20,25 @@ import {
   getVideoContext,
   onVideoChange,
   getVideoElement,
+  getPlaybackFacts,
 } from './youtube'
 import { store } from './core/store'
-import { resolveTranslation } from './core/resolve'
+import {
+  resolveTranslation,
+  type TranslationPreflightDecision,
+} from './core/resolve'
 import { deactivatedVideoId, shouldAutoStartVideo } from './core/activation'
+import {
+  classifyRequestRisk,
+  evaluateLongVideoGuard,
+  measureCaptionScale,
+  selectTranslationPreflightAction,
+  shouldRestoreGuardAfterFailure,
+  type CaptionScale,
+  type LongVideoGuardEvaluation,
+  type LongVideoGuardReason,
+  type TranslationActivationIntent,
+} from './core/long-video-guard'
 import { createOverlay, destroyOverlay, type Overlay } from './ui/overlay'
 import { openSettingsPanel } from './ui/settings-panel'
 import { openStylePanel } from './ui/style-panel'
@@ -39,9 +54,17 @@ import {
   showDone,
   showError,
   showAcquisitionError,
+  showLongVideoGuarded,
+  showLiveGuarded,
   hideStatus,
   destroyStatus,
 } from './ui/status'
+import {
+  destroyTranslationGuardDialog,
+  formatDuration,
+  openCurrentLiveNotice,
+  openLongVideoConfirmation,
+} from './ui/translation-guard-dialog'
 import { reconcileStaleUsageOperations } from './usage/ledger'
 
 console.log('[Gistlate] Script loaded on YouTube')
@@ -76,10 +99,24 @@ interface CurrentTrack {
   directTarget: boolean
 }
 
+interface GuardedVideoState {
+  videoId: string
+  reason: LongVideoGuardReason
+  scale: CaptionScale
+}
+
+type GuardedEvaluation = Extract<LongVideoGuardEvaluation, { action: 'guard' }>
+
+interface PreflightOutcome {
+  decision: TranslationPreflightDecision
+  guard?: GuardedEvaluation
+}
+
 let overlay: Overlay | null = null
 let currentTrack: CurrentTrack | null = null
 let activeVideoId: string | null = null
 let suppressedVideoId: string | null = null
+let guardedVideo: GuardedVideoState | null = null
 let translatingVideoId: string | null = null
 let lastCueKey = ''
 let pageVideoId = getVideoId()
@@ -150,6 +187,7 @@ const pollInterval = setInterval(() => {
   }
   mountStyleButton({
     active: Boolean(activeVideoId && activeVideoId === getVideoId()),
+    inactiveTitle: guardedTooltip(getVideoId()),
     onToggle: toggleCurrentVideo,
     onBrowse: openSubtitleBrowserForPage,
   })
@@ -162,7 +200,7 @@ function toggleCurrentVideo(): void {
   if (activeVideoId === videoId) {
     deactivateCurrentVideo('user')
   } else {
-    void activateCurrentVideo(videoId, true)
+    void activateCurrentVideo(videoId, 'manual')
   }
 }
 
@@ -183,11 +221,15 @@ function openSubtitleBrowserForPage(): void {
   })
 }
 
-async function activateCurrentVideo(videoId: string, manual: boolean): Promise<void> {
+async function activateCurrentVideo(
+  videoId: string,
+  intent: Exclude<TranslationActivationIntent, 'force-retranslation'>,
+): Promise<void> {
   if (activeVideoId === videoId) return
   if (getVideoId() !== videoId) return
 
   suppressedVideoId = null
+  guardedVideo = null
   store.reset()
   destroyStatus()
   destroyOverlay()
@@ -199,7 +241,7 @@ async function activateCurrentVideo(videoId: string, manual: boolean): Promise<v
   activeVideoId = videoId
   lastCueKey = ''
   const signal = store.signal
-  console.log(`[Gistlate] ${manual ? 'Manual' : 'Automatic'} start: ${videoId}`)
+  console.log(`[Gistlate] ${intent === 'manual' ? 'Manual' : 'Automatic'} start: ${videoId}`)
 
   try {
     const acquired = await acquireCurrentSubtitles(videoId, loadSettings().tgt, {
@@ -207,7 +249,7 @@ async function activateCurrentVideo(videoId: string, manual: boolean): Promise<v
       onStage: showAcquisitionStage,
     })
     if (signal.aborted || getVideoId() !== videoId || activeVideoId !== videoId) return
-    handleAcquiredTrack(acquired)
+    handleAcquiredTrack(acquired, intent)
   } catch (error) {
     if (signal.aborted) return
     console.warn('[Gistlate] Subtitle acquisition failed:', error)
@@ -235,7 +277,10 @@ function acquisitionMessage(error: unknown): string {
   return '未能获取当前视频字幕'
 }
 
-function handleAcquiredTrack(acquired: AcquiredSubtitles): void {
+function handleAcquiredTrack(
+  acquired: AcquiredSubtitles,
+  intent: Exclude<TranslationActivationIntent, 'force-retranslation'>,
+): void {
   const { selected } = acquired
   const cues = cleanCues(parseTimedtext(acquired.json, { kind: selected.track.kind }))
   if (cues.length === 0) throw new Error('Selected YouTube caption track is empty')
@@ -264,7 +309,7 @@ function handleAcquiredTrack(acquired: AcquiredSubtitles): void {
     showDirectReady()
     return
   }
-  void triggerTranslation(selected.videoId, srcLang, cues, selected, false)
+  void triggerTranslation(selected.videoId, srcLang, cues, selected, intent)
 }
 
 async function triggerTranslation(
@@ -272,8 +317,9 @@ async function triggerTranslation(
   srcLang: string,
   cues: Cue[],
   selected: SelectedCaptionTrack,
-  force: boolean,
+  intent: TranslationActivationIntent,
 ): Promise<void> {
+  const force = intent === 'force-retranslation'
   const liveSettings = loadSettings()
   const tgt = normalizeLang(liveSettings.tgt)
   const src = normalizeLang(srcLang)
@@ -290,6 +336,7 @@ async function triggerTranslation(
   translatingVideoId = videoId
   const signal = store.signal
   overlay?.setDisplayMode(liveSettings.displayMode)
+  let preflightGuard: GuardedEvaluation | undefined
 
   try {
     console.log(`[Gistlate] Resolving translation: ${videoId} ${src}→${tgt}`)
@@ -304,6 +351,17 @@ async function triggerTranslation(
         kind: selected.track.kind,
         vssId: selected.track.vssId,
       },
+      beforeFreshTranslation: async () => {
+        const outcome = await prepareFreshTranslation({
+          videoId,
+          cues,
+          intent,
+          signal,
+          settings: liveSettings,
+        })
+        preflightGuard = outcome.guard
+        return outcome.decision
+      },
       onProgress: (progress) => {
         if (signal.aborted || getVideoId() !== videoId || activeVideoId !== videoId) return
         showProgress(progress)
@@ -311,6 +369,13 @@ async function triggerTranslation(
       },
     })
     if (signal.aborted || getVideoId() !== videoId || activeVideoId !== videoId) return
+    if (result.status === 'skipped') {
+      console.log(`[Gistlate] Translation preflight skipped: ${result.reason}`)
+      if (!force && preflightGuard) {
+        enterGuardedVideo(videoId, preflightGuard, intent === 'automatic')
+      }
+      return
+    }
     console.log(`[Gistlate] Translation ready (${result.source})`)
     if (result.source === 'fresh') showDone()
     else hideStatus()
@@ -320,6 +385,9 @@ async function triggerTranslation(
       console.log('[Gistlate] Translation aborted (video stopped or superseded)')
     } else {
       console.warn('[Gistlate] Translation failed (showing original only):', error)
+      if (shouldRestoreGuardAfterFailure(intent, Boolean(preflightGuard)) && preflightGuard) {
+        enterGuardedVideo(videoId, preflightGuard, false)
+      }
       showError()
     }
   } finally {
@@ -327,9 +395,116 @@ async function triggerTranslation(
   }
 }
 
+async function prepareFreshTranslation(input: {
+  videoId: string
+  cues: Cue[]
+  intent: TranslationActivationIntent
+  signal: AbortSignal
+  settings: ReturnType<typeof loadSettings>
+}): Promise<PreflightOutcome> {
+  const { settings } = input
+  const playback = getPlaybackFacts(input.videoId)
+  const scale = measureCaptionScale(input.cues, playback.durationMs)
+  const evaluation = evaluateLongVideoGuard(
+    scale,
+    playback.currentLive,
+    settings.translation.autoTranslateLimitMinutes,
+  )
+  const action = selectTranslationPreflightAction(input.intent, evaluation)
+  const guard = evaluation.action === 'guard' ? evaluation : undefined
+
+  if (action === 'continue') return { decision: { action: 'continue' } }
+  if (action === 'confirm-force-retranslation') {
+    return window.confirm(
+      '重新翻译会忽略现有缓存、调用当前配置的 LLM，并在完整成功后覆盖本地及 GitHub 翻译。是否继续？',
+    )
+      ? { decision: { action: 'continue' } }
+      : { decision: { action: 'skip', reason: 'user-declined' } }
+  }
+  if (!guard) throw new Error(`Guard action ${action} is missing guard details`)
+  if (action === 'skip-guard') {
+    return {
+      guard,
+      decision: {
+        action: 'skip',
+        reason: guard.reason === 'current-live' ? 'current-live' : 'long-video',
+      },
+    }
+  }
+
+  const details = {
+    title: getVideoContext(input.videoId).title,
+    scale,
+    mode: settings.translation.mode,
+    batchSize: settings.translation.batchSize,
+    risk: classifyRequestRisk(settings.translation.mode, scale),
+    force: input.intent === 'force-retranslation',
+    signal: input.signal,
+  }
+  if (action === 'show-live-notice') {
+    await openCurrentLiveNotice(details)
+    return { guard, decision: { action: 'skip', reason: 'current-live' } }
+  }
+
+  const dialogDecision = await openLongVideoConfirmation(details)
+  if (dialogDecision === 'continue') {
+    return { guard, decision: { action: 'continue' } }
+  }
+  if (dialogDecision === 'settings') {
+    openSettingsPanel()
+    return {
+      guard,
+      decision: { action: 'skip', reason: 'settings-opened' },
+    }
+  }
+  return {
+    guard,
+    decision: { action: 'skip', reason: 'user-declined' },
+  }
+}
+
+function enterGuardedVideo(
+  videoId: string,
+  evaluation: GuardedEvaluation,
+  showAutomaticNotice: boolean,
+): void {
+  store.reset()
+  currentTrack = null
+  activeVideoId = null
+  translatingVideoId = null
+  lastCueKey = ''
+  destroyOverlay()
+  destroyStatus()
+  overlay = null
+  guardedVideo = {
+    videoId,
+    reason: evaluation.reason,
+    scale: evaluation.scale,
+  }
+  if (!showAutomaticNotice) return
+  if (evaluation.reason === 'current-live') showLiveGuarded()
+  else {
+    showLongVideoGuarded(formatDuration(
+      evaluation.scale.spanMs ?? evaluation.scale.playerDurationMs,
+    ))
+  }
+}
+
+function guardedTooltip(videoId: string | null): string | undefined {
+  if (!videoId || guardedVideo?.videoId !== videoId) return undefined
+  return guardedVideo.reason === 'current-live'
+    ? '直播保护：请在直播结束后重试'
+    : '长视频保护：点击手动翻译'
+}
+
 function retranslateCurrentVideo(): void {
   const videoId = getVideoId()
   const track = currentTrack
+  if (videoId && guardedVideo?.videoId === videoId) {
+    if (translatingVideoId === videoId) return
+    void activateCurrentVideo(videoId, 'manual')
+    return
+  }
   if (!videoId || !track || track.videoId !== videoId) {
     window.alert('Gistlate：当前视频尚未取得规范字幕轨道，请先启动 Gistlate 后重试。')
     return
@@ -338,10 +513,13 @@ function retranslateCurrentVideo(): void {
     window.alert('Gistlate：当前视频正在翻译，请完成后再试。')
     return
   }
-  if (!window.confirm(
-    '重新翻译会忽略现有缓存、调用当前配置的 LLM，并在完整成功后覆盖本地及 GitHub 翻译。是否继续？',
-  )) return
-  void triggerTranslation(track.videoId, track.srcLang, track.fragments, track.selected, true)
+  void triggerTranslation(
+    track.videoId,
+    track.srcLang,
+    track.fragments,
+    track.selected,
+    'force-retranslation',
+  )
 }
 
 function deactivateCurrentVideo(
@@ -357,10 +535,12 @@ function deactivateCurrentVideo(
   })
   if (reason === 'user') suppressedVideoId = previousVideoId
   if (reason === 'navigation' && previousVideoId) clearObservedTimedtext(previousVideoId)
+  destroyTranslationGuardDialog()
   store.reset()
   currentTrack = null
   activeVideoId = null
   translatingVideoId = null
+  guardedVideo = null
   lastCueKey = ''
   destroyOverlay()
   destroyStatus()
@@ -373,6 +553,7 @@ onVideoChange(() => {
   pageVideoId = nextVideoId
   if (nextVideoId && nextVideoId === activeVideoId) return
   if (nextVideoId && nextVideoId === suppressedVideoId) return
+  if (nextVideoId && nextVideoId === guardedVideo?.videoId) return
   console.log('[Gistlate] Video changed')
   deactivateCurrentVideo('navigation', previousPageVideoId)
   detachTimeListener()
@@ -382,8 +563,11 @@ onVideoChange(() => {
     autoStart: loadSettings().autoStart,
     activeVideoId,
     suppressedVideoId,
+    guardedVideoId: guardedVideo?.videoId ?? null,
   }
-  if (shouldAutoStartVideo(autoStartState)) void activateCurrentVideo(autoStartState.videoId, false)
+  if (shouldAutoStartVideo(autoStartState)) {
+    void activateCurrentVideo(autoStartState.videoId, 'automatic')
+  }
 })
 
 const initialVideoId = getVideoId()
@@ -392,7 +576,8 @@ const initialAutoStartState = {
   autoStart: initialSettings.autoStart,
   activeVideoId,
   suppressedVideoId,
+  guardedVideoId: null,
 }
 if (shouldAutoStartVideo(initialAutoStartState)) {
-  void activateCurrentVideo(initialAutoStartState.videoId, false)
+  void activateCurrentVideo(initialAutoStartState.videoId, 'automatic')
 }
