@@ -45,6 +45,41 @@ describe('complete sentence plans', () => {
     expect(() => buildSentencePlans(source, [{ startIdx: 0, endIdx: source.length - 1 }]))
       .toThrow(/sentence.*limit|too long/i)
   })
+
+  it('accepts valid long English sentences observed in 5zKyUcKU134', () => {
+    const samples = [
+      {
+        chars: 243,
+        duration: 9760,
+        text: 'Then I have my mid-tier pick, which is this nipper right here sent by Ulie, ' +
+          "which I'd recommend for someone that is confident, they like model kits, but maybe " +
+          'only builds one or two kits a year and maybe likes to take their time when building.',
+      },
+      {
+        chars: 321,
+        duration: 14_000,
+        text: 'These just make your decal life much easier with Mark Setter acting as a wet ' +
+          'adhesive when dried and Mark softer being a solution to make the decals adhere to the ' +
+          'shape of the plastic much easier, which is really useful if you ever have a decal that ' +
+          'needs to go around a corner but refuses to stick on around that corner.',
+      },
+    ]
+
+    for (const { chars, duration, text } of samples) {
+      expect(Array.from(text)).toHaveLength(chars)
+      const words = text.split(' ')
+      const source = words.map((word, index): Cue => {
+        const start = Math.round(index * duration / words.length)
+        const end = Math.round((index + 1) * duration / words.length)
+        return { s: start, d: end - start, o: word }
+      })
+
+      const plans = buildSentencePlans(source, [{ startIdx: 0, endIdx: source.length - 1 }])
+      expect(plans).toHaveLength(1)
+      expect(plans[0].sourceText).toBe(text)
+      expect(plans[0].displayRanges.length).toBeGreaterThan(1)
+    }
+  })
 })
 
 describe('grouping and assembly', () => {

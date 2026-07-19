@@ -60,7 +60,10 @@ export interface PlanGroup {
 }
 
 const MAX_SENTENCE_DURATION_MS = 30_000
-const MAX_SENTENCE_CODE_POINTS = 240
+// Fast English narration can produce valid 300+ character single sentences
+// well inside the duration/terminal-mark guards (5zKyUcKU134 reaches 321).
+// Keep an emergency size cap for collapsed timing without rejecting that case.
+const MAX_SENTENCE_CODE_POINTS = 480
 const MAX_INTERNAL_SENTENCE_MARKS = 3
 
 export function buildSentencePlans(
