@@ -19,8 +19,8 @@
   YouTube page, but its security policy blocked direct automation of the
   Tampermonkey extension page; no extension storage, cookies or secrets were
   inspected and no workaround was attempted.
-- Step 8 code-spec updates are complete. Feature/spec commits and normal Git
-  push are the remaining execution actions.
+- Step 8 is complete: feature/spec commits `84d3431` and `73d29db` passed the
+  final gate and were pushed to `origin/master`.
 
 ## Step 1 — Settings and pure guard policy
 
