@@ -224,3 +224,38 @@ Added a 45-minute configurable fresh-miss guard after L1/L2 and before usage/pro
 ### Next Steps
 
 - None - task complete
+
+
+## Session 7: Recover YouTube ASR boundaries and runtime version logging
+
+**Date**: 2026-07-19
+**Task**: Recover YouTube ASR boundaries and runtime version logging
+**Branch**: `master`
+
+### Summary
+
+Logged the injected Tampermonkey version, preserved natural ASR cue ends across long silence, recovered punctuation inside coarse ASR events, added parser/planning regressions, updated executable specs, and released v0.2.17.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d756273` | (see git log) |
+| `61627dd` | (see git log) |
+| `a7be3d6` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
