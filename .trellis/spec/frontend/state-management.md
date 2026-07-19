@@ -20,6 +20,9 @@ A single `Store` instance (`src/core/store.ts`) holds:
 - `translatingVideoId` — in-flight state only; cleared in `finally`
 - `activeVideoId` / `suppressedVideoId` — current-video activation and manual
   auto-restart suppression; suppression is cleared on the next different video
+- `guardedVideo {videoId,reason,scale}` — memory-only long/live identity used to
+  suppress repeated auto-start and expose the inactive GL tooltip; it contains
+  no reusable translation authorization
 
 Do not derive `CurrentTrack` from `store.subtitle` after translation: Store cues
 have already been reconstructed into sentence/display ranges and no longer
@@ -57,7 +60,16 @@ On SPA navigation or new subtitle track, call `store.reset()` to:
 - `AbortSignal` (via `store.signal`) is passed to all async operations
 - Explicit retranslation does not call `store.reset()` and does not clear current
   cues. It replaces Store state only after full success.
+- A guarded fresh activation resets Store, clears `CurrentTrack`/`activeVideoId`,
+  destroys the overlay and reveals YouTube native captions only after
+  `resolveTranslation` returns a typed skip. A force-preflight decline keeps the
+  existing Store/overlay intact.
+- A manually confirmed new long-video attempt that fails returns to the same
+  guarded/native-caption state. Force failure retains the completed old result.
 - Clear `CurrentTrack` and in-flight state on genuine video navigation.
+- Clear `guardedVideo` and any pending guard dialog on genuine navigation. The
+  next video follows ordinary `autoStart`; the same guarded video does not
+  auto-restart from duplicate YouTube events.
 - Acquiring/translation share the Store AbortSignal. Current-video disable calls
   `store.reset()`, destroys overlay/status, restores native captions, and leaves
   completed caches/usage history untouched.

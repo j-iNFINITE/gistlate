@@ -418,11 +418,7 @@ interface ResolveOptions {
   getCurrentTime?: () => number
 }
 
-resolveTranslation(videoId, srcLang, sourceFragments, options?): Promise<{
-  cues: Cue[]
-  source: 'l1' | 'l2' | 'fresh'
-  artifact: CacheEntry
-}>
+resolveTranslation(videoId, srcLang, sourceFragments, options?): Promise<ResolveResult>
 
 capSentenceRanges(sourceFragments, sentenceRanges): SentenceRange[]
 ```
@@ -693,11 +689,7 @@ interface SubtitleState {
   artifact?: CacheEntry
 }
 
-resolveTranslation(...): Promise<{
-  cues: Cue[]
-  source: 'l1' | 'l2' | 'fresh'
-  artifact: CacheEntry
-}>
+resolveTranslation(...): Promise<ResolveResult>
 
 listL1(): Promise<CacheEntry[]>
 filterTranscriptCues(cues: Cue[], query: string): Array<{ index: number; cue: Cue }>
@@ -894,4 +886,192 @@ git add <task-files>
 git commit -m "feat: ..."
 git push origin master
 # Then verify the Actions-built release asset, not only its numeric version.
+```
+
+## Scenario: long-video translation budget guard
+
+### 1. Scope / Trigger
+
+Use this contract whenever automatic/full-video activation, cache resolution,
+usage-operation creation, current-live detection, or explicit retranslation is
+changed. It prevents opening a multi-hour replay from silently starting billable
+DeepSeek work while preserving zero-provider-cost target tracks and artifacts.
+
+### 2. Signatures
+
+```ts
+const AUTO_TRANSLATE_LIMIT_MINUTES = [15, 30, 45, 60, 90, 120] as const
+type AutoTranslateLimitMinutes = typeof AUTO_TRANSLATE_LIMIT_MINUTES[number] | null
+
+interface TranslationSettings {
+  mode: 'sentence' | 'batch' | 'whole'
+  batchSize: number
+  autoTranslateLimitMinutes: AutoTranslateLimitMinutes // default 45
+}
+
+interface PlaybackFacts {
+  currentLive: boolean
+  durationMs?: number
+}
+
+interface CaptionScale {
+  spanMs: number | null
+  cueCount: number
+  sourceCodePoints: number
+  playerDurationMs?: number
+}
+
+type TranslationActivationIntent = 'automatic' | 'manual' | 'force-retranslation'
+type TranslationPreflightDecision =
+  | { action: 'continue' }
+  | {
+      action: 'skip'
+      reason: 'long-video' | 'current-live' | 'user-declined' | 'settings-opened'
+    }
+
+type ResolveResult =
+  | { status: 'ready'; cues: Cue[]; source: 'l1' | 'l2' | 'fresh'; artifact: CacheEntry }
+  | { status: 'skipped'; reason: TranslationPreflightDecision['reason'] }
+
+interface ResolveOptions {
+  // existing signal/force/context/progress/track fields
+  beforeFreshTranslation?: () => Promise<TranslationPreflightDecision>
+}
+```
+
+### 3. Contracts
+
+- The immutable cost-safety order is: canonical caption acquisition -> direct
+  target display -> compatible L1 -> compatible L2 -> fresh preflight ->
+  `onTranslating`/secret loading -> usage operation -> provider pipeline ->
+  complete artifact. Never move the guard before cache reads or after ledger
+  creation.
+- A preflight skip is typed control flow, not an exception. It creates zero
+  boundary/translation/alignment calls, zero usage operation and zero artifact
+  writes. `main.ts` must not display the translation-failure state for a skip.
+- Measure cleaned captions from the first finite non-negative cue start to the
+  last finite cue end. Count Unicode code points in each `cue.o` without adding
+  separators. Use finite player duration only when caption span is unavailable;
+  do not take the maximum because silent video time adds no input tokens.
+- Guard a finite replay only when the effective span is strictly greater than
+  the configured limit. Exact equality is allowed. `null` means unlimited
+  finite replays, never unlimited current-live translation.
+- Merge live metadata from every same-video player/initial response. A live-now
+  flag, current-live flag, infinite native duration, or same-video
+  live-streamability is evidence; `isLiveContent` alone is not. Any same-video
+  end timestamp makes finite replay semantics win. `NaN` duration alone is not
+  live evidence.
+- Automatic long/live work skips without a modal. Manual finite-long work uses
+  one explicit confirmation. Current live manual/force work has an
+  information-only dialog with no continue action. Ordinary force work retains
+  its existing confirmation.
+- The finite-long dialog shows exact span/cue/source scale, current strategy and
+  qualitative low/medium/high request risk. It shows neither CNY nor numeric
+  request estimates. Opening settings is a skip; saving does not auto-retry.
+- Confirmation authorizes only the current provider operation. Never persist an
+  allow flag. Failure, abort, navigation and every force retry require a new
+  confirmation; a later compatible cache hit remains prompt-free.
+- A guarded fresh activation resets Store and `CurrentTrack`, destroys the
+  Gistlate overlay, reveals YouTube's already enabled/currently selected native
+  captions, leaves GL inactive and suppresses repeated auto-start for that video.
+  Its status auto-hides after eight seconds while the GL tooltip remains.
+- A manually confirmed new long-video failure returns to guarded/native display
+  so one GL click starts the next confirmed attempt. A force decline/failure
+  preserves the old completed Store/overlay.
+- Build the modal only with `createElement`, `textContent` and static imports.
+  Escape/backdrop/abort cancel; Enter never confirms the expensive action.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+|---|---|
+| Target-language canonical track | Display directly; no cache/preflight/provider/ledger |
+| Compatible L1 or L2 on a long/live video | Return `status: ready`; no preflight/prompt/new cost |
+| Finite span below or exactly at limit | Ordinary fresh translation |
+| Finite span greater than limit, automatic | Typed skip; native captions; 8s notice; guarded GL |
+| Finite span greater than limit, manual | Cancel/settings/one-operation continue dialog |
+| Finite replay with limit `null` | Ordinary fresh translation |
+| Current live with any finite-limit setting or `null` | Automatic typed skip; manual/force has no continue |
+| Ended live response retains `isLiveContent` | Treat as finite when same-video end metadata exists |
+| Temporarily unknown/`NaN` duration without live metadata | Do not classify live |
+| Preflight cancelled or settings opened | Zero secret/ledger/provider/cache-write calls |
+| Navigation while dialog awaits | Abort/settle skip; clear dialog/guard/title; zero provider |
+| Confirmed new long-video failure | Show failure briefly, restore guarded native state |
+| Force cancel/failure | Keep old complete Store/overlay and artifact |
+| Later retry | Require a new confirmation; never reuse prior authority |
+
+### 5. Good / Base / Bad Cases
+
+- **Good:** three-hour replay -> direct/L1/L2 miss -> automatic preflight skip ->
+  native captions visible, no usage row -> GL -> reacquire/recheck cache -> one
+  confirmation -> one existing full-video pipeline operation.
+- **Good:** current live with `autoTranslateLimitMinutes: null` -> no automatic
+  operation and no manual continue; after it ends, the next GL reacquires facts
+  and evaluates the finite replay normally.
+- **Base:** 28-minute ordinary fresh miss -> preflight returns continue and the
+  existing progressive pipeline/usage/artifact behavior is unchanged.
+- **Bad:** test duration before L1/L2. A long video with a free shared artifact
+  is needlessly hidden and prompted.
+- **Bad:** create `beginUsageOperation` before asking. A cancellation becomes a
+  false attempt and weakens the zero-cost guarantee.
+- **Bad:** remember `confirmedVideoId`. A single click can authorize repeated
+  billed failures/retries.
+- **Bad:** on force cancel call `store.reset()`. The viewer loses the valid old
+  translation even though no replacement was attempted.
+
+### 6. Tests Required
+
+- Settings tests accept only the six finite choices plus `null`, default old and
+  malformed settings to 45, and prove whole-object panel saves keep the field.
+- Pure scale tests cover Unicode code points, non-zero first cue, invalid timing,
+  player fallback, strict `>` threshold, unlimited finite and live precedence.
+- Intent-matrix tests cover every automatic/manual/force × allow/long/live
+  combination and long-new failure restoration versus force preservation.
+- YouTube adapter tests cover live-now, infinite duration, ended replay, stale
+  video IDs, `NaN` duration and split same-video metadata where end wins.
+- Resolve tests assert L1/L2 never call preflight and every skip reason/force
+  path calls neither secrets, `onTranslating`, ledger, provider nor cache writes.
+  Abort after awaited preflight must also precede all billable work.
+- Presentation tests cover duration/strategy formatting. Installed-user tests
+  cover native caption restoration, 8s notice, GL tooltip, no-live-continue,
+  settings/cancel/continue, force preservation and SPA cleanup.
+- Production remains one IIFE with zero SystemJS/dynamic import/HTML sinks.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```ts
+// Hides free artifacts and creates a ledger row even if the user cancels.
+if (captionSpanMs > limitMs && !window.confirm('Continue?')) throw new Error('cancelled')
+const operation = await beginUsageOperation(...)
+const cached = await getL1(key)
+```
+
+```ts
+// A current-live authorization persists and can bill later retries.
+confirmedVideoId = videoId
+```
+
+#### Correct
+
+```ts
+const l1 = await getCompatibleL1(...)
+if (l1) return { status: 'ready', source: 'l1', cues: l1.cues, artifact: l1 }
+const l2 = await getCompatibleL2(...)
+if (l2) return { status: 'ready', source: 'l2', cues: l2.cues, artifact: l2 }
+
+const decision = await options.beforeFreshTranslation?.()
+if (decision?.action === 'skip') {
+  return { status: 'skipped', reason: decision.reason }
+}
+
+const operation = await beginUsageOperation(...) // only now
+```
+
+```ts
+// Authority is represented only by this callback result and is consumed now.
+return userClickedContinue
+  ? { action: 'continue' }
+  : { action: 'skip', reason: 'user-declined' }
 ```

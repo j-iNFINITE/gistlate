@@ -40,6 +40,7 @@ src/
     source.ts            # Source text/timeline compatibility for safe cache hits
   core/
     activation.ts        # Pure current-video auto-start/suppression policy
+    long-video-guard.ts  # Pure caption scale/live-limit/request-risk/intent policy
     store.ts             # Singleton Store: cues, currentTime, abort, subscribe
     resolve.ts           # L1→L2→translate→write orchestration
   ui/
@@ -49,6 +50,7 @@ src/
     style-button.ts      # Re-injectable player Aa button
     status.ts            # Fresh/retranslation status pill
     subtitle-browser.ts  # Current transcript + local L1 library + SRT UI
+    translation-guard-dialog.ts # Trusted Types-safe long/live confirmation UI
 ```
 
 Only `src/main.ts` is the entry. All other modules are imported transitively.
