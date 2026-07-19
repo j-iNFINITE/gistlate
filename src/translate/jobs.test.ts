@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Cue } from '../subtitles/timedtext'
+import { parseTimedtext, type Cue } from '../subtitles/timedtext'
 import {
   assembleJobs,
   buildSentencePlans,
@@ -9,6 +9,7 @@ import {
   groupPlans,
   selectNextTimedGroupIndex,
 } from './jobs'
+import { groupByBoundaries } from './segment'
 
 function fragments(count: number): Cue[] {
   return Array.from({ length: count }, (_, index) => ({
@@ -79,6 +80,33 @@ describe('complete sentence plans', () => {
       expect(plans[0].sourceText).toBe(text)
       expect(plans[0].displayRanges.length).toBeGreaterThan(1)
     }
+  })
+
+  it('accepts a short punctuated ASR sentence before a long silence', () => {
+    const source = parseTimedtext({
+      events: [
+        {
+          tStartMs: 0,
+          dDurationMs: 2500,
+          segs: [
+            { utf8: 'A ', tOffsetMs: 0 },
+            { utf8: '32-character ', tOffsetMs: 500 },
+            { utf8: 'sentence ends.', tOffsetMs: 1000 },
+          ],
+        },
+        {
+          tStartMs: 38_320,
+          dDurationMs: 2000,
+          segs: [
+            { utf8: 'Speech ', tOffsetMs: 0 },
+            { utf8: 'resumes.', tOffsetMs: 700 },
+          ],
+        },
+      ],
+    }, { kind: 'asr' })
+    const flags = source.map((cue) => cue.sentenceEnd === true)
+
+    expect(() => buildSentencePlans(source, groupByBoundaries(flags))).not.toThrow()
   })
 })
 

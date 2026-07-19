@@ -88,13 +88,32 @@ export function parseTimedtext(
   if (!events || events.length === 0) return []
 
   if (options.kind !== 'manual' && hasUsableWordTiming(events)) return parseWordTimedEvents(events)
+  if (options.kind === 'asr' && hasRecoverableSentenceMarks(events)) {
+    return parseCoarseAsrEvents(events)
+  }
 
   return parseLegacyEvents(events)
 }
 
 /** Keep the established manual-caption and untimed-ASR behavior unchanged. */
 function parseLegacyEvents(events: TimedtextEvent[]): Cue[] {
-  // First pass: join aAppend continuations and wWinId windows
+  const merged = mergeLegacyEvents(events)
+
+  // Second pass: build cues
+  const cues: Cue[] = []
+  for (const ev of merged) {
+    const text = eventText(ev)
+    if (!text) continue
+
+    const duration = ev.dDurationMs ?? estimateDuration(merged, ev)
+    cues.push({ s: ev.tStartMs, d: duration, o: text })
+  }
+
+  return cues
+}
+
+/** Join the continuation events shared by legacy and coarse-ASR adapters. */
+function mergeLegacyEvents(events: TimedtextEvent[]): TimedtextEvent[] {
   const merged: TimedtextEvent[] = []
   for (const ev of events) {
     // Skip pure window continuation events with no text content
@@ -109,25 +128,62 @@ function parseLegacyEvents(events: TimedtextEvent[]): Cue[] {
       merged.push({ ...ev, segs: [...(ev.segs ?? [])] })
     }
   }
+  return merged
+}
 
-  // Second pass: build cues
-  const cues: Cue[] = []
-  for (const ev of merged) {
-    const text = (ev.segs ?? [])
-      .map((s) => s.utf8)
-      .join('')
-      .trim()
+function eventText(event: TimedtextEvent): string {
+  return (event.segs ?? [])
+    .map((segment) => segment.utf8)
+    .join('')
+    .trim()
+}
+
+/**
+ * A coarse ASR event can contain several punctuated sentences even when it has
+ * no usable word offsets. Split those explicit boundaries before the cue-level
+ * E/C contract makes them inexpressible.
+ */
+function parseCoarseAsrEvents(events: TimedtextEvent[]): Cue[] {
+  const merged = mergeLegacyEvents(events)
+  const fragments: TimedFragment[] = []
+
+  for (const event of merged) {
+    const text = eventText(event)
     if (!text) continue
+    const codePoints = Array.from(text)
+    const duration = Math.max(1, event.dDurationMs ?? estimateDuration(merged, event))
+    let fragmentStartIndex = 0
 
-    const duration = ev.dDurationMs ?? estimateDuration(merged, ev)
-    cues.push({ s: ev.tStartMs, d: duration, o: text })
+    const appendFragment = (endIndex: number, sentenceEnd: boolean): void => {
+      const fragmentText = codePoints.slice(fragmentStartIndex, endIndex).join('').trim()
+      if (fragmentText) {
+        const start = event.tStartMs + Math.round(
+          duration * (fragmentStartIndex / codePoints.length),
+        )
+        const end = event.tStartMs + Math.round(duration * (endIndex / codePoints.length))
+        fragments.push({
+          s: start,
+          e: Math.max(start + 1, end),
+          o: fragmentText,
+          sentenceEnd,
+        })
+      }
+      fragmentStartIndex = endIndex
+    }
+
+    for (let index = 0; index < codePoints.length; index++) {
+      if (isSentenceBreak(codePoints, index)) appendFragment(index + 1, true)
+    }
+    appendFragment(codePoints.length, false)
   }
 
-  return cues
+  return timedFragmentsToCues(fragments)
 }
 
 interface TimedFragment {
   s: number
+  /** Exclusive natural speech end; a later event may begin after a real gap. */
+  e: number
   o: string
   sentenceEnd: boolean
 }
@@ -156,13 +212,19 @@ function hasUsableWordTiming(events: TimedtextEvent[]): boolean {
     timedSegments / visibleSegments >= WORD_TIMING_MIN_RATIO
 }
 
+function hasRecoverableSentenceMarks(events: TimedtextEvent[]): boolean {
+  return events.some((event) => {
+    const codePoints = Array.from(eventText(event))
+    return codePoints.some((_, index) => isSentenceBreak(codePoints, index))
+  })
+}
+
 /**
  * Recover Google ASR sentence boundaries without asking the model to infer
  * boundaries that already exist in the timed punctuation stream.
  */
 function parseWordTimedEvents(events: TimedtextEvent[]): Cue[] {
   const fragments: TimedFragment[] = []
-  let trackEnd = 0
 
   for (let eventIndex = 0; eventIndex < events.length; eventIndex++) {
     const event = events[eventIndex]
@@ -170,17 +232,28 @@ function parseWordTimedEvents(events: TimedtextEvent[]): Cue[] {
     const visibleText = segments.map((segment) => segment.utf8).join('')
     if (!hasVisibleText(visibleText)) continue
 
-    const eventEnd = event.tStartMs + (event.dDurationMs ?? 4000)
     const nextEventStart = findNextVisibleEventStart(events, eventIndex)
-    trackEnd = Math.max(trackEnd, eventEnd)
+    const reportedEventEnd = event.tStartMs + (event.dDurationMs ?? 4000)
+    const eventEnd = Math.max(
+      event.tStartMs + 1,
+      nextEventStart === undefined
+        ? reportedEventEnd
+        : Math.min(reportedEventEnd, nextEventStart),
+    )
     const offsets = inferOffsets(segments)
     let fragmentText = ''
     let fragmentStart: number | undefined
+    let fragmentEnd = eventEnd
 
-    const appendFragment = (sentenceEnd: boolean): void => {
+    const appendFragment = (sentenceEnd: boolean, end: number): void => {
       const text = fragmentText.trim()
       if (text && fragmentStart !== undefined) {
-        fragments.push({ s: fragmentStart, o: text, sentenceEnd })
+        fragments.push({
+          s: fragmentStart,
+          e: Math.max(fragmentStart + 1, end),
+          o: text,
+          sentenceEnd,
+        })
       }
       fragmentText = ''
       fragmentStart = undefined
@@ -202,9 +275,10 @@ function parseWordTimedEvents(events: TimedtextEvent[]): Cue[] {
       const tokenEnd = Math.max(
         tokenStart + 1,
         nextOffset === undefined
-          ? (nextEventStart ?? eventEnd)
+          ? eventEnd
           : event.tStartMs + nextOffset,
       )
+      fragmentEnd = tokenEnd
 
       // Google sometimes emits the full stop as the first token of the next
       // event. It closes the preceding fragment and must not start a new cue.
@@ -213,6 +287,7 @@ function parseWordTimedEvents(events: TimedtextEvent[]): Cue[] {
         const previous = fragments[fragments.length - 1]
         if (leadingMarks) {
           previous.o += leadingMarks
+          previous.e = Math.max(previous.e, tokenEnd)
           previous.sentenceEnd = true
           text = text.slice(leadingMarks.length)
           if (!text) continue
@@ -225,16 +300,18 @@ function parseWordTimedEvents(events: TimedtextEvent[]): Cue[] {
         const char = codePoints[charIndex]
         fragmentText += char
         if (isSentenceBreak(codePoints, charIndex)) {
-          appendFragment(true)
+          const boundaryEnd = charIndex < codePoints.length - 1
+            ? tokenStart + Math.round(
+              (tokenEnd - tokenStart) * ((charIndex + 1) / codePoints.length),
+            )
+            : tokenEnd
+          appendFragment(true, boundaryEnd)
           if (charIndex < codePoints.length - 1) {
             // A rare Google ASR segment can contain several complete sentences
             // but expose only one token offset. Allocate the internal boundary
             // over this token's known time window by Unicode character position
             // instead of collapsing every sentence into a 1 ms cue.
-            const proportionalStart = tokenStart + Math.round(
-              (tokenEnd - tokenStart) * ((charIndex + 1) / codePoints.length),
-            )
-            fragmentStart = Math.max(tokenStart + 1, proportionalStart)
+            fragmentStart = Math.max(tokenStart + 1, boundaryEnd)
           }
         }
       }
@@ -242,21 +319,26 @@ function parseWordTimedEvents(events: TimedtextEvent[]): Cue[] {
 
     // Event boundaries remain legal display boundaries even when the sentence
     // continues into the next event.
-    appendFragment(false)
+    appendFragment(false, fragmentEnd)
   }
 
+  return timedFragmentsToCues(fragments)
+}
+
+function timedFragmentsToCues(fragments: TimedFragment[]): Cue[] {
   if (fragments.length === 0) return []
   fragments[fragments.length - 1].sentenceEnd = true
 
-  // Enforce a strictly increasing, gap-free timed sequence. JSON3 offsets are
-  // normally monotonic, but this also makes malformed equal offsets harmless.
+  // Enforce a strictly increasing, non-overlapping sequence. Preserve a real
+  // gap instead of stretching the preceding spoken fragment across silence.
   for (let index = 1; index < fragments.length; index++) {
     fragments[index].s = Math.max(fragments[index].s, fragments[index - 1].s + 1)
   }
 
   return fragments.map((fragment, index): Cue => {
     const nextStart = fragments[index + 1]?.s
-    const end = nextStart ?? Math.max(trackEnd, fragment.s + 1)
+    const naturalEnd = Math.max(fragment.e, fragment.s + 1)
+    const end = nextStart === undefined ? naturalEnd : Math.min(naturalEnd, nextStart)
     return {
       s: fragment.s,
       d: Math.max(1, end - fragment.s),

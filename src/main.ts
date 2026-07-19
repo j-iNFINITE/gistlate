@@ -1,5 +1,5 @@
 /// <reference types="vite-plugin-monkey/client" />
-import { GM_registerMenuCommand } from '$'
+import { GM_info, GM_registerMenuCommand } from '$'
 import { loadSettings } from './settings'
 import { clearObservedTimedtext, interceptTimedtext } from './intercept/netHook'
 import {
@@ -67,7 +67,7 @@ import {
 } from './ui/translation-guard-dialog'
 import { reconcileStaleUsageOperations } from './usage/ledger'
 
-console.log('[Gistlate] Script loaded on YouTube')
+console.log(`[Gistlate] Script v${GM_info.script.version} loaded on YouTube`)
 
 void reconcileStaleUsageOperations().catch((error) => {
   console.warn('[Gistlate] Could not reconcile stale usage operations', error)

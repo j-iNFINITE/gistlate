@@ -177,6 +177,78 @@ describe('parseTimedtext', () => {
     expect(cues).toEqual([{ s: 0, d: 1000, o: 'One manual line.' }])
   })
 
+  it('recovers internal punctuation when a coarse track is explicitly ASR', () => {
+    const response: GetTimedtextResp = {
+      events: [
+        {
+          tStartMs: 0,
+          dDurationMs: 9000,
+          segs: [{
+            utf8: "How can budget tools help? Well, I'm not going to lie. You could just give",
+          }],
+        },
+        {
+          tStartMs: 9000,
+          dDurationMs: 3000,
+          segs: [{ utf8: " it a better pose and it'll look better." }],
+        },
+      ],
+    }
+
+    const cues = parseTimedtext(response, { kind: 'asr' })
+
+    expect(cues.map((cue) => cue.o)).toEqual([
+      'How can budget tools help?',
+      "Well, I'm not going to lie.",
+      'You could just give',
+      "it a better pose and it'll look better.",
+    ])
+    expect(cues.map((cue) => cue.sentenceEnd)).toEqual([true, true, false, true])
+    expect(cues.every((cue) => cue.d > 1000)).toBe(true)
+    expect(cues.every((cue, index) => index === 0 || cue.s >= cues[index - 1].s + cues[index - 1].d))
+      .toBe(true)
+
+    expect(parseTimedtext(response)).toEqual([
+      {
+        s: 0,
+        d: 9000,
+        o: "How can budget tools help? Well, I'm not going to lie. You could just give",
+      },
+      { s: 9000, d: 3000, o: "it a better pose and it'll look better." },
+    ])
+    expect(parseTimedtext(response, { kind: 'manual' })).toEqual(parseTimedtext(response))
+  })
+
+  it('does not stretch a word-timed sentence across a long silence', () => {
+    const cues = parseTimedtext({
+      events: [
+        {
+          tStartMs: 0,
+          dDurationMs: 2500,
+          segs: [
+            { utf8: 'A ', tOffsetMs: 0 },
+            { utf8: 'short ', tOffsetMs: 500 },
+            { utf8: 'sentence.', tOffsetMs: 1000 },
+          ],
+        },
+        {
+          tStartMs: 38_320,
+          dDurationMs: 2000,
+          segs: [
+            { utf8: 'Speech ', tOffsetMs: 0 },
+            { utf8: 'resumes.', tOffsetMs: 700 },
+          ],
+        },
+      ],
+    }, { kind: 'asr' })
+
+    expect(cues).toEqual([
+      { s: 0, d: 2500, o: 'A short sentence.', sentenceEnd: true },
+      { s: 38_320, d: 2000, o: 'Speech resumes.', sentenceEnd: true },
+    ])
+    expect(cues[0].s + cues[0].d).toBeLessThan(cues[1].s)
+  })
+
   it('produces consecutive cues with non-zero durations', () => {
     const cues = parseTimedtext(wrappedResponse)
     expect(cues).toHaveLength(2)
@@ -249,7 +321,7 @@ describe('parseTimedtext', () => {
     expect(cues.every((cue) => cue.sentenceEnd)).toBe(true)
   })
 
-  it('distributes sentence starts inside one untimed Google segment', () => {
+  it('distributes packed sentence starts inside the event and preserves later silence', () => {
     const cues = parseTimedtext({
       events: [
         {
@@ -282,9 +354,10 @@ describe('parseTimedtext', () => {
       '最後です。',
       '続き。',
     ])
-    expect(cues.slice(1, 4).map((cue) => cue.s)).toEqual([1000, 3000, 5333])
-    expect(cues.slice(1, 4).every((cue) => cue.d > 1000)).toBe(true)
-    expect(cues[3].s + cues[3].d).toBe(7000)
+    expect(cues.slice(1, 4).map((cue) => cue.s)).toEqual([1000, 2000, 3167])
+    expect(cues.slice(1, 4).every((cue) => cue.d >= 800)).toBe(true)
+    expect(cues[3].s + cues[3].d).toBe(4000)
+    expect(cues[3].s + cues[3].d).toBeLessThan(cues[4].s)
   })
 })
 
