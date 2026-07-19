@@ -190,3 +190,37 @@ Added bounded YouTube title/description context, safe explicit force retranslati
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: Long-video translation budget guard
+
+**Date**: 2026-07-19
+**Task**: Long-video translation budget guard
+**Branch**: `master`
+
+### Summary
+
+Added a 45-minute configurable fresh-miss guard after L1/L2 and before usage/provider work; current live streams cannot be fully overridden, finite long replays use single-operation confirmation, native captions restore on guard, and settings/UI/playback/resolve contracts are covered by 266 tests and executable frontend specs.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `84d3431` | (see git log) |
+| `73d29db` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
