@@ -1,0 +1,3247 @@
+{
+  "key": "5zKyUcKU134|en|zh-Hans",
+  "videoId": "5zKyUcKU134",
+  "src": "en",
+  "tgt": "zh-Hans",
+  "model": "deepseek-v4-flash",
+  "cues": [
+    {
+      "s": 240,
+      "d": 4880,
+      "o": "How can we get our Gumpla from looking like a toy to an actual model kit with budget tools and supplies?",
+      "t": "我们怎样才能用预算有限的工具和耗材，让高达模型从玩具模样变成真正的模型套件？"
+    },
+    {
+      "s": 5120,
+      "d": 1040,
+      "o": "Well, I'm not going to lie to you.",
+      "t": "好吧，我不想骗你。"
+    },
+    {
+      "s": 6160,
+      "d": 2320,
+      "o": "You could just give it a better pose and it'll look a lot better.",
+      "t": "你其实只要给它摆个更好的姿势，它看起来就会好很多。"
+    },
+    {
+      "s": 8480,
+      "d": 4880,
+      "o": "But we're here to discuss what are the essential tools for Gumpla that you need to upgrade any Gumla on a budget.",
+      "t": "但我们今天要讨论的是，在预算有限的情况下，升级任何高达模型所必需的工具。"
+    },
+    {
+      "s": 13360,
+      "d": 4720,
+      "o": "We will even test some of the more expensive options to see if paying for better tools will actually yield better results.",
+      "t": "我们甚至会测试一些更昂贵的选择，看看为更好的工具付费是否真的能带来更好的效果。"
+    },
+    {
+      "s": 18080,
+      "d": 3520,
+      "o": "And if you're a more experienced builder, I'm sure you'll still find something of value in here.",
+      "t": "如果你是一位更有经验的制作者，我相信你仍能在这里找到有价值的内容。"
+    },
+    {
+      "s": 21600,
+      "d": 800,
+      "o": "So stay tuned.",
+      "t": "敬请期待。"
+    },
+    {
+      "s": 22400,
+      "d": 1119,
+      "o": "Anyway, let's get started.",
+      "t": "好了，我们开始吧。"
+    },
+    {
+      "s": 23519,
+      "d": 3201,
+      "o": "All right, we're going to start by shopping for these tools and then just test them out.",
+      "t": "好了，我们先去买这些工具，然后直接测试一下。"
+    },
+    {
+      "s": 26720,
+      "d": 2000,
+      "o": "But this is basically what I suggest to buy here.",
+      "t": "但这就是我建议在这里购买的东西。"
+    },
+    {
+      "s": 28720,
+      "d": 5120,
+      "o": "Now, easily the most important tool and arguably the only tool you need in Gumla is the nippers.",
+      "t": "现在，最容易入手且可以说是高达模型唯一必需的工具就是剪钳。"
+    },
+    {
+      "s": 33840,
+      "d": 1280,
+      "o": "It is a soul to any build.",
+      "t": "它是任何模型制作的核心。"
+    },
+    {
+      "s": 35120,
+      "d": 3759,
+      "o": "And if you're going to take careful consideration about any of these tools, this should be the one.",
+      "t": "如果你要仔细考虑这些工具中的任何一个，那应该就是它了。"
+    },
+    {
+      "s": 38879,
+      "d": 2000,
+      "o": "So, I have three picks for you when it comes to nippers.",
+      "t": "所以，关于剪钳，我为你准备了三个选择。"
+    },
+    {
+      "s": 40879,
+      "d": 2241,
+      "o": "And this first one is actually kind of an all-in-one package.",
+      "t": "这第一个其实算是个一体化套装。"
+    },
+    {
+      "s": 43120,
+      "d": 5439,
+      "o": "If you're brand new to Gumlo or model kits in general and don't know if you want to commit to the hobby, I think this is the perfect choice for you.",
+      "t": "如果你是完全没接触过钢普拉或模型套件的新手，还不确定是否要入坑，我认为这是你的完美选择。"
+    },
+    {
+      "s": 48559,
+      "d": 5601,
+      "o": "You'll find these on Amazon or AliExpress, these cheap model tool kits that give you a small taste of everything but at the lowest quality.",
+      "t": "你可以在亚马逊或速卖通上找到这些廉价的模型工具套装，它们能让你浅尝各种工具，但质量是最低的。"
+    },
+    {
+      "s": 54160,
+      "d": 1120,
+      "o": "But, they do get the job done.",
+      "t": "不过，它们确实能完成任务。"
+    },
+    {
+      "s": 55280,
+      "d": 1919,
+      "o": "And this is actually how I made my first gumpla.",
+      "t": "而这也是我制作第一个高达模型的实际方式。"
+    },
+    {
+      "s": 57199,
+      "d": 1281,
+      "o": "And it was something extremely affordable.",
+      "t": "而且它价格非常实惠。"
+    },
+    {
+      "s": 58480,
+      "d": 9760,
+      "o": "Then I have my mid-tier pick, which is this nipper right here sent by Ulie, which I'd recommend for someone that is confident, they like model kits, but maybe only builds one or two kits a year and maybe likes to take their time when building.",
+      "t": "然后是我的中档选择，就是这把由 Ulie 寄来的剪钳，我推荐给那些有信心、喜欢模型套件，但可能一年只拼一两个套件，并且喜欢慢慢拼装的人。"
+    },
+    {
+      "s": 68240,
+      "d": 5199,
+      "o": "But if you're an absolute fanatic like me who loves gumpla and builds all the time, you should know what this next pick is.",
+      "t": "但如果你像我一样是个绝对狂热的高达模型爱好者，经常拼装模型，那你应该知道接下来这个选择是什么。"
+    },
+    {
+      "s": 73439,
+      "d": 881,
+      "o": "It's the God hand.",
+      "t": "神之手。"
+    },
+    {
+      "s": 74320,
+      "d": 2400,
+      "o": "The arguably best snipper out there in the market.",
+      "t": "堪称市面上最好的剪钳。"
+    },
+    {
+      "s": 76720,
+      "d": 2320,
+      "o": "It's super sharp and super satisfying to cut with.",
+      "t": "它超级锋利，切割起来也超级爽快。"
+    },
+    {
+      "s": 79040,
+      "d": 3200,
+      "o": "But is it really worth the four times the price of our mid-tier pick here?",
+      "t": "但它真的值我们中档选择四倍的价格吗？"
+    },
+    {
+      "s": 82240,
+      "d": 2559,
+      "o": "We're going to be finding out later in this video with a live test.",
+      "t": "我们将在视频后面通过实际测试来揭晓答案。"
+    },
+    {
+      "s": 84799,
+      "d": 1761,
+      "o": "Okay, next up is panel lining.",
+      "t": "接下来是渗线。"
+    },
+    {
+      "s": 86560,
+      "d": 6640,
+      "o": "This is easily something I highly recommend and in my opinion makes your gumpt look like a real model kit because without it, it really just looks like a toy.",
+      "t": "这是我最强烈推荐的东西，在我看来，它能让你的高达模型看起来像真正的模型套件，因为如果没有它，它真的看起来就像个玩具。"
+    },
+    {
+      "s": 93200,
+      "d": 5919,
+      "o": "All this stuff does is run through panels of your gumlet to just give them more depth and make them look like a separate part which makes it look more realistic.",
+      "t": "这东西的作用就是顺着高达模型的刻线流动，增加细节的深度，让它们看起来像是独立的零件，从而显得更真实。"
+    },
+    {
+      "s": 99119,
+      "d": 3521,
+      "o": "Now, there's different types of panel liner, but in my opinion, I like this stuff right here best.",
+      "t": "不过，面板渗线液有不同类型，但在我看来，我最喜欢的是这一种。"
+    },
+    {
+      "s": 102640,
+      "d": 3119,
+      "o": "It's simple, cost effective, and easy in my opinion compared to markers.",
+      "t": "它简单、性价比高，而且在我看来比马克笔更容易使用。"
+    },
+    {
+      "s": 105759,
+      "d": 1921,
+      "o": "Also, if you think the effect is a bit too harsh, you could",
+      "t": "另外，如果你觉得效果太强烈，"
+    },
+    {
+      "s": 107680,
+      "d": 3280,
+      "o": "also opt for a gray panel liner, which should give it a little less of an effect.",
+      "t": "也可以选择灰色渗线液，这样效果会柔和一些。"
+    },
+    {
+      "s": 110960,
+      "d": 4880,
+      "o": "There is no budget pick for this really, I'd say, but but if you do know of a budget option, let me know down in the comments.",
+      "t": "这个其实没什么特别便宜的替代品，但如果你知道什么省钱的选择，欢迎在评论区告诉我。"
+    },
+    {
+      "s": 115840,
+      "d": 2559,
+      "o": "But you're also going to need a couple more things if you're going to panel.",
+      "t": "但如果你要进行渗线，还需要另外几样东西。"
+    },
+    {
+      "s": 118399,
+      "d": 2641,
+      "o": "You're going to need a thinner, which I like to describe as the eraser juice.",
+      "t": "你需要稀释液，我喜欢把它形容为橡皮擦液。"
+    },
+    {
+      "s": 121040,
+      "d": 1840,
+      "o": "And then you're going to need some cotton swabs as well.",
+      "t": "然后你还需要一些棉签。"
+    },
+    {
+      "s": 122880,
+      "d": 800,
+      "o": "I like to use Mr.",
+      "t": "我喜欢用Mr."
+    },
+    {
+      "s": 123680,
+      "d": 7279,
+      "o": "Color leveling thinner, and any old cotton swabs will do from AliExpress probably, but I did want to provide another option with this reusable panel line eraser.",
+      "t": "我喜欢用郡士的缓干稀释剂，而棉签的话，随便从阿里巴巴上买些旧的就行，不过我也想提供另一个选择，就是这款可重复使用的渗线擦除笔。"
+    },
+    {
+      "s": 130959,
+      "d": 7841,
+      "o": "You can wash it and reuse it over and over again, but in my opinion, it doesn't do the best job when needing to squeeze into tighter spots, but it is a cheap option if you did want to try it.",
+      "t": "你可以清洗并反复使用它，但在我看来，当需要挤进更狭窄的地方时，它表现并不理想；不过如果你想尝试一下，它倒是个便宜的选择。"
+    },
+    {
+      "s": 138800,
+      "d": 3920,
+      "o": "All right, the next step in my opinion on upgrading your Gumla is decals.",
+      "t": "好的，在我看来，升级你的高达模型的下一步就是贴水贴。"
+    },
+    {
+      "s": 142720,
+      "d": 12400,
+      "o": "Now, almost all kits include stickers, but I really dislike stickers because they have a border around them, which makes which just makes your kit look so much cheaper in my opinion, and that is why I'm a big advocate for buying water slide decals, which is something you will have to buy separately.",
+      "t": "几乎所有套件都附带贴纸，但我非常不喜欢贴纸，因为它们周围有边框，在我看来这会让你的模型看起来廉价得多，这就是为什么我大力提倡购买水贴，这是你必须单独购买的东西。"
+    },
+    {
+      "s": 155120,
+      "d": 1759,
+      "o": "But there is a budget option on AliExpress.",
+      "t": "但在阿里巴巴上有一个预算选项。"
+    },
+    {
+      "s": 156879,
+      "d": 12161,
+      "o": "You could buy the more official ones from brands like G-W were work, which I will admit they do a good job with the marketing and I'd say the decals overall do look really good, but the difference is kind of minimal in my opinion with the AliExpress brands, which I like Flaming Snow.",
+      "t": "你可以从G-Work这类品牌购买更官方的水贴，我承认他们的营销做得不错，而且整体来说水贴看起来确实很棒，但在我看来，与AliExpress的品牌（比如我喜欢Flaming Snow）相比，差别其实很小。"
+    },
+    {
+      "s": 169040,
+      "d": 1760,
+      "o": "I feel like they're a good brand for your money.",
+      "t": "我觉得它们是个物有所值的好品牌。"
+    },
+    {
+      "s": 170800,
+      "d": 960,
+      "o": "Then you're going to want Mr.",
+      "t": "然后你会需要马克笔定着剂和马克笔软化剂。"
+    },
+    {
+      "s": 171760,
+      "d": 880,
+      "o": "Mark Setter and Mr.",
+      "t": "马克笔软化剂。"
+    },
+    {
+      "s": 172640,
+      "d": 959,
+      "o": "Mark Softer.",
+      "t": "马克软化剂。"
+    },
+    {
+      "s": 173599,
+      "d": 14401,
+      "o": "These just make your decal life much easier with Mark Setter acting as a wet adhesive when dried and Mark softer being a solution to make the decals adhere to the shape of the plastic much easier, which is really useful if you ever have a decal that needs to go around a corner but refuses to stick on around that corner.",
+      "t": "马克软化剂则是一种溶液，能让水贴更容易贴合塑料的形状，当你遇到需要绕过拐角但水贴就是不肯贴合的棘手情况时，这玩意儿特别管用。"
+    },
+    {
+      "s": 188000,
+      "d": 3440,
+      "o": "This stuff will do the trick and it'll make sure it'll bend around the corner easy.",
+      "t": "这东西能搞定，而且能确保它轻松地沿着拐角弯曲。"
+    },
+    {
+      "s": 191440,
+      "d": 4640,
+      "o": "Okay, then I'd say this is the last thing I think is essential for every Gundam kit is top coating.",
+      "t": "好的，那么我认为这是每个高达模型套件都必不可少的一样东西：保护漆喷涂。"
+    },
+    {
+      "s": 196080,
+      "d": 3280,
+      "o": "There's still more, but this is what I think should be done for every kit in my opinion.",
+      "t": "还有更多，但在我看来，这是每个模型都应该做的。"
+    },
+    {
+      "s": 199360,
+      "d": 879,
+      "o": "So, what is a top coat?",
+      "t": "那么，什么是保护漆？"
+    },
+    {
+      "s": 200239,
+      "d": 6720,
+      "o": "Well, in our case, it's a spray that we put in our model kits when we are fully finished to protect and change the finish of our Gumpla, usually to give it a less plasticky look.",
+      "t": "在我们的情况下，它是一种喷雾，当我们完全完成模型制作后，将其喷在模型上，以保护和改变高达模型的外观，通常是为了让它看起来不那么像塑料。"
+    },
+    {
+      "s": 206959,
+      "d": 7601,
+      "o": "Like one of my favorite finishes being matte or flat to make it look a lot more realistic than the shiny looking plastic toy finish we usually get without a top coat.",
+      "t": "我最喜欢的饰面之一是哑光或消光，能让模型看起来比没有保护漆时那种闪亮的塑料玩具质感更真实。"
+    },
+    {
+      "s": 214560,
+      "d": 4560,
+      "o": "The matte and flat finish should give it almost no reflectivity, making the look more realistic.",
+      "t": "哑光与平光涂层几乎不反光，能让外观更显真实。"
+    },
+    {
+      "s": 219120,
+      "d": 4000,
+      "o": "Now, the budget top coat that I found is this Kryon top coat right here, which gives a matte finish.",
+      "t": "我找到的平价保护漆是这款Kryon保护漆，它能带来哑光效果。"
+    },
+    {
+      "s": 223120,
+      "d": 2080,
+      "o": "And I usually buy this from Michaels since it's near me.",
+      "t": "我通常从附近的迈克尔斯工艺品店购买。"
+    },
+    {
+      "s": 225200,
+      "d": 1679,
+      "o": "And you might be asking me, why Michaels?",
+      "t": "你可能会问我，为什么是迈克尔斯？"
+    },
+    {
+      "s": 226879,
+      "d": 1201,
+      "o": "And it's still 15 bucks.",
+      "t": "而且它还是要15美元。"
+    },
+    {
+      "s": 228080,
+      "d": 1280,
+      "o": "Well, I found a little hacking.",
+      "t": "我发现了一个小窍门。"
+    },
+    {
+      "s": 229360,
+      "d": 1680,
+      "o": "I've signed up for their free rewards program.",
+      "t": "我注册了他们的免费奖励计划。"
+    },
+    {
+      "s": 231040,
+      "d": 3759,
+      "o": "And very often they give me a free $5 to $10 voucher just for free in my emails.",
+      "t": "我注册了他们的免费奖励计划。"
+    },
+    {
+      "s": 234799,
+      "d": 1921,
+      "o": "And then there's usually a sale going on every month.",
+      "t": "然后通常每个月都会有促销活动。"
+    },
+    {
+      "s": 236720,
+      "d": 1680,
+      "o": "So I usually get these cans for around $5",
+      "t": "所以我通常能以5到7"
+    },
+    {
+      "s": 238400,
+      "d": 4160,
+      "o": "to $7, which the volume of these top coats you get is a really nice deal for me.",
+      "t": "美元的价格买到这些罐子，考虑到你得到的保护漆容量，这对我来说真的很划算。"
+    },
+    {
+      "s": 242560,
+      "d": 2319,
+      "o": "This should last you with many kits worth of top coat.",
+      "t": "这一罐应该足够给很多模型上保护漆了。"
+    },
+    {
+      "s": 244879,
+      "d": 5440,
+      "o": "And this is definitely value for your money because it just has a good amount of volume compared to our brand name here, Mr.",
+      "t": "与我们的品牌产品——Mr.超级透明保护漆相比，这款产品确实物有所值，因为它的容量相当大。"
+    },
+    {
+      "s": 250319,
+      "d": 1361,
+      "o": "Super Clear Top Coats, which I will",
+      "t": "超级透明保护漆，"
+    },
+    {
+      "s": 251680,
+      "d": 3919,
+      "o": "admit I think is actually like 20 to 30% better looking than my budget option.",
+      "t": "我承认它看起来比我的预算选项好大约20%到30%。"
+    },
+    {
+      "s": 255599,
+      "d": 3441,
+      "o": "But you do get much less volume of top and it's a good amount more expensive as well.",
+      "t": "但它的容量要小得多，而且价格也贵不少。"
+    },
+    {
+      "s": 259040,
+      "d": 2879,
+      "o": "So I guess it's up to you if you're willing to spend that kind of extra money.",
+      "t": "所以我想这取决于你是否愿意多花那些钱。"
+    },
+    {
+      "s": 261919,
+      "d": 5921,
+      "o": "For me, I usually get both and use the brand top coat for something I'm really proud of and then the cheaper one for a build that I'm a little less proud of.",
+      "t": "对我来说，我通常会两种都买，用品牌保护漆喷涂我非常满意的作品，而用便宜的那款喷涂我不太满意的作品。"
+    },
+    {
+      "s": 267840,
+      "d": 1760,
+      "o": "Okay, now super quick with these next ones.",
+      "t": "好了，接下来快速过一下这几样东西。"
+    },
+    {
+      "s": 269600,
+      "d": 3120,
+      "o": "If you have watched my videos before, you know I love metallic markers.",
+      "t": "如果你看过我之前的视频，就会知道我超爱金属马克笔。"
+    },
+    {
+      "s": 272720,
+      "d": 4400,
+      "o": "They're just super easy way to detail your builds without painting some small parts or just putting in a ton of effort.",
+      "t": "这是一种超级简单的方法，无需喷涂小零件或投入大量精力，就能为你的模型增添细节。"
+    },
+    {
+      "s": 277120,
+      "d": 2240,
+      "o": "And the results honestly speak for themselves here.",
+      "t": "效果如何，说实话，一目了然。"
+    },
+    {
+      "s": 279360,
+      "d": 1839,
+      "o": "But the details do scratch off pretty easy.",
+      "t": "但细节部分确实很容易刮花。"
+    },
+    {
+      "s": 281199,
+      "d": 2081,
+      "o": "So if you don't top coat them, then just keep that in mind.",
+      "t": "但如果你不给它们喷上保护漆，那这一点可得记在心里。"
+    },
+    {
+      "s": 283280,
+      "d": 2880,
+      "o": "but it's basically a onetime buy and I think it's absolutely worth the money.",
+      "t": "但基本上这是一次性投资，我认为绝对物有所值。"
+    },
+    {
+      "s": 286160,
+      "d": 720,
+      "o": "Super glue.",
+      "t": "瞬间胶。"
+    },
+    {
+      "s": 286880,
+      "d": 720,
+      "o": "It's super glue.",
+      "t": "就是超级胶水。"
+    },
+    {
+      "s": 287600,
+      "d": 3280,
+      "o": "If you mess up the stuff, it's a lifesaver of putting broken or loose pieces together.",
+      "t": "瞬间胶就是瞬间胶。"
+    },
+    {
+      "s": 290880,
+      "d": 1200,
+      "o": "Nothing more needs to be said.",
+      "t": "无需多言。"
+    },
+    {
+      "s": 292080,
+      "d": 2720,
+      "o": "Next is masking tape, but honestly, just get the budget option for this.",
+      "t": "接下来是遮盖胶带，但说实话，买便宜的就行。"
+    },
+    {
+      "s": 294800,
+      "d": 3280,
+      "o": "You can buy the Tama brand, but this cheap stuff works just as well.",
+      "t": "你可以买田宫牌子的，但这种便宜货也一样好用。"
+    },
+    {
+      "s": 298080,
+      "d": 3040,
+      "o": "And you can just get some off AliExpress or any dollar store lowkey.",
+      "t": "你可以从阿里巴巴或任何一元店低价买到一些。"
+    },
+    {
+      "s": 301120,
+      "d": 4000,
+      "o": "But yeah, what it does, it just helps protect something you don't want to be affected by painting or top coating.",
+      "t": "它的作用就是保护那些你不想被涂装或喷保护漆影响到的部分。"
+    },
+    {
+      "s": 305120,
+      "d": 6639,
+      "o": "An example would be I want my Gumpla's shiny eyes or visor to stay shiny, so I make sure to mask that off when top coating my Gumla.",
+      "t": "举个例子，我希望高达模型的闪亮眼睛或护目镜保持光泽，所以在给模型喷保护漆时，我会确保把这些部分遮盖起来。"
+    },
+    {
+      "s": 311759,
+      "d": 1361,
+      "o": "All right, a part separator.",
+      "t": "零件分离器。"
+    },
+    {
+      "s": 313120,
+      "d": 7440,
+      "o": "This is a really convenient tool that if you ever need to separate your parts on your Gumla because maybe you forgot something in the inner frame, this just makes your life so much easier.",
+      "t": "这是一个非常方便的工具，如果你需要分离高达模型上的零件，比如可能忘了在内构里装什么，它能让你省事很多。"
+    },
+    {
+      "s": 320560,
+      "d": 7520,
+      "o": "All right, now this is kind of a creative bonus, but you can always buy more things for your Gumla, but this is something like project for project based.",
+      "t": "好了，这算是个创意加分项，你总能为你的高达模型添置更多东西，但这属于按项目需求来定。"
+    },
+    {
+      "s": 328080,
+      "d": 5119,
+      "o": "So, I got this pink panel liner right here off of AliExpress, which I think did a great job on my vendor.",
+      "t": "所以，我从速卖通买了这款粉色渗线笔，我觉得用在它的外甲上效果很棒。"
+    },
+    {
+      "s": 333199,
+      "d": 5121,
+      "o": "I wanted to give it pink panel lines and yeah, I think it gave it such a great look and I thought it was very much worth the money.",
+      "t": "我想给它加上粉色渗线，而且我觉得效果确实很棒，非常物有所值。"
+    },
+    {
+      "s": 338320,
+      "d": 2640,
+      "o": "So, you can always buy something for each project basically.",
+      "t": "所以，你基本上可以为每个项目单独购买一些东西。"
+    },
+    {
+      "s": 340960,
+      "d": 5200,
+      "o": "I think it's just fun to build up your tools and arsenal on being creative with Gumpla, basically.",
+      "t": "我觉得逐步积累工具和创意装备本身就是一件很有趣的事，这基本上就是玩转高达模型的乐趣所在。"
+    },
+    {
+      "s": 346160,
+      "d": 1440,
+      "o": "All right, anyway, that's enough shopping.",
+      "t": "好了，购物就到此为止吧。"
+    },
+    {
+      "s": 347600,
+      "d": 3520,
+      "o": "Let's get to building.",
+      "t": "好了，购物就到此为止吧。"
+    },
+    {
+      "s": 351120,
+      "d": 3519,
+      "o": "All right, this video we're going to be working on this kit right here.",
+      "t": "好的，这个视频我们要来制作这个套件。"
+    },
+    {
+      "s": 354639,
+      "d": 1601,
+      "o": "This is a kit I actually got in Japan.",
+      "t": "这个套件其实是我在日本买的。"
+    },
+    {
+      "s": 356240,
+      "d": 3760,
+      "o": "I got the Gundam base side F uh in Fukuoka, which is really cool.",
+      "t": "我是在福冈的Gundam Base Side F那里买的，真的很酷。"
+    },
+    {
+      "s": 360000,
+      "d": 1280,
+      "o": "So, I got it for the cheap price.",
+      "t": "所以我很便宜地买到了它。"
+    },
+    {
+      "s": 361280,
+      "d": 7840,
+      "o": "This is the kit I'm going to be showing you guys how to use all these tools on and just how to instantly upgrade any gumla here.",
+      "t": "这就是我要向你们展示如何使用所有这些工具，以及如何瞬间升级任何高达模型的套件。"
+    },
+    {
+      "s": 369120,
+      "d": 639,
+      "o": "Look at this.",
+      "t": "看看这个。"
+    },
+    {
+      "s": 369759,
+      "d": 1121,
+      "o": "This is trash.",
+      "t": "这简直是垃圾。"
+    },
+    {
+      "s": 370880,
+      "d": 4640,
+      "o": "Okay, we need to keep some of this, but mostly trash video.",
+      "t": "好的，我们需要保留其中一些，但大部分都是垃圾视频。"
+    },
+    {
+      "s": 375520,
+      "d": 2080,
+      "o": "Of course, I have a budget option right here.",
+      "t": "当然，我这里有一个预算选项。"
+    },
+    {
+      "s": 377600,
+      "d": 1840,
+      "o": "This is actually sent by Ulie.",
+      "t": "这个其实是Ulie寄给我的。"
+    },
+    {
+      "s": 379440,
+      "d": 3360,
+      "o": "Um, so let's just unbox that real quick.",
+      "t": "嗯，那就让我们快速开箱看看吧。"
+    },
+    {
+      "s": 382800,
+      "d": 800,
+      "o": "Whoopsie.",
+      "t": "哎呀。"
+    },
+    {
+      "s": 383600,
+      "d": 2240,
+      "o": "These guys come with a lot of things, actually.",
+      "t": "这些家伙实际上附带了很多东西。"
+    },
+    {
+      "s": 385840,
+      "d": 6720,
+      "o": "So, it's kind of funny cuz my mid-tier option here came with a bit more accessories than my uh expensive uh Godhand pair right here.",
+      "t": "所以，这有点好笑，因为我的中档选择比我的昂贵神手套装附带了更多配件。"
+    },
+    {
+      "s": 392560,
+      "d": 1199,
+      "o": "But yeah, the Godand's pretty simple.",
+      "t": "但没错，神之手相当简单。"
+    },
+    {
+      "s": 393759,
+      "d": 5681,
+      "o": "So, it just comes with this cover, which I actually don't really use that often, but it is good to protect your nippers.",
+      "t": "它只附带这个保护套，我其实不常用，但保护钳子还是不错的。"
+    },
+    {
+      "s": 399440,
+      "d": 1280,
+      "o": "Um, just like that.",
+      "t": "嗯，就像这样。"
+    },
+    {
+      "s": 400720,
+      "d": 2960,
+      "o": "Um, but we're going to be going over a mid-tier option here, our budget option.",
+      "t": "不过，我们会介绍中端选项和我们的预算选项。"
+    },
+    {
+      "s": 403680,
+      "d": 2079,
+      "o": "Again, nippers are something extremely important.",
+      "t": "我的诚实建议是，别在这上面省钱。"
+    },
+    {
+      "s": 405759,
+      "d": 2641,
+      "o": "So, my honest recommendation, don't cheap out on them.",
+      "t": "所以，我真诚的建议是，别在这上面省钱。"
+    },
+    {
+      "s": 408400,
+      "d": 3600,
+      "o": "This is a $15 pair right here, and this is now a $60 pair.",
+      "t": "这是一把15美元的钳子，而这是一把60美元的钳子。"
+    },
+    {
+      "s": 412000,
+      "d": 1440,
+      "o": "I bought these when they were $50.",
+      "t": "我买的时候它们卖50美元。"
+    },
+    {
+      "s": 413440,
+      "d": 2160,
+      "o": "Hard to slide in, but yep, there you go.",
+      "t": "很难滑进去，但好了，就这样。"
+    },
+    {
+      "s": 415600,
+      "d": 3999,
+      "o": "This is nice to if you just want to have it packaged up very conveniently.",
+      "t": "如果你只是想方便地收纳起来，这个设计也很不错。"
+    },
+    {
+      "s": 419599,
+      "d": 2481,
+      "o": "It's actually fits very nice once you do get it on.",
+      "t": "一旦装上去，其实还挺合适的。"
+    },
+    {
+      "s": 422080,
+      "d": 1119,
+      "o": "Yeah, these look pretty sharp.",
+      "t": "它们看起来相当锋利。"
+    },
+    {
+      "s": 423199,
+      "d": 2241,
+      "o": "They look like single blade nippers just like the God handle.",
+      "t": "它们看起来相当锋利。"
+    },
+    {
+      "s": 425440,
+      "d": 1440,
+      "o": "I'm going to put them side by side here.",
+      "t": "我把它们并排放在这里。"
+    },
+    {
+      "s": 426880,
+      "d": 2000,
+      "o": "Yeah, extremely similar actually.",
+      "t": "实际上它们看起来非常相似。"
+    },
+    {
+      "s": 428880,
+      "d": 3120,
+      "o": "Um, which is a good sign for the mid-tier option here.",
+      "t": "嗯，实际上非常相似。"
+    },
+    {
+      "s": 432000,
+      "d": 2319,
+      "o": "Yeah, it also has this if you don't like the cover, I guess.",
+      "t": "如果你不喜欢这个保护套，它也有这个配件。"
+    },
+    {
+      "s": 434319,
+      "d": 561,
+      "o": "Pretty simple.",
+      "t": "很简单。"
+    },
+    {
+      "s": 434880,
+      "d": 3360,
+      "o": "Extra spring here, I guess, if the spring ever comes out on you.",
+      "t": "这里还有根备用弹簧，万一弹簧脱落了可以用上。"
+    },
+    {
+      "s": 438240,
+      "d": 5600,
+      "o": "And this guy if you ever want to take it apart, I guess, or adjust or maintain your uh nippers here.",
+      "t": "还有这个，如果你想拆开它，或者调整或保养你的剪钳的话。"
+    },
+    {
+      "s": 443840,
+      "d": 1759,
+      "o": "So, that's actually a really nice option to have.",
+      "t": "所以，这其实是一个很不错的附加选项。"
+    },
+    {
+      "s": 445599,
+      "d": 2000,
+      "o": "I want to thank Ulie again for sending these to me.",
+      "t": "再次感谢 Ulie 把这些寄给我。"
+    },
+    {
+      "s": 447599,
+      "d": 1761,
+      "o": "Uh, I'm going to be testing them out.",
+      "t": "我会测试一下它们，看看好不好用。"
+    },
+    {
+      "s": 449360,
+      "d": 1279,
+      "o": "We'll see if they're pretty good.",
+      "t": "我们来看看它们好不好用。"
+    },
+    {
+      "s": 450639,
+      "d": 7601,
+      "o": "Initial impressions, this one has a bit more resistance, but I mean, you'll get a tiny bit more of a workout than this one.",
+      "t": "初步印象是，这把钳子阻力稍大，但用起来会比这把多费点力气。"
+    },
+    {
+      "s": 458240,
+      "d": 1280,
+      "o": "Doesn't really matter.",
+      "t": "其实没什么区别。"
+    },
+    {
+      "s": 459520,
+      "d": 2399,
+      "o": "You can see there's not many stress marks on this guy.",
+      "t": "可以看到这个零件上几乎没有应力发白痕迹。"
+    },
+    {
+      "s": 461919,
+      "d": 4881,
+      "o": "I think the budget option is doing pretty well so far, but I'm going to keep cutting with it and see what happens here.",
+      "t": "我觉得预算选项目前表现还不错，但我会继续用它切割，看看接下来会怎样。"
+    },
+    {
+      "s": 466800,
+      "d": 3360,
+      "o": "All right, so I decided to just do a little test right here.",
+      "t": "好吧，我决定就在这里做个小测试。"
+    },
+    {
+      "s": 470160,
+      "d": 1520,
+      "o": "So, there's two similar parts.",
+      "t": "所以，我们来检查一下神之手。"
+    },
+    {
+      "s": 471680,
+      "d": 1040,
+      "o": "I cut Godand.",
+      "t": "我用神之手剪了一个零件。"
+    },
+    {
+      "s": 472720,
+      "d": 2159,
+      "o": "One is from the budget option here.",
+      "t": "一个是来自预算选项的零件。"
+    },
+    {
+      "s": 474879,
+      "d": 1760,
+      "o": "So, let's check out Godhand.",
+      "t": "所以，让我们看看神之手。"
+    },
+    {
+      "s": 476639,
+      "d": 321,
+      "o": "All right.",
+      "t": "好了。"
+    },
+    {
+      "s": 476960,
+      "d": 6160,
+      "o": "I don't know if you can see that stress mark, but that's the stress mark right there for the godhand.",
+      "t": "我不知道你能不能看到那个白痕，但那就是神手剪留下的白痕。"
+    },
+    {
+      "s": 483120,
+      "d": 2000,
+      "o": "I'm going to show you the budget option here.",
+      "t": "我来给你看看预算款。"
+    },
+    {
+      "s": 485120,
+      "d": 1359,
+      "o": "It's fresh.",
+      "t": "这是新的。"
+    },
+    {
+      "s": 486479,
+      "d": 2641,
+      "o": "Um, you can see there's still a stress mark there.",
+      "t": "你可以看到那里仍然有一个应力痕迹。"
+    },
+    {
+      "s": 489120,
+      "d": 2240,
+      "o": "I'm going to put these side by side now.",
+      "t": "我把它们并排放在一起。"
+    },
+    {
+      "s": 491360,
+      "d": 4000,
+      "o": "But to be honest, they're pretty similar in terms of stress marks.",
+      "t": "但说实话，它们的应力痕迹其实非常相似。"
+    },
+    {
+      "s": 495360,
+      "d": 2559,
+      "o": "Yeah, I think they're pretty dang similar here.",
+      "t": "说实话，我觉得它们真的非常相似。"
+    },
+    {
+      "s": 497919,
+      "d": 5201,
+      "o": "We're going to do with this F12 runner right here.",
+      "t": "我们要用这个F12流道框架来测试。"
+    },
+    {
+      "s": 503120,
+      "d": 560,
+      "o": "All right.",
+      "t": "好的，这是橙色预算款。"
+    },
+    {
+      "s": 503680,
+      "d": 3440,
+      "o": "So, this is orange budget.",
+      "t": "所以，这是橙色预算款。"
+    },
+    {
+      "s": 507120,
+      "d": 4960,
+      "o": "Let's use the god hands land in this hand.",
+      "t": "然后我另一只手里拿着预算款。"
+    },
+    {
+      "s": 512080,
+      "d": 2079,
+      "o": "And then I got the budget in this hand.",
+      "t": "然后我另一只手里拿着预算款。"
+    },
+    {
+      "s": 514159,
+      "d": 641,
+      "o": "All right.",
+      "t": "这是神之手。"
+    },
+    {
+      "s": 514800,
+      "d": 2640,
+      "o": "So, this is the god hand.",
+      "t": "所以，这是神之手。"
+    },
+    {
+      "s": 517440,
+      "d": 3279,
+      "o": "It's very hard to notice the stress marks here.",
+      "t": "很难注意到这里的应力痕迹。"
+    },
+    {
+      "s": 520719,
+      "d": 2320,
+      "o": "Um, but hopefully you can see those.",
+      "t": "嗯，但希望你能看到那些。"
+    },
+    {
+      "s": 523039,
+      "d": 2081,
+      "o": "Here is the budget option.",
+      "t": "这是预算选项。"
+    },
+    {
+      "s": 525120,
+      "d": 2880,
+      "o": "See if you can notice that at all.",
+      "t": "看看你能不能注意到那些痕迹。"
+    },
+    {
+      "s": 528000,
+      "d": 2399,
+      "o": "Now, here's a sidebyside budget.",
+      "t": "现在，这是预算版和它的对比。"
+    },
+    {
+      "s": 530399,
+      "d": 3841,
+      "o": "And then this is not budget.",
+      "t": "然后这是非预算款。"
+    },
+    {
+      "s": 534240,
+      "d": 2800,
+      "o": "Um, so I can see it side by side in real life.",
+      "t": "嗯，所以我在现实中可以并排看到它们。"
+    },
+    {
+      "s": 537040,
+      "d": 1359,
+      "o": "Hopefully this camera picks it.",
+      "t": "希望这台相机能拍出来。"
+    },
+    {
+      "s": 538399,
+      "d": 13281,
+      "o": "Oh, pretty hard to tell to be honest, but I think the Godand has noticeably less stress marks than the budget option, which is should be expected here, but I got to be honest, not by too much either.",
+      "t": "说实话很难分辨，但我认为神之手的水口发白明显比预算款少，这也在意料之中，不过老实说，差距也没那么大。"
+    },
+    {
+      "s": 551680,
+      "d": 2080,
+      "o": "So, they're both pretty decent.",
+      "t": "但说实话，差别也不是特别大。"
+    },
+    {
+      "s": 553760,
+      "d": 3360,
+      "o": "But yeah, in terms of cutting capabilities, I think they're pretty dang similar.",
+      "t": "但老实说，在切割能力方面，我觉得它们非常相似。"
+    },
+    {
+      "s": 557120,
+      "d": 2880,
+      "o": "Obviously, I think this one's a bit better, but it is also four times the price.",
+      "t": "显然，我觉得这把稍微好一点，但它的价格也是四倍。"
+    },
+    {
+      "s": 560000,
+      "d": 1920,
+      "o": "So, you got to keep that considerate.",
+      "t": "显然，我觉得这把更好一些，但它的价格也是四倍。"
+    },
+    {
+      "s": 561920,
+      "d": 2000,
+      "o": "You got to consider that when you're building.",
+      "t": "你在制作时需要考虑到这一点。"
+    },
+    {
+      "s": 563920,
+      "d": 6720,
+      "o": "Um, in my opinion, I still think the God hand is probably worth it if you're going to be building longterm, like years on years on years.",
+      "t": "在我看来，如果你打算长期制作高达模型，比如年复一年地做下去，神之手可能还是值得入手的。"
+    },
+    {
+      "s": 570640,
+      "d": 1680,
+      "o": "This is going to last you a lifetime, hopefully.",
+      "t": "这把钳子应该能用一辈子，但愿如此。"
+    },
+    {
+      "s": 572320,
+      "d": 2639,
+      "o": "And it's just hopefully a onetime investment you have to make.",
+      "t": "这希望只是一次性的投资。"
+    },
+    {
+      "s": 574959,
+      "d": 4880,
+      "o": "Otherwise, honestly, this guy is pretty solid as a mid-tier option if you want a budget option.",
+      "t": "否则说实话，如果你想要一个预算选项的话，这家伙作为中档选择还是挺靠谱的。"
+    },
+    {
+      "s": 579839,
+      "d": 2641,
+      "o": "These were pretty solid um as a first option.",
+      "t": "作为入门选择，这套工具相当扎实。"
+    },
+    {
+      "s": 582480,
+      "d": 5559,
+      "o": "But, let me keep building with this guy.",
+      "t": "不过，让我继续用这家伙来拼装吧。"
+    },
+    {
+      "s": 595519,
+      "d": 3121,
+      "o": "So here I wanted to compare what a sticker versus a marker look like.",
+      "t": "所以这里我想对比一下贴纸和马克笔的效果。"
+    },
+    {
+      "s": 598640,
+      "d": 2319,
+      "o": "So I put a little marking on this side and",
+      "t": "我在这一侧用马克笔做了标记，"
+    },
+    {
+      "s": 600959,
+      "d": 2961,
+      "o": "then I put a sticker on the other side here as you can see.",
+      "t": "然后在另一侧贴了贴纸，就像你看到的这样。"
+    },
+    {
+      "s": 603920,
+      "d": 2560,
+      "o": "And yeah, you can kind of just determine which one you think is better.",
+      "t": "我个人觉得贴纸有点太亮了，所以我更喜欢马克笔。"
+    },
+    {
+      "s": 606480,
+      "d": 2080,
+      "o": "I personally think the sticker is a little too shiny.",
+      "t": "我个人觉得贴纸有点太亮了，所以我更喜欢马克笔。"
+    },
+    {
+      "s": 608560,
+      "d": 1200,
+      "o": "So I kind of like the marker.",
+      "t": "所以我个人更喜欢马克笔。"
+    },
+    {
+      "s": 609760,
+      "d": 2400,
+      "o": "And then yeah, I just keep using these markers as usual.",
+      "t": "然后我就继续像往常一样使用这些马克笔。"
+    },
+    {
+      "s": 612160,
+      "d": 880,
+      "o": "I use these all the time.",
+      "t": "我经常使用这些马克笔。"
+    },
+    {
+      "s": 613040,
+      "d": 1680,
+      "o": "I love them on the veneers.",
+      "t": "我经常使用这些马克笔。"
+    },
+    {
+      "s": 614720,
+      "d": 3119,
+      "o": "They always look really good when you paint them something other than gray.",
+      "t": "即使它不是世界上最亮的红色，也能带来天壤之别。"
+    },
+    {
+      "s": 617839,
+      "d": 7320,
+      "o": "Even if it's not the brightest red in the world, it makes a hell of a difference.",
+      "t": "就算它不是世界上最亮的红色，也能带来天壤之别。"
+    },
+    {
+      "s": 634800,
+      "d": 1760,
+      "o": "I mean, yeah, just look at that.",
+      "t": "我的意思是，看看这个。"
+    },
+    {
+      "s": 636560,
+      "d": 5600,
+      "o": "I feel like it just makes a world of difference just adding these markers a little bit here and there just for the fine details.",
+      "t": "我觉得光是这里那里加一点马克笔做精细细节，就能让高达模型有翻天覆地的变化。"
+    },
+    {
+      "s": 642160,
+      "d": 2480,
+      "o": "Just really makes your gumple pop in my opinion.",
+      "t": "在我看来，仅仅在这些小细节上稍微用一下马克笔，就能让你的高达模型脱颖而出。"
+    },
+    {
+      "s": 644640,
+      "d": 2319,
+      "o": "And again, they're only just a one-time buy.",
+      "t": "而且它们只需要一次性投入。"
+    },
+    {
+      "s": 646959,
+      "d": 1681,
+      "o": "So, they're just like, wow.",
+      "t": "所以它们就像，哇。"
+    },
+    {
+      "s": 648640,
+      "d": 5199,
+      "o": "It's like a lot of value just for one time, unless you use the markers so much that you eventually run out.",
+      "t": "除非你频繁使用这些马克笔到最终用完，否则基本不用担心。"
+    },
+    {
+      "s": 653839,
+      "d": 2000,
+      "o": "But, highly doubt that.",
+      "t": "但说实话，我对此深表怀疑。"
+    },
+    {
+      "s": 655839,
+      "d": 8000,
+      "o": "But yeah, I just love detailing with these markers cuz, you know, I love saving time and I do love painting, but just it takes so much time to paint.",
+      "t": "但我就是喜欢用这些马克笔做细节，因为你知道，我喜欢节省时间，我也喜欢涂装，但涂装实在太费时间了。"
+    },
+    {
+      "s": 663839,
+      "d": 7721,
+      "o": "So, yeah, really recommend those markers if you're a guy that likes to detail things.",
+      "t": "所以，如果你是个喜欢给模型添加细节的人，我真的推荐这些马克笔。"
+    },
+    {
+      "s": 676880,
+      "d": 2000,
+      "o": "So you can see it's just all gray.",
+      "t": "你可以看到它全是灰色的。"
+    },
+    {
+      "s": 678880,
+      "d": 5880,
+      "o": "And we can easily make this look a lot better.",
+      "t": "你可以看到它全是灰色的。"
+    },
+    {
+      "s": 688560,
+      "d": 4160,
+      "o": "Very easy to make this look good here.",
+      "t": "非常容易就能让它变得好看。"
+    },
+    {
+      "s": 692720,
+      "d": 1600,
+      "o": "And no paint.",
+      "t": "而且不需要上漆。"
+    },
+    {
+      "s": 694320,
+      "d": 1120,
+      "o": "Now let's see how it looks.",
+      "t": "现在来看看效果如何。"
+    },
+    {
+      "s": 695440,
+      "d": 6440,
+      "o": "You can see our gun already looks that much better.",
+      "t": "你可以看到我们的高达已经好看多了。"
+    },
+    {
+      "s": 717839,
+      "d": 2081,
+      "o": "All right, here it is.",
+      "t": "好了，这就是我们的基础素组。"
+    },
+    {
+      "s": 719920,
+      "d": 1599,
+      "o": ">> All right, there's our base building.",
+      "t": "好了，这就是我们的基础组装。"
+    },
+    {
+      "s": 721519,
+      "d": 2641,
+      "o": "It's not looking too bad, but it's also looking a little plain.",
+      "t": "它看起来还不赖，但也显得有点朴素。"
+    },
+    {
+      "s": 724160,
+      "d": 4000,
+      "o": "If we want it to look anything like our final result here, we've got some work to do.",
+      "t": "如果我们想让它看起来像最终成品那样，还得下点功夫。"
+    },
+    {
+      "s": 728160,
+      "d": 2000,
+      "o": "And that's where this next step comes in.",
+      "t": "这就是下一步要做的。"
+    },
+    {
+      "s": 730160,
+      "d": 1520,
+      "o": "It's panel lining.",
+      "t": "接下来就是渗线环节了。"
+    },
+    {
+      "s": 731680,
+      "d": 2000,
+      "o": "Take it away, other Josh.",
+      "t": "接下来是渗线环节。"
+    },
+    {
+      "s": 733680,
+      "d": 5200,
+      "o": "So, we're actually going to dismantle this guy right now so we can panel line him a lot easier.",
+      "t": "所以，我们实际上要马上把这个家伙拆开，这样我们就能更容易地给他渗线了。"
+    },
+    {
+      "s": 738880,
+      "d": 1920,
+      "o": "No, it's annoying.",
+      "t": "不，这很烦人。"
+    },
+    {
+      "s": 740800,
+      "d": 1200,
+      "o": "All right, there we go.",
+      "t": "拆解完毕。"
+    },
+    {
+      "s": 742000,
+      "d": 959,
+      "o": "Dismantled.",
+      "t": "拆解完毕。"
+    },
+    {
+      "s": 742959,
+      "d": 2000,
+      "o": "It's time to get panel lining this guy.",
+      "t": "是时候给这家伙渗线了。"
+    },
+    {
+      "s": 744959,
+      "d": 2801,
+      "o": "So, to panel line, you're going to need all these guys right here.",
+      "t": "要渗线，你需要准备这些东西。"
+    },
+    {
+      "s": 747760,
+      "d": 4400,
+      "o": "Cotton swabs, a thinner of your choice, and a panel line of your choice.",
+      "t": "棉签、你选择的稀释剂，以及你选择的渗线液。"
+    },
+    {
+      "s": 752160,
+      "d": 1359,
+      "o": "These are the three I'm going to be using.",
+      "t": "你可以用任何你喜欢的。"
+    },
+    {
+      "s": 753519,
+      "d": 1120,
+      "o": "You can use whatever you like.",
+      "t": "你可以用任何你喜欢的。"
+    },
+    {
+      "s": 754639,
+      "d": 2161,
+      "o": "It's also handy to just have a paper towel.",
+      "t": "手边备张纸巾也挺方便的。"
+    },
+    {
+      "s": 756800,
+      "d": 719,
+      "o": "Just let you guys know.",
+      "t": "我只是想告诉你们一声。"
+    },
+    {
+      "s": 757519,
+      "d": 2000,
+      "o": "I like to wipe off a lot of excess thinner on here.",
+      "t": "我喜欢把多余的稀释剂擦在这里。"
+    },
+    {
+      "s": 759519,
+      "d": 641,
+      "o": "So, yeah.",
+      "t": "我喜欢在这里擦掉多余的稀释剂。"
+    },
+    {
+      "s": 760160,
+      "d": 720,
+      "o": "All right.",
+      "t": "好了。"
+    },
+    {
+      "s": 760880,
+      "d": 2959,
+      "o": "Now, I want you guys to look at this head right here.",
+      "t": "现在，我想让你们看看这个头部零件。"
+    },
+    {
+      "s": 763839,
+      "d": 3281,
+      "o": "Going to be a little before and after on this head right here.",
+      "t": "我想让你们看看这个头部零件，先展示一下处理前的样子，再展示处理后的效果。"
+    },
+    {
+      "s": 767120,
+      "d": 5839,
+      "o": "Honestly, he looks so plain without some panel liner, but I want you to notice what we're going to do here.",
+      "t": "说实话，没有渗线液他看起来太朴素了，但我想让你们看看我们接下来要做什么。"
+    },
+    {
+      "s": 772959,
+      "d": 2641,
+      "o": "So, all I'm going to do, see some of this.",
+      "t": "所以，我要做的就是，蘸取一些这个。"
+    },
+    {
+      "s": 775600,
+      "d": 2799,
+      "o": "Make sure not to get too much panel liner on here.",
+      "t": "确保别沾太多渗线液上去。"
+    },
+    {
+      "s": 778399,
+      "d": 2000,
+      "o": "And I just want you to remember what this guy looks like.",
+      "t": "只要把渗线液滴进去就行了。"
+    },
+    {
+      "s": 780399,
+      "d": 2401,
+      "o": "He looks he looks pretty plain.",
+      "t": "他看起来相当平淡。"
+    },
+    {
+      "s": 782800,
+      "d": 1440,
+      "o": "Not very menacing at all.",
+      "t": "看起来一点也不吓人。"
+    },
+    {
+      "s": 784240,
+      "d": 2480,
+      "o": "And look what we do right here.",
+      "t": "看看我们在这里做了什么。"
+    },
+    {
+      "s": 786720,
+      "d": 2400,
+      "o": "Add a little bit right there and there.",
+      "t": "就在那儿加一点，还有那儿。"
+    },
+    {
+      "s": 789120,
+      "d": 1360,
+      "o": "And look at that already.",
+      "t": "看看，已经好多了。"
+    },
+    {
+      "s": 790480,
+      "d": 1680,
+      "o": "He looks so much better.",
+      "t": "即使涂得有点多，看起来也已经好多了。"
+    },
+    {
+      "s": 792160,
+      "d": 1520,
+      "o": "Even though there's too much on there.",
+      "t": "即使涂得有点多，那也没关系。"
+    },
+    {
+      "s": 793680,
+      "d": 2640,
+      "o": "And it's probably a little too much, but that's okay.",
+      "t": "可能涂得有点太多了，但没关系。"
+    },
+    {
+      "s": 796320,
+      "d": 2400,
+      "o": "We're going to finish panel lining the rest of this guy here.",
+      "t": "我们先把这家伙剩下的部分都渗线完。"
+    },
+    {
+      "s": 798720,
+      "d": 400,
+      "o": "Let's see.",
+      "t": "我们来看看。"
+    },
+    {
+      "s": 799120,
+      "d": 7360,
+      "o": "It just fills up all the panels by itself pretty much, which is the cool thing about panel liner.",
+      "t": "它基本上自己就能填满所有面板缝隙，这就是渗线液的酷炫之处。"
+    },
+    {
+      "s": 806480,
+      "d": 1599,
+      "o": "Let's get a side profile.",
+      "t": "它基本上自己就能填满所有面板缝隙，这就是渗线液的酷炫之处。"
+    },
+    {
+      "s": 808079,
+      "d": 5121,
+      "o": "Again, pretty plain, but once we add these, look at that.",
+      "t": "侧面看也很普通，但一旦加上这些，看看效果。"
+    },
+    {
+      "s": 813200,
+      "d": 1120,
+      "o": "You can see everything.",
+      "t": "看起来细节丰富多了。"
+    },
+    {
+      "s": 814320,
+      "d": 1680,
+      "o": "It looks so much more detailed.",
+      "t": "它看起来细节丰富多了。"
+    },
+    {
+      "s": 816000,
+      "d": 1920,
+      "o": "And yeah, it's just as easy as that, too.",
+      "t": "而且就是这么简单。"
+    },
+    {
+      "s": 817920,
+      "d": 1599,
+      "o": "It's like I'm painting this guy.",
+      "t": "就像在给这家伙上色一样简单。"
+    },
+    {
+      "s": 819519,
+      "d": 2081,
+      "o": "Just painting in those lines.",
+      "t": "就像在给这家伙上色一样。"
+    },
+    {
+      "s": 821600,
+      "d": 1440,
+      "o": "It's so easy.",
+      "t": "就这么简单。"
+    },
+    {
+      "s": 823040,
+      "d": 799,
+      "o": "There we go.",
+      "t": "好了。"
+    },
+    {
+      "s": 823839,
+      "d": 3680,
+      "o": "I'm just going to leave that guy to dry real quick.",
+      "t": "我就先让这家伙快速晾干一下。"
+    },
+    {
+      "s": 827519,
+      "d": 3440,
+      "o": "Let's zoom in a little bit for this erasing process here.",
+      "t": "我们来稍微放大一下这个擦除过程。"
+    },
+    {
+      "s": 830959,
+      "d": 5601,
+      "o": "What we're going to do is get our thinner here.",
+      "t": "我们稍微放大一点来看这个擦除过程。"
+    },
+    {
+      "s": 836560,
+      "d": 2160,
+      "o": "Swab, twist that off.",
+      "t": "用棉签蘸取，拧掉多余部分。"
+    },
+    {
+      "s": 838720,
+      "d": 1520,
+      "o": "Get my paper towel here.",
+      "t": "把棉签拧开。"
+    },
+    {
+      "s": 840240,
+      "d": 1599,
+      "o": "Dip this in.",
+      "t": "在瓶口内尽可能擦掉多余的部分，这样能节省用量。"
+    },
+    {
+      "s": 841839,
+      "d": 3601,
+      "o": "wipe off as much as I can inside the bottle so I can save as much.",
+      "t": "把棉签浸进去。"
+    },
+    {
+      "s": 845440,
+      "d": 2800,
+      "o": "We're just going to wipe it off on this guy.",
+      "t": "我们只需把它擦掉就行。"
+    },
+    {
+      "s": 848240,
+      "d": 2159,
+      "o": "You don't need too much, but you do want a little bit.",
+      "t": "你不需要太多，但确实需要一点点。"
+    },
+    {
+      "s": 850399,
+      "d": 1281,
+      "o": "Honestly, it's just like an eraser.",
+      "t": "说实话，这就像用橡皮擦一样。"
+    },
+    {
+      "s": 851680,
+      "d": 1680,
+      "o": "You just start wiping.",
+      "t": "就像橡皮擦一样，你直接开始擦拭就行。"
+    },
+    {
+      "s": 853360,
+      "d": 1039,
+      "o": "It's so nice.",
+      "t": "就像橡皮擦一样，你直接开始擦就行。"
+    },
+    {
+      "s": 854399,
+      "d": 3041,
+      "o": "It goes away like that very easily, very quick.",
+      "t": "它就这样轻松地消失了，非常迅速。"
+    },
+    {
+      "s": 857440,
+      "d": 7839,
+      "o": "Some people will like to use gray panel liner, so it's a little less harsh, which I can uh see being very good.",
+      "t": "有些人喜欢用灰色渗线液，这样效果会柔和一些，我觉得这确实是个不错的选择。"
+    },
+    {
+      "s": 865279,
+      "d": 2321,
+      "o": "Um, but I like the sharper details.",
+      "t": "但我喜欢更锐利的细节。"
+    },
+    {
+      "s": 867600,
+      "d": 1840,
+      "o": "I like the black.",
+      "t": "我喜欢让细节更突出。"
+    },
+    {
+      "s": 869440,
+      "d": 1680,
+      "o": "I like it to stand out a lot.",
+      "t": "我喜欢它足够突出。"
+    },
+    {
+      "s": 871120,
+      "d": 2640,
+      "o": "I will say it's a bit intense on the face here.",
+      "t": "我得说，脸上这个效果有点太强烈了。"
+    },
+    {
+      "s": 873760,
+      "d": 1280,
+      "o": "He looks a little too menacing.",
+      "t": "我得承认，我其实还挺喜欢这效果的。"
+    },
+    {
+      "s": 875040,
+      "d": 2400,
+      "o": "Honestly, I kind of like it at the same time, though.",
+      "t": "说实话，我其实还挺喜欢这效果的。"
+    },
+    {
+      "s": 877440,
+      "d": 3040,
+      "o": "I'm going to do my best to erase it a little bit more.",
+      "t": "我会尽量再擦掉一些。"
+    },
+    {
+      "s": 880480,
+      "d": 1359,
+      "o": "Yeah, that looks decent.",
+      "t": "嗯，这样看起来还不错。"
+    },
+    {
+      "s": 881839,
+      "d": 1680,
+      "o": "So, we're just going to do that.",
+      "t": "我们就这样做吧。"
+    },
+    {
+      "s": 883519,
+      "d": 6560,
+      "o": "You want to do your best to not dig in too much where the actual panel liner is or where you want it to be cuz it will erase it.",
+      "t": "你要尽量小心，别在真正有渗线或你想要保留渗线的地方用力过猛，因为那样会把线擦掉。"
+    },
+    {
+      "s": 890079,
+      "d": 3921,
+      "o": "But, um, if you're careful, you don't need to be too careful.",
+      "t": "但如果你小心点的话，其实不用太小心翼翼。"
+    },
+    {
+      "s": 894000,
+      "d": 4959,
+      "o": "But, yeah, just be a little bit careful and it'll come out decent looking enough.",
+      "t": "但只要你小心点，其实也不用太小心翼翼。"
+    },
+    {
+      "s": 898959,
+      "d": 2641,
+      "o": "Yeah, you can see this is really easy.",
+      "t": "你看，这真的很简单。"
+    },
+    {
+      "s": 901600,
+      "d": 5200,
+      "o": "Just kind of going all over the kit, making sure that nothing looks too messy.",
+      "t": "你瞧，这真的很容易。"
+    },
+    {
+      "s": 906800,
+      "d": 1839,
+      "o": "It's what I love about panel liner.",
+      "t": "这就是我热爱渗线的原因。"
+    },
+    {
+      "s": 908639,
+      "d": 1361,
+      "o": "It is so easy.",
+      "t": "这就是我热爱渗线的原因。"
+    },
+    {
+      "s": 910000,
+      "d": 2240,
+      "o": "And look at that.",
+      "t": "你看，仅仅通过这样做，细节就丰富多了。"
+    },
+    {
+      "s": 912240,
+      "d": 4320,
+      "o": "You look so much more detailed now just by doing that.",
+      "t": "你看，仅仅做了这些，细节感就大大提升了。"
+    },
+    {
+      "s": 916560,
+      "d": 3360,
+      "o": "And it's one of the biggest things if you're going to do anything, panel line.",
+      "t": "这是你能做的最重要的事之一——渗线。"
+    },
+    {
+      "s": 919920,
+      "d": 1919,
+      "o": "It makes them look so much better.",
+      "t": "这是你能做的最重要的事之一——渗线。"
+    },
+    {
+      "s": 921839,
+      "d": 961,
+      "o": "Especially the face.",
+      "t": "尤其是脸部。"
+    },
+    {
+      "s": 922800,
+      "d": 800,
+      "o": "At least the face.",
+      "t": "至少脸部得勾线。"
+    },
+    {
+      "s": 923600,
+      "d": 960,
+      "o": "You got to panel line.",
+      "t": "你得做渗线。"
+    },
+    {
+      "s": 924560,
+      "d": 2320,
+      "o": "Those little nose marks or whatever.",
+      "t": "那些小鼻子印记之类的东西，它们就是能让模型看起来好得多。"
+    },
+    {
+      "s": 926880,
+      "d": 1360,
+      "o": "They just make you look so much better.",
+      "t": "那些小鼻子标记之类的东西，它们就是能让你的模型看起来好得多。"
+    },
+    {
+      "s": 928240,
+      "d": 1839,
+      "o": "do the chest here.",
+      "t": "那些小鼻子标记什么的，它们就是能让你的模型看起来好得多。"
+    },
+    {
+      "s": 930079,
+      "d": 3120,
+      "o": "Um, again, looks really, really plain.",
+      "t": "那些小鼻子标记之类的东西，它们就是能让你的模型看起来好得多。"
+    },
+    {
+      "s": 933199,
+      "d": 2880,
+      "o": "The yellow marks look like nothing right now.",
+      "t": "黄色的标记现在看起来毫无特色。"
+    },
+    {
+      "s": 936079,
+      "d": 5041,
+      "o": "And then we're going to go in add all that.",
+      "t": "然后我们要进去添加所有这些细节。"
+    },
+    {
+      "s": 941120,
+      "d": 1920,
+      "o": "Look at that.",
+      "t": "看看这样，仅仅做了这些，细节就丰富了多少。"
+    },
+    {
+      "s": 943040,
+      "d": 3680,
+      "o": "Look how much more detailed that looks just by doing that.",
+      "t": "看看这样一弄，细节感提升了多少。"
+    },
+    {
+      "s": 946720,
+      "d": 1760,
+      "o": "You can see both sides.",
+      "t": "看看两边。"
+    },
+    {
+      "s": 948480,
+      "d": 1520,
+      "o": "Yep.",
+      "t": "看，这就是魔法。"
+    },
+    {
+      "s": 950000,
+      "d": 3839,
+      "o": "That is magic right there.",
+      "t": "那就是魔法。"
+    },
+    {
+      "s": 953839,
+      "d": 2240,
+      "o": "It's very easy to just swab up.",
+      "t": "你甚至不需要擦掉它，说实话。"
+    },
+    {
+      "s": 956079,
+      "d": 2401,
+      "o": "You don't even need to swap that up to be honest.",
+      "t": "你甚至都不需要擦掉它，说实话，它自己就干了。"
+    },
+    {
+      "s": 958480,
+      "d": 1599,
+      "o": "It just kind of does it itself.",
+      "t": "其实你甚至不需要擦掉它，它自己就会干。"
+    },
+    {
+      "s": 960079,
+      "d": 7521,
+      "o": "Makes the parts look separated which makes it look a lot more detailed.",
+      "t": "让零件看起来像是分开的，从而显得细节更丰富。"
+    },
+    {
+      "s": 967600,
+      "d": 1919,
+      "o": "And you can see I'm being pretty messy here.",
+      "t": "让零件看起来像是分开的，从而显得细节更丰富。"
+    },
+    {
+      "s": 969519,
+      "d": 5440,
+      "o": "Even to be honest, it's a little hard to do this on camera.",
+      "t": "说实话，在镜头前做这个有点难度。"
+    },
+    {
+      "s": 974959,
+      "d": 1521,
+      "o": "There you go.",
+      "t": "就算说实话，这样操作起来有点难，尤其是在镜头前。"
+    },
+    {
+      "s": 976480,
+      "d": 1520,
+      "o": "That's been paneled pretty much.",
+      "t": "说实话，它看起来已经比之前好多了。"
+    },
+    {
+      "s": 978000,
+      "d": 1279,
+      "o": "I didn't even erase it.",
+      "t": "我甚至都没擦掉它，但说实话，它看起来已经比之前好太多了。"
+    },
+    {
+      "s": 979279,
+      "d": 3281,
+      "o": "It already looks way better to be honest than how it looked before.",
+      "t": "说实话，它看起来已经比之前好太多了。"
+    },
+    {
+      "s": 982560,
+      "d": 2079,
+      "o": "It just looks way less like a toy, you know?",
+      "t": "它看起来远不像玩具了，你懂吗？"
+    },
+    {
+      "s": 984639,
+      "d": 4161,
+      "o": "Now, I'm not a fan of back panel lining the back just to save time purely.",
+      "t": "我不喜欢给背面渗线，纯粹是为了节省时间。"
+    },
+    {
+      "s": 988800,
+      "d": 2880,
+      "o": "Um, but if you're a purist, you will panel line the back.",
+      "t": "不过，如果你是个完美主义者，你会把背面也渗线的。"
+    },
+    {
+      "s": 991680,
+      "d": 4560,
+      "o": "I'm just a person that likes to save time, and I don't usually like to see the back of Gumpla.",
+      "t": "我只是个喜欢节省时间的人，而且通常我不太喜欢看高达模型的背面。"
+    },
+    {
+      "s": 996240,
+      "d": 4080,
+      "o": "But I will admit, the back of this guy could be a little sexy with those paint things.",
+      "t": "但我得承认，这家伙的背面配上那些涂装细节可能还挺性感的。"
+    },
+    {
+      "s": 1000320,
+      "d": 2319,
+      "o": "I painted this red paint right there.",
+      "t": "我把这里的红色涂上了漆。"
+    },
+    {
+      "s": 1002639,
+      "d": 3281,
+      "o": "You could look really good from the back, not going to lie.",
+      "t": "但说实话，背面要是加上那些涂装细节，说不定还挺性感的。"
+    },
+    {
+      "s": 1005920,
+      "d": 3919,
+      "o": "But yeah, I didn't put too much effort in the back, so that's all right.",
+      "t": "但说真的，我没在背面花太多功夫，所以就这样吧。"
+    },
+    {
+      "s": 1009839,
+      "d": 1281,
+      "o": "So, I think you guys get the idea.",
+      "t": "所以，我想你们已经明白我的意思了。"
+    },
+    {
+      "s": 1011120,
+      "d": 1600,
+      "o": "I'm just going to panel line the rest of this.",
+      "t": "我打算把剩下的部分也渗线处理完。"
+    },
+    {
+      "s": 1012720,
+      "d": 5200,
+      "o": "And uh yeah, you will need a new Q-tip uh once it gets too dirty.",
+      "t": "你还需要一根新棉签，一旦它变得太脏。"
+    },
+    {
+      "s": 1017920,
+      "d": 2240,
+      "o": "So keep that in mind.",
+      "t": "所以请记住这一点。"
+    },
+    {
+      "s": 1020160,
+      "d": 2880,
+      "o": "I also may have uh started erasing a little too early.",
+      "t": "我可能也擦得太早了点。"
+    },
+    {
+      "s": 1023040,
+      "d": 2080,
+      "o": "You do want to let it dry for a little bit.",
+      "t": "你可能擦除得有点太早了，应该让它稍微干一会儿。"
+    },
+    {
+      "s": 1025120,
+      "d": 5720,
+      "o": "So yeah, just keep that in mind.",
+      "t": "所以，记住这一点。"
+    },
+    {
+      "s": 1063440,
+      "d": 1359,
+      "o": "Oh.",
+      "t": "哦。"
+    },
+    {
+      "s": 1064799,
+      "d": 561,
+      "o": ">> All right.",
+      "t": "好的。"
+    },
+    {
+      "s": 1065360,
+      "d": 1679,
+      "o": "with the help with some panel liner.",
+      "t": "在渗线笔的帮助下，这家伙已经开始变得非常非常好看了。"
+    },
+    {
+      "s": 1067039,
+      "d": 3601,
+      "o": "This guy is already starting to look really, really good.",
+      "t": "这家伙已经看起来非常非常棒了。"
+    },
+    {
+      "s": 1070640,
+      "d": 1360,
+      "o": "Way less like a toy.",
+      "t": "已经不那么像玩具了。"
+    },
+    {
+      "s": 1072000,
+      "d": 3520,
+      "o": "Yeah, this guy's looking really, really good already.",
+      "t": "这家伙已经看起来非常非常棒了。"
+    },
+    {
+      "s": 1075520,
+      "d": 2399,
+      "o": "You can see what the panel lines have done.",
+      "t": "你可以看到渗线带来的效果。"
+    },
+    {
+      "s": 1077919,
+      "d": 2961,
+      "o": "They've just made everything look so much more detailed.",
+      "t": "渗线让一切看起来都更有细节感了。"
+    },
+    {
+      "s": 1080880,
+      "d": 2240,
+      "o": "His face looks so much more menacing.",
+      "t": "他的脸看起来更具威慑力了。"
+    },
+    {
+      "s": 1083120,
+      "d": 3520,
+      "o": "He just he already looks really, really good, man.",
+      "t": "他已经看起来非常非常棒了，伙计。"
+    },
+    {
+      "s": 1086640,
+      "d": 2080,
+      "o": "See all the you see all the panel lines?",
+      "t": "看到所有这些刻线了吗？"
+    },
+    {
+      "s": 1088720,
+      "d": 2800,
+      "o": "It just makes him look that much better right now, honestly.",
+      "t": "看到所有这些刻线了吗？光是这一步就已经让它看起来好太多了，说实话。"
+    },
+    {
+      "s": 1091520,
+      "d": 3200,
+      "o": "But I'd say he's still missing something, and that is decals.",
+      "t": "但他还是少了点什么，那就是贴纸。"
+    },
+    {
+      "s": 1094720,
+      "d": 1360,
+      "o": "All right, it's time to decal up.",
+      "t": "好了，是时候贴水贴了。"
+    },
+    {
+      "s": 1096080,
+      "d": 1839,
+      "o": "Yeah, screw this piece of thing.",
+      "t": "你们以为我把它撕坏了。"
+    },
+    {
+      "s": 1097919,
+      "d": 1041,
+      "o": "You guys thought I ripped it.",
+      "t": "你们以为我把它撕坏了？不，那只是我在高中学到的一个小技巧。"
+    },
+    {
+      "s": 1098960,
+      "d": 1760,
+      "o": "No, that was just a trick I learned in high school.",
+      "t": "不，那只是我在高中学到的一个小技巧。"
+    },
+    {
+      "s": 1100720,
+      "d": 5960,
+      "o": "I do need to rip this water decal.",
+      "t": "我需要撕开这张水贴。"
+    },
+    {
+      "s": 1107919,
+      "d": 880,
+      "o": "There we go.",
+      "t": "这些水贴看起来相当不错。"
+    },
+    {
+      "s": 1108799,
+      "d": 1281,
+      "o": "The water decals.",
+      "t": "水贴看起来相当不错。"
+    },
+    {
+      "s": 1110080,
+      "d": 1120,
+      "o": "They look pretty good.",
+      "t": "它们看起来相当不错。"
+    },
+    {
+      "s": 1111200,
+      "d": 960,
+      "o": "Perfect even.",
+      "t": "完美，甚至可以说是无可挑剔。"
+    },
+    {
+      "s": 1112160,
+      "d": 1280,
+      "o": "Yeah, they should be great.",
+      "t": "它们看起来很棒。"
+    },
+    {
+      "s": 1113440,
+      "d": 479,
+      "o": "All right.",
+      "t": "完美，甚至可以说是无可挑剔。"
+    },
+    {
+      "s": 1113919,
+      "d": 2161,
+      "o": "All we need here is our decals.",
+      "t": "我们只需要水贴纸。"
+    },
+    {
+      "s": 1116080,
+      "d": 4000,
+      "o": "Anything to hold some water so you can dip in those decals into there.",
+      "t": "任何能盛水的东西都行，这样你就可以把水贴浸进去。"
+    },
+    {
+      "s": 1120080,
+      "d": 1920,
+      "o": "Then an X-acto knife.",
+      "t": "然后你需要一把美工刀。"
+    },
+    {
+      "s": 1122000,
+      "d": 4960,
+      "o": "We're going to use the back of our decal guide to just see which number goes to what.",
+      "t": "然后我们会用贴纸指南的背面来对照编号，看看哪个数字对应哪个位置。"
+    },
+    {
+      "s": 1126960,
+      "d": 7000,
+      "o": "These will have numbers on them and then we'll just match them up.",
+      "t": "这些贴纸上会有编号，然后我们只需将它们对应起来。"
+    },
+    {
+      "s": 1136400,
+      "d": 5519,
+      "o": "We're going to put these guys into the water here and just leave those for 30 seconds to a minute.",
+      "t": "我们将这些贴纸放入水中，浸泡30秒到一分钟即可。"
+    },
+    {
+      "s": 1141919,
+      "d": 3841,
+      "o": "Kind of doesn't matter how long you keep them in there, but I'd still recommend 30 seconds to a minute.",
+      "t": "不过放多久其实无所谓，但我还是建议泡30秒到一分钟。"
+    },
+    {
+      "s": 1145760,
+      "d": 1600,
+      "o": "All right, so now we're going to be using these guys.",
+      "t": "好了，现在我们要用上这些家伙了。"
+    },
+    {
+      "s": 1147360,
+      "d": 319,
+      "o": "Mr.",
+      "t": "马克笔。"
+    },
+    {
+      "s": 1147679,
+      "d": 641,
+      "o": "Mark, Mr.",
+      "t": "马克笔软化剂。"
+    },
+    {
+      "s": 1148320,
+      "d": 479,
+      "o": "Softer.",
+      "t": "马克软化剂。"
+    },
+    {
+      "s": 1148799,
+      "d": 1041,
+      "o": "I'm going to be mainly using Mr.",
+      "t": "马克笔软化剂。"
+    },
+    {
+      "s": 1149840,
+      "d": 1120,
+      "o": "Mark setter here, but Mr.",
+      "t": "马克软化剂。"
+    },
+    {
+      "s": 1150960,
+      "d": 640,
+      "o": "mark softer.",
+      "t": "马克软化剂。"
+    },
+    {
+      "s": 1151600,
+      "d": 3360,
+      "o": "We'll see if that can come in handy for like curved edges.",
+      "t": "马克软化剂。我们看看它能否在曲面边缘派上用场。"
+    },
+    {
+      "s": 1154960,
+      "d": 3200,
+      "o": "I'm going to get rid of the excess by slapping on the sides.",
+      "t": "然后我们基本上要在打算贴水贴的位置滴上一滴。"
+    },
+    {
+      "s": 1158160,
+      "d": 5200,
+      "o": "And then we're going to pretty much put a drop on where we intend on putting our decals.",
+      "t": "然后我们基本上要在打算贴水贴的位置滴上一滴。"
+    },
+    {
+      "s": 1163360,
+      "d": 2240,
+      "o": "So, just going to put some drops there.",
+      "t": "所以，我们只需要在那里滴几滴就行了。"
+    },
+    {
+      "s": 1165600,
+      "d": 1120,
+      "o": "Put some drops there.",
+      "t": "在那里滴几滴。"
+    },
+    {
+      "s": 1166720,
+      "d": 2000,
+      "o": "And that's all we have to do for that.",
+      "t": "我们只需要做到这一步就行了。"
+    },
+    {
+      "s": 1168720,
+      "d": 1839,
+      "o": "And it'll naturally stick.",
+      "t": "它会自然粘住。"
+    },
+    {
+      "s": 1170559,
+      "d": 240,
+      "o": "All right.",
+      "t": "然后它就会自然粘上去了。"
+    },
+    {
+      "s": 1170799,
+      "d": 2561,
+      "o": "So, if you got some tweezers, use some tweezers for this part.",
+      "t": "所以，如果你有镊子，这部分就用镊子。"
+    },
+    {
+      "s": 1173360,
+      "d": 2319,
+      "o": "Tweezers and a Q-tip is like what I like to use here.",
+      "t": "镊子和棉签是我喜欢用的工具。"
+    },
+    {
+      "s": 1175679,
+      "d": 880,
+      "o": "Sometimes a toothpick.",
+      "t": "镊子和棉签是我喜欢用的工具。"
+    },
+    {
+      "s": 1176559,
+      "d": 1120,
+      "o": "Actually, I like a toothpick better.",
+      "t": "其实我更喜欢用牙签。"
+    },
+    {
+      "s": 1177679,
+      "d": 1681,
+      "o": "You don't need these things, but they're nice.",
+      "t": "你不需要这些东西，但它们确实很好用。"
+    },
+    {
+      "s": 1179360,
+      "d": 1600,
+      "o": "So, we're going to get this guy.",
+      "t": "我们要把这个拿起来。"
+    },
+    {
+      "s": 1180960,
+      "d": 2160,
+      "o": "Try to get rid of the excess water here.",
+      "t": "然后，我们把它滑上去。"
+    },
+    {
+      "s": 1183120,
+      "d": 2880,
+      "o": "Then, we're going to slide this guy on.",
+      "t": "然后，我们把它滑上去。"
+    },
+    {
+      "s": 1186000,
+      "d": 2160,
+      "o": "Very easy.",
+      "t": "非常容易。"
+    },
+    {
+      "s": 1188160,
+      "d": 1040,
+      "o": "There we go.",
+      "t": "非常轻松。"
+    },
+    {
+      "s": 1189200,
+      "d": 6240,
+      "o": "We just slide this on until we're happy with our position.",
+      "t": "就这样，我们把贴纸滑到满意位置为止。"
+    },
+    {
+      "s": 1195440,
+      "d": 1440,
+      "o": "Like that.",
+      "t": "就像这样。"
+    },
+    {
+      "s": 1196880,
+      "d": 2799,
+      "o": "Let's get the next one.",
+      "t": "把这个滑上去。"
+    },
+    {
+      "s": 1199679,
+      "d": 3360,
+      "o": "Slide this on.",
+      "t": "把这个滑上去。"
+    },
+    {
+      "s": 1203039,
+      "d": 4200,
+      "o": "Okay.",
+      "t": "好的，我对那个位置很满意。"
+    },
+    {
+      "s": 1212559,
+      "d": 1201,
+      "o": "That looks good to me.",
+      "t": "我对那个位置挺满意的。"
+    },
+    {
+      "s": 1213760,
+      "d": 1360,
+      "o": "All right, I'm pretty happy with that.",
+      "t": "我对这个位置挺满意的。"
+    },
+    {
+      "s": 1215120,
+      "d": 1040,
+      "o": "There is a lot of excess water.",
+      "t": "这里有很多多余的水分。"
+    },
+    {
+      "s": 1216160,
+      "d": 2080,
+      "o": "You can just use a Q-tip to kind of roll it over.",
+      "t": "你可以用棉签轻轻滚过去。"
+    },
+    {
+      "s": 1218240,
+      "d": 2880,
+      "o": "And then there should be a little bit left that I can move it.",
+      "t": "然后应该还会剩下一点，这样我就能移动它了。"
+    },
+    {
+      "s": 1221120,
+      "d": 3040,
+      "o": "Make sure I get in the spots I like.",
+      "t": "确保我把它放到我喜欢的位置。"
+    },
+    {
+      "s": 1224160,
+      "d": 1280,
+      "o": "All right, pretty happy with that.",
+      "t": "确保我把它放到我喜欢的位置。"
+    },
+    {
+      "s": 1225440,
+      "d": 1920,
+      "o": "So, we're just going to let that dry basically.",
+      "t": "所以我们基本上就让它自然晾干。"
+    },
+    {
+      "s": 1227360,
+      "d": 3280,
+      "o": "But we're going to keep working on this guy while that dries.",
+      "t": "我们就在它晾干的同时继续处理这个零件。"
+    },
+    {
+      "s": 1230640,
+      "d": 11279,
+      "o": "So that's the shield done.",
+      "t": "这盾牌就完成了。"
+    },
+    {
+      "s": 1241919,
+      "d": 1760,
+      "o": "So much better than stickers, bro.",
+      "t": "这比贴纸好太多了，兄弟，简直不可思议。"
+    },
+    {
+      "s": 1243679,
+      "d": 4440,
+      "o": "It's crazy.",
+      "t": "这比贴纸好太多了，兄弟。简直不可思议。"
+    },
+    {
+      "s": 1250720,
+      "d": 5199,
+      "o": "Okay, this is one of those cases where it's this stuff's actually going to come in handy cuz I'm have to curving it around.",
+      "t": "这就是那种这玩意儿能派上用场的情况，因为我得让水贴沿着边缘弯曲贴合。"
+    },
+    {
+      "s": 1255919,
+      "d": 3921,
+      "o": "I'm going to have to curve around an edge with a decal, which sucks.",
+      "t": "我得把贴纸沿着边缘弯折过去，这真够烦人的。"
+    },
+    {
+      "s": 1259840,
+      "d": 5440,
+      "o": "What this does actually softens the decal up so it can actually adhere around the edges.",
+      "t": "这东西的作用其实是软化贴纸，让它能更好地贴合边缘弧度。"
+    },
+    {
+      "s": 1265280,
+      "d": 1680,
+      "o": "So you don't want to use too much of this stuff.",
+      "t": "所以你不能用太多这玩意儿。"
+    },
+    {
+      "s": 1266960,
+      "d": 5920,
+      "o": "It's actually pretty strong and you kind of want to work fast once you apply it.",
+      "t": "这东西实际上会软化贴纸，使其能够贴合边缘。"
+    },
+    {
+      "s": 1272880,
+      "d": 799,
+      "o": "So I applied it.",
+      "t": "所以我涂上去了。"
+    },
+    {
+      "s": 1273679,
+      "d": 1120,
+      "o": "Now I'm going to work fast.",
+      "t": "现在我要加快速度操作了。"
+    },
+    {
+      "s": 1274799,
+      "d": 5481,
+      "o": "Sure to get it where I want it.",
+      "t": "我会尽量在它下面也涂一点这种粘合剂，这样更容易粘牢。"
+    },
+    {
+      "s": 1284640,
+      "d": 6720,
+      "o": "I'll try and get a little bit of this adhesive on so it sticks easier, too, on the underside of this.",
+      "t": "我也会试着在底部涂一点这种粘合剂，这样它更容易粘住。"
+    },
+    {
+      "s": 1291360,
+      "d": 2080,
+      "o": "Yep, that should be good.",
+      "t": "这样应该没问题了。"
+    },
+    {
+      "s": 1293440,
+      "d": 2320,
+      "o": "All right, that looks decent.",
+      "t": "好的，看起来还不错。"
+    },
+    {
+      "s": 1295760,
+      "d": 1360,
+      "o": "I'm just going to check the guide.",
+      "t": "我打算让它自然晾干。"
+    },
+    {
+      "s": 1297120,
+      "d": 1280,
+      "o": "I'm just going to let that dry.",
+      "t": "我打算让它自然晾干。"
+    },
+    {
+      "s": 1298400,
+      "d": 3440,
+      "o": "That's part especially cuz it's going to take a second.",
+      "t": "这部分尤其需要时间，因为它要花一会儿才能干。"
+    },
+    {
+      "s": 1301840,
+      "d": 3040,
+      "o": "So, I'm going to set this to 4,000 time speed here.",
+      "t": "我打算把这段加速到四千倍速播放。"
+    },
+    {
+      "s": 1304880,
+      "d": 2960,
+      "o": "Decaling is honestly a long and gruesome process.",
+      "t": "贴水贴其实是个漫长又折磨人的过程。"
+    },
+    {
+      "s": 1307840,
+      "d": 6000,
+      "o": "It's probably my most hated process here cuz it just takes so dang long and you have to be so precise.",
+      "t": "贴水贴其实是个漫长又折磨人的过程。"
+    },
+    {
+      "s": 1313840,
+      "d": 2719,
+      "o": "you got to be focusing really hard in my opinion.",
+      "t": "你必须非常集中注意力，在我看来是这样。"
+    },
+    {
+      "s": 1316559,
+      "d": 3281,
+      "o": "But anyway, it takes a long time, but it does look really, really good.",
+      "t": "但无论如何，这很耗时，不过效果确实非常非常好。"
+    },
+    {
+      "s": 1319840,
+      "d": 4480,
+      "o": "I think it does add a certain depth of realism to the kit, which some people actually really don't like.",
+      "t": "我认为它确实为模型增添了一定的真实感，不过有些人其实非常不喜欢这种感觉。"
+    },
+    {
+      "s": 1324320,
+      "d": 7200,
+      "o": "So, if you want more of the anime approach to your mechs, then you can actually skip this process pretty much, which is going to save you a lot of time.",
+      "t": "所以，如果你想让机甲更偏向动漫风格，基本上可以跳过这个步骤，这样能省下大量时间。"
+    },
+    {
+      "s": 1331520,
+      "d": 2480,
+      "o": "But yeah, it's kind of up to you if you want to do this or not.",
+      "t": "但说到底，是否要这么做完全取决于你自己。"
+    },
+    {
+      "s": 1334000,
+      "d": 3280,
+      "o": "I personally really love the look and I think it makes them look really good.",
+      "t": "我个人非常喜欢这种外观，觉得它让模型看起来特别棒。"
+    },
+    {
+      "s": 1337280,
+      "d": 5120,
+      "o": "So, it's worth it to me even if it does suck to do on every single piece.",
+      "t": "所以对我来说，即使每个零件都要做很烦人，也是值得的。"
+    },
+    {
+      "s": 1342400,
+      "d": 6720,
+      "o": "The whole decal process can take hours and yeah, you just got to listen to music or something to get through it.",
+      "t": "整个贴水贴的过程可能要花上好几个小时，没错，你就得听听音乐什么的才能熬过去。"
+    },
+    {
+      "s": 1349120,
+      "d": 1120,
+      "o": "My parts are about ready.",
+      "t": "我的零件差不多准备好了。"
+    },
+    {
+      "s": 1350240,
+      "d": 3919,
+      "o": "So, we're going to get these alligator clip stands going.",
+      "t": "我的零件差不多准备好了，所以我们要开始用这些鳄鱼夹支架了。"
+    },
+    {
+      "s": 1354159,
+      "d": 2561,
+      "o": "I got a baggie full of alligator clips here.",
+      "t": "我有一整袋鳄鱼夹在这里。"
+    },
+    {
+      "s": 1356720,
+      "d": 6000,
+      "o": "And all we're going to do is going to find a part that doesn't matter as much to get top coated.",
+      "t": "我的零件差不多准备好了。"
+    },
+    {
+      "s": 1362720,
+      "d": 3280,
+      "o": "Usually a joint like this right here.",
+      "t": "通常像这样的关节部位，直接夹上去就行。"
+    },
+    {
+      "s": 1366000,
+      "d": 1919,
+      "o": "Just clip that on.",
+      "t": "通常像这样的关节部位，直接夹上去就行。"
+    },
+    {
+      "s": 1367919,
+      "d": 2481,
+      "o": "And then we're going to stick that in like that.",
+      "t": "然后我们把它像那样插进去。"
+    },
+    {
+      "s": 1370400,
+      "d": 2240,
+      "o": "And that is ready to be top coated.",
+      "t": "然后把它像那样插进去。"
+    },
+    {
+      "s": 1372640,
+      "d": 320,
+      "o": "All right.",
+      "t": "好了。"
+    },
+    {
+      "s": 1372960,
+      "d": 2000,
+      "o": "So, I'm just going to do this real quick with the others.",
+      "t": "好了，我这就快速处理剩下的零件。"
+    },
+    {
+      "s": 1374960,
+      "d": 1920,
+      "o": "You want to try and make sure they don't touch either.",
+      "t": "你要尽量确保它们互不接触。"
+    },
+    {
+      "s": 1376880,
+      "d": 4400,
+      "o": "So, uh the top coats don't touch each other and mess each other up.",
+      "t": "所以，要确保它们不会互相接触，以免涂层相互影响、搞砸彼此。"
+    },
+    {
+      "s": 1381280,
+      "d": 6399,
+      "o": "Try to make sure you get a strong connection so it doesn't fall while top coating, which has happened to me before.",
+      "t": "尽量确保连接牢固，这样在喷涂保护漆时就不会掉落，我以前就遇到过这种情况。"
+    },
+    {
+      "s": 1387679,
+      "d": 3360,
+      "o": "It can result in ugly results.",
+      "t": "这可能会导致难看的后果。"
+    },
+    {
+      "s": 1391039,
+      "d": 1921,
+      "o": "So, I'm going to make sure that seems good.",
+      "t": "所以我要确保它看起来没问题。"
+    },
+    {
+      "s": 1392960,
+      "d": 2560,
+      "o": "And it does seem a little loose, actually.",
+      "t": "看起来确实有点松。"
+    },
+    {
+      "s": 1395520,
+      "d": 7440,
+      "o": "So, I'm going to actually bend these joints a little just so we get everything covered here.",
+      "t": "所以我打算稍微弯曲一下这些关节，确保每个部位都能被覆盖到。"
+    },
+    {
+      "s": 1402960,
+      "d": 2560,
+      "o": "And then so there's a little bit of a better balance.",
+      "t": "这样平衡性会好很多。"
+    },
+    {
+      "s": 1405520,
+      "d": 1200,
+      "o": "Seems a lot more solid.",
+      "t": "看起来稳固多了。"
+    },
+    {
+      "s": 1406720,
+      "d": 959,
+      "o": "And I can rotate it.",
+      "t": "看起来稳固多了。"
+    },
+    {
+      "s": 1407679,
+      "d": 801,
+      "o": "Yep.",
+      "t": "可以。就这样吧。"
+    },
+    {
+      "s": 1408480,
+      "d": 4519,
+      "o": "Go with that.",
+      "t": "就这样吧。"
+    },
+    {
+      "s": 1414480,
+      "d": 2319,
+      "o": "All right.",
+      "t": "好的。"
+    },
+    {
+      "s": 1416799,
+      "d": 2401,
+      "o": "Got my parts all set up to go here.",
+      "t": "我的零件都准备好了。"
+    },
+    {
+      "s": 1419200,
+      "d": 880,
+      "o": "Let's do this.",
+      "t": "好了，我的零件都准备好了。"
+    },
+    {
+      "s": 1420080,
+      "d": 2160,
+      "o": "Hey, so I got my drawer here.",
+      "t": "好了，我的零件都准备好了。"
+    },
+    {
+      "s": 1422240,
+      "d": 1600,
+      "o": "Let's get the cheap stuff right here.",
+      "t": "我来用这个便宜货。"
+    },
+    {
+      "s": 1423840,
+      "d": 719,
+      "o": "I'm going to use this.",
+      "t": "我要用这个。"
+    },
+    {
+      "s": 1424559,
+      "d": 5041,
+      "o": "This is just Kryon matte top coat, but if you wanted something better, you'd use something like this.",
+      "t": "如果你想用更好的，那就用这个。"
+    },
+    {
+      "s": 1429600,
+      "d": 319,
+      "o": "Mr.",
+      "t": "超级透明。"
+    },
+    {
+      "s": 1429919,
+      "d": 880,
+      "o": "Super Clear.",
+      "t": "超级透明漆。反正它已经空了，所以我们要用这个。"
+    },
+    {
+      "s": 1430799,
+      "d": 2641,
+      "o": "It's empty anyway, so we're going to be using this stuff.",
+      "t": "反正它已经空了，所以我们要用这个。"
+    },
+    {
+      "s": 1433440,
+      "d": 1359,
+      "o": "Let's do it.",
+      "t": "我们开始吧。"
+    },
+    {
+      "s": 1434799,
+      "d": 561,
+      "o": "All right.",
+      "t": "好的，我准备好了。"
+    },
+    {
+      "s": 1435360,
+      "d": 1120,
+      "o": "Got my setup here.",
+      "t": "好的，我的装备都准备好了。"
+    },
+    {
+      "s": 1436480,
+      "d": 1840,
+      "o": "Um, nothing fancy, as you can see.",
+      "t": "没什么花哨的，就像你看到的这样。"
+    },
+    {
+      "s": 1438320,
+      "d": 4080,
+      "o": "Just got a literal cardboard box in that guy right there with the alligator clips.",
+      "t": "没什么花哨的，就像你看到的这样。"
+    },
+    {
+      "s": 1442400,
+      "d": 1519,
+      "o": "We got our top coat here.",
+      "t": "我们有个纸板箱，里面插着鳄鱼夹。"
+    },
+    {
+      "s": 1443919,
+      "d": 2161,
+      "o": "I would suggest you get some gloves.",
+      "t": "我建议你戴上手套。"
+    },
+    {
+      "s": 1446080,
+      "d": 1920,
+      "o": "It's really cold over here, by the way.",
+      "t": "这里真的很冷，顺便说一下。"
+    },
+    {
+      "s": 1448000,
+      "d": 1120,
+      "o": "I'm in Boston right now.",
+      "t": "我现在在波士顿。"
+    },
+    {
+      "s": 1449120,
+      "d": 1919,
+      "o": "It's uh definitely turning winter.",
+      "t": "现在绝对是入冬了。"
+    },
+    {
+      "s": 1451039,
+      "d": 2240,
+      "o": "But uh yeah, we're going to shake this guy up like crazy.",
+      "t": "但没错，我们要疯狂摇晃这罐东西。"
+    },
+    {
+      "s": 1453279,
+      "d": 1121,
+      "o": "Spray it on all three sides.",
+      "t": "我们要像疯了一样摇晃这罐子。"
+    },
+    {
+      "s": 1454400,
+      "d": 639,
+      "o": "Let's do it.",
+      "t": "我们得把它喷在三个面上。"
+    },
+    {
+      "s": 1455039,
+      "d": 1601,
+      "o": "You cannot shake them up.",
+      "t": "你不能不摇晃它们。"
+    },
+    {
+      "s": 1456640,
+      "d": 2000,
+      "o": "So, we're going to be trying to spray every side here.",
+      "t": "我们要快速喷三层薄薄的涂层，这样就不会在任何地方喷得过厚。"
+    },
+    {
+      "s": 1458640,
+      "d": 4639,
+      "o": "We're going to be doing three light coats really quickly so we don't overspray on anything.",
+      "t": "我们要快速喷三层薄薄的涂层，这样就不会在任何部件上喷得过厚。"
+    },
+    {
+      "s": 1463279,
+      "d": 1201,
+      "o": "Otherwise, it will look like a mess.",
+      "t": "否则会看起来一团糟。"
+    },
+    {
+      "s": 1464480,
+      "d": 1520,
+      "o": "We're not trying to spray too close either.",
+      "t": "我们也不能喷得太近，实际上要离得远一些。"
+    },
+    {
+      "s": 1466000,
+      "d": 1679,
+      "o": "We're trying to spray pretty far, actually.",
+      "t": "我们不要喷得太近，实际上要喷得远一些。"
+    },
+    {
+      "s": 1467679,
+      "d": 1841,
+      "o": "I'd say around 6 in is pretty good.",
+      "t": "我觉得大概6英寸的距离就挺合适的。"
+    },
+    {
+      "s": 1469520,
+      "d": 1120,
+      "o": "Yeah, we're just trying to get every side.",
+      "t": "所以，这是正面、背面、侧面和底部。"
+    },
+    {
+      "s": 1470640,
+      "d": 4080,
+      "o": "So, this is the front side, the back side, the sides, the bottom side.",
+      "t": "所以，这是正面、背面、侧面和底部。"
+    },
+    {
+      "s": 1474720,
+      "d": 1120,
+      "o": "We're trying to do all that.",
+      "t": "三遍涂层，每面都要喷。"
+    },
+    {
+      "s": 1475840,
+      "d": 880,
+      "o": "Three coats each.",
+      "t": "每件喷三层。"
+    },
+    {
+      "s": 1476720,
+      "d": 5080,
+      "o": "So, here we go.",
+      "t": "每件喷三层。"
+    },
+    {
+      "s": 1494159,
+      "d": 4200,
+      "o": "Good.",
+      "t": "每层喷三遍。"
+    },
+    {
+      "s": 1498640,
+      "d": 5400,
+      "o": "We're just going to repeat that a bunch.",
+      "t": "我们只需重复这个过程很多次。"
+    },
+    {
+      "s": 1531440,
+      "d": 1760,
+      "o": "By the way, this stuff is toxic.",
+      "t": "顺便说一句，这东西有毒。"
+    },
+    {
+      "s": 1533200,
+      "d": 1040,
+      "o": "You don't want to breathe it in.",
+      "t": "这东西有毒。"
+    },
+    {
+      "s": 1534240,
+      "d": 6440,
+      "o": "So, I'm stepping away every uh minute or two.",
+      "t": "所以我每隔一两分钟就会走开一下。"
+    },
+    {
+      "s": 1542320,
+      "d": 320,
+      "o": "Basic.",
+      "t": "基本操作。"
+    },
+    {
+      "s": 1542640,
+      "d": 5479,
+      "o": "I'm almost holding my breath actually.",
+      "t": "我几乎是在屏住呼吸。"
+    },
+    {
+      "s": 1554480,
+      "d": 240,
+      "o": "All right.",
+      "t": "好的。"
+    },
+    {
+      "s": 1554720,
+      "d": 2232,
+      "o": "I actually forgot to mask the eyes here.",
+      "t": "我其实忘了给眼睛做遮盖。"
+    },
+    {
+      "s": 1556952,
+      "d": 2727,
+      "o": "Um I don't really want to m top coat the eyes.",
+      "t": "我其实忘了给眼睛做遮盖。"
+    },
+    {
+      "s": 1559679,
+      "d": 5041,
+      "o": "I won't do too much, but I'm gonna try and spray at an angle that it doesn't get the eyes.",
+      "t": "我不会喷太多，但我会试着调整角度，避免喷到眼睛。"
+    },
+    {
+      "s": 1564720,
+      "d": 1280,
+      "o": "So, here we go.",
+      "t": "所以，我们开始吧。"
+    },
+    {
+      "s": 1566000,
+      "d": 3600,
+      "o": "This is just the lazy method here.",
+      "t": "这只是偷懒的方法。"
+    },
+    {
+      "s": 1569600,
+      "d": 5840,
+      "o": "Yo, >> good.",
+      "t": "哟，不错。"
+    },
+    {
+      "s": 1575440,
+      "d": 2080,
+      "o": "Take your time, guys.",
+      "t": "慢慢来，各位。"
+    },
+    {
+      "s": 1577520,
+      "d": 2080,
+      "o": "Now, we're just going to move these guys into a safe place.",
+      "t": "现在，我们只需把这些零件移到安全的地方。"
+    },
+    {
+      "s": 1579600,
+      "d": 959,
+      "o": "Make sure no one touches them.",
+      "t": "确保没人碰到它们。"
+    },
+    {
+      "s": 1580559,
+      "d": 5921,
+      "o": "A cat, nothing, dust, cuz they are like wet right now and they need to dry for at least 2 three hours.",
+      "t": "确保没人碰到它们。"
+    },
+    {
+      "s": 1586480,
+      "d": 559,
+      "o": "Very least.",
+      "t": "最少也要等那么久。"
+    },
+    {
+      "s": 1587039,
+      "d": 1441,
+      "o": "I'd really leave them overnight.",
+      "t": "我真心建议至少放上一整晚。"
+    },
+    {
+      "s": 1588480,
+      "d": 2960,
+      "o": "And I'd say more something more safe is six hours or a whole day.",
+      "t": "我真心建议至少放上一整夜。"
+    },
+    {
+      "s": 1591440,
+      "d": 2800,
+      "o": ">> Now we just got to wait.",
+      "t": "现在我们只需要等待。"
+    },
+    {
+      "s": 1594240,
+      "d": 5320,
+      "o": "All right, this is the fun part.",
+      "t": "现在到了最有趣的部分——让我们开始组装吧。"
+    },
+    {
+      "s": 1605440,
+      "d": 4520,
+      "o": "Let's assemble.",
+      "t": "现在到了最有趣的部分——我们来组装吧。"
+    },
+    {
+      "s": 1616559,
+      "d": 2000,
+      "o": "There he is.",
+      "t": "他来了。"
+    },
+    {
+      "s": 1618559,
+      "d": 881,
+      "o": "beauty.",
+      "t": "真漂亮。"
+    },
+    {
+      "s": 1619440,
+      "d": 6800,
+      "o": "And that's how we went from a plain looking model kit to this more detailed complete looking model kit with the help of some simple tools and supplies.",
+      "t": "这就是我们如何借助一些简单的工具和耗材，从一个平平无奇的模型套件，变成这个细节更丰富、看起来更完整的模型套件的过程。"
+    },
+    {
+      "s": 1626240,
+      "d": 5280,
+      "o": "This, in my opinion, is how Gumlas should be built because at the end of the day, we just we want our model kits to look at their very best.",
+      "t": "在我看来，这才是高达模型应有的制作方式，因为归根结底，我们都希望自己的模型套件能展现出最佳状态。"
+    },
+    {
+      "s": 1631520,
+      "d": 2960,
+      "o": "And I think investing in the right tools and and supplies is well worth it.",
+      "t": "我认为投资合适的工具和耗材是非常值得的。"
+    },
+    {
+      "s": 1634480,
+      "d": 5520,
+      "o": "But hopefully this video gave you some insight on how you want to upgrade on your own gumpt even because this is just the basics.",
+      "t": "但希望这个视频能给你一些启发，让你知道如何升级自己的高达模型，因为这只是基础入门。"
+    },
+    {
+      "s": 1640000,
+      "d": 4400,
+      "o": "There's still weathering, diaramas, painting, customizing, and there's just so much more.",
+      "t": "还有旧化、场景制作、涂装、自定义改造等等，可做的事情远不止这些。"
+    },
+    {
+      "s": 1644400,
+      "d": 7680,
+      "o": "It's kind of cool that I built this kit in particular because because my first model kit or Gundam was this RX93 new Gundam and I had no idea what I was getting myself into at the time.",
+      "t": "挺酷的是我特别选择了这个套件来制作，因为我的第一个模型套件或高达就是这台RX-93 ν高达，当时我完全不知道自己将要面对什么。"
+    },
+    {
+      "s": 1652080,
+      "d": 1360,
+      "o": "And this is my most recent creation.",
+      "t": "这是我最近完成的作品。"
+    },
+    {
+      "s": 1653440,
+      "d": 2080,
+      "o": "So, it's kind of cool that I went full circle in a way.",
+      "t": "所以，某种程度上，我算是走了一个完整的循环，这还挺酷的。"
+    },
+    {
+      "s": 1655520,
+      "d": 2080,
+      "o": "I didn't top coat this kit, so it's a little shiny.",
+      "t": "我没有给这个套件喷保护漆，所以它有点反光。"
+    },
+    {
+      "s": 1657600,
+      "d": 6559,
+      "o": "And I even messed up quite a bit with the panel lining because I put on stickers and then panel lined and it just kind of went everywhere.",
+      "t": "我甚至在水贴环节也犯了不少错，因为先贴了贴纸再渗线，结果弄得一塌糊涂。"
+    },
+    {
+      "s": 1664159,
+      "d": 3441,
+      "o": "But, it's just kind of cool to see how I improved, even if it's just small bits here and there.",
+      "t": "但看到自己有所进步还是挺酷的，哪怕只是些小细节的改进。"
+    },
+    {
+      "s": 1667600,
+      "d": 2880,
+      "o": "But anyway, guys, there's always so much more you can do to your gumplo.",
+      "t": "但无论如何，各位，你们的高达模型总有更多可以发挥的空间。"
+    },
+    {
+      "s": 1670480,
+      "d": 3120,
+      "o": "So, get out there to see if you can go beyond what you usually do for your own gumplo.",
+      "t": "所以，各位，你们总能对自己的钢普拉做更多的事情。"
+    },
+    {
+      "s": 1673600,
+      "d": 4240,
+      "o": "And again, if you want any of these tools you saw in this video, I'll have them all linked in the description.",
+      "t": "如果你想要视频里看到的任何工具，我都会在描述里附上所有链接。"
+    },
+    {
+      "s": 1677840,
+      "d": 4480,
+      "o": "And of course, if you enjoyed this video, please give it a like and subscribe if you like this style of content.",
+      "t": "如果你喜欢这个视频，请点赞并订阅，如果你喜欢这种风格的内容的话。"
+    },
+    {
+      "s": 1682320,
+      "d": 6320,
+      "o": "And if you have any of your own suggestions or tips on budgeting or tools or any of this or that, please give me a comment down below.",
+      "t": "如果你有自己的预算建议、工具推荐或其他任何想法和技巧，请在下方评论区告诉我。"
+    },
+    {
+      "s": 1688640,
+      "d": 5440,
+      "o": "And yeah, guys, have a merry Christmas and see you on the next",
+      "t": "各位，圣诞快乐，我们下次再见。"
+    }
+  ],
+  "createdAt": 1784471228787,
+  "video": {
+    "title": "Cheap Tools That Level Up Your Gunpla Game (2026 Guide)"
+  },
+  "track": {
+    "languageCode": "en",
+    "kind": "asr",
+    "vssId": "a.en",
+    "sourceFingerprint": "sha256-v1:73da0b2ea2eebfbf90063b3fafcb62d9c55d27d1fba918f2e7127cbcff7766e7"
+  },
+  "generation": {
+    "strategy": {
+      "mode": "sentence",
+      "configuredBatchSize": 8,
+      "effectiveRequestCount": 521,
+      "concurrency": 8,
+      "temperature": 0,
+      "boundaryMethod": "timed-punctuation",
+      "boundaryRequestCount": 0,
+      "boundaryThinking": "not-used",
+      "translationThinking": "disabled"
+    },
+    "alignment": {
+      "requestCount": 190,
+      "fallbackSentenceCount": 68
+    },
+    "usage": {
+      "requestCount": 711,
+      "usageResponseCount": 711,
+      "tokens": {
+        "promptTokens": 6709309,
+        "promptCacheHitTokens": 6668544,
+        "promptCacheMissTokens": 40765,
+        "completionTokens": 8942,
+        "totalTokens": 6718251
+      },
+      "incompleteFields": [
+        "reasoningTokens"
+      ],
+      "stages": {
+        "boundary": {
+          "requestCount": 0,
+          "usageResponseCount": 0,
+          "tokens": {},
+          "incompleteFields": []
+        },
+        "translation": {
+          "requestCount": 521,
+          "usageResponseCount": 521,
+          "tokens": {
+            "promptTokens": 4895316,
+            "promptCacheHitTokens": 4868224,
+            "promptCacheMissTokens": 27092,
+            "completionTokens": 7670,
+            "totalTokens": 4902986
+          },
+          "incompleteFields": [
+            "reasoningTokens"
+          ]
+        },
+        "alignment": {
+          "requestCount": 190,
+          "usageResponseCount": 190,
+          "tokens": {
+            "promptTokens": 1813993,
+            "promptCacheHitTokens": 1800320,
+            "promptCacheMissTokens": 13673,
+            "completionTokens": 1272,
+            "totalTokens": 1815265
+          },
+          "incompleteFields": [
+            "reasoningTokens"
+          ]
+        }
+      }
+    },
+    "pricing": {
+      "provider": "deepseek",
+      "model": "deepseek-v4-flash",
+      "currency": "CNY",
+      "unit": "million_tokens",
+      "promptCacheHit": 0.02,
+      "promptCacheMiss": 1,
+      "completion": 2,
+      "capturedAt": 1784471073475
+    },
+    "costCny": 0.19201988
+  }
+}
