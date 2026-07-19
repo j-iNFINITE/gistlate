@@ -171,9 +171,12 @@ into translation units. It validates:
 - display ranges cover each plan's source range exactly once;
 - global source coverage remains contiguous and ordered;
 - every source/display text is non-empty.
-- no complete sentence exceeds 30 seconds, 240 source code points, or three
+- no complete sentence exceeds 30 seconds, 480 source code points, or three
   terminal sentence marks; such a range indicates failed boundary recovery and
-  is rejected before display capping or translation.
+  is rejected before display capping or translation. The character cap is an
+  emergency collapsed-timing guard: real `5zKyUcKU134` English ASR reaches 321
+  code points in a valid single-stop sentence, so it must not act as a display
+  length target.
 
 ### 4.3 Canonical translation response
 
@@ -577,7 +580,7 @@ watch URL. Keep existing duplicate-track suppression after this guard.
 | Cache hit | return immediately; no usage operation/cost |
 | Timed-punctuation source hints | use local flags; zero boundary requests/reasoning cost |
 | Boundary malformed after retries | fail operation; no partial translation cache |
-| Boundary creates >30s/>240-code-point/>3-stop sentence | fail operation; do not cache the false sentence |
+| Boundary creates >30s/>480-code-point/>3-stop sentence | fail operation; do not cache the false sentence |
 | Translation group truncated/count-invalid | retry, then adaptively split group |
 | Canonical target echoes source/wrong script/severely incomplete | retry with correction tail, then split/fail closed |
 | Single-sentence translation still fails | mark failed; continue display of other fresh results; final operation fails/no artifact |
@@ -707,3 +710,38 @@ force retranslation overwrites it atomically through the existing path.
   kana/Traditional checks remain scoped to `zh-Hans`.
 - Internal source types may be richer than `{s,d,o,t}`. Compatibility belongs at
   the final artifact boundary, not in the parser's fidelity.
+
+## 15. Debug retrospective: legitimate high-density English ASR
+
+### 15.1 Root-cause category
+
+- **E — Implicit assumption:** the independent 240-code-point limit assumed a
+  valid spoken sentence could not be longer, conflating translation ownership
+  with the much shorter display-range target.
+- **D — Test coverage gap:** the safety tests contained only a minute-long,
+  multi-stop synthetic paragraph and did not sample the upper tail of a real
+  English ASR sentence-length distribution.
+
+### 15.2 Why a narrow fix would fail
+
+1. Raising 240 to 244 would pass sentence 21 but later fail at the same video's
+   valid 284-, 300-, and 321-code-point sentences.
+2. Excluding whitespace would still reject two valid sentences with 247 and 260
+   non-whitespace code points.
+3. Splitting at commas would weaken complete-sentence ownership and recreate the
+   semantic-cross-line risk this pipeline exists to prevent.
+
+### 15.3 Prevention mechanisms
+
+| Priority | Mechanism | Action | Status |
+|---|---|---|---|
+| P0 | Test coverage | Preserve the real 243/321-character English sentences as plan regressions | Done |
+| P0 | Runtime validation | Use a 480-code-point emergency cap while retaining 30s/3-stop guards | Done |
+| P1 | Documentation | State that display capping, not owner rejection, handles readable length | Done |
+
+### 15.4 Systematic expansion
+
+- Safety thresholds derived from one language or synthetic data require a real
+  distribution check before becoming independent fail-closed conditions.
+- Runtime guards should identify corrupted structure; ordinary large but valid
+  units should flow into the layer already responsible for display refinement.

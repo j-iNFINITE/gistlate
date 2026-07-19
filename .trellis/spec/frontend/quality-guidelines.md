@@ -199,7 +199,10 @@ Provider usage is decoded once at the HTTP boundary and propagated as
 - A complete source sentence is the minimum translation owner. Display capping
   creates nested ranges only; it must never create translation request items.
 - Reject a likely false complete sentence before translation when it exceeds 30
-  seconds, 240 source code points, or three terminal sentence marks.
+  seconds, 480 source code points, or three terminal sentence marks. The 480
+  limit is only an emergency guard for collapsed timing; valid long owners are
+  shortened later through nested display ranges. `5zKyUcKU134` proves that fast
+  English narration can contain valid 243- and 321-code-point single sentences.
 - Canonical responses use stable global IDs and contain exactly the requested
   non-empty ID set. Then reject source echo/prefix, kana-heavy zh-Hans,
   Traditional-only zh-Hans characters, and severe long-source omission. Retry
@@ -247,7 +250,7 @@ Provider usage is decoded once at the HTTP boundary and propagated as
 | Explicit manual track | One complete owner per YouTube cue; `manual-cues`; zero boundary calls |
 | Complete timed hints | Zero boundary calls; `boundaryThinking: not-used` |
 | Boundary missing/duplicate/truncated after retries | Fail operation; no translation artifact |
-| One range exceeds 30s/240 code points/3 stops | Reject as a false sentence before display capping |
+| One range exceeds 30s/480 code points/3 stops | Reject as a false sentence before display capping |
 | Canonical ID missing/duplicate/extra/empty | Retry; split only contiguous multi-sentence groups; single sentence fails closed |
 | Canonical source echo/wrong zh-Hans script/severe omission | Retry with correction tail; then split/fail closed |
 | Chinese target retains a source-owned Katakana product run | Accept that run; validate the remaining Japanese characters normally |
@@ -275,6 +278,8 @@ Provider usage is decoded once at the HTTP boundary and propagated as
 - **Good:** manual captions -> keep legacy event cues -> trust each authored cue
   as a complete owner -> translate only; no E/C request or ASR safety-limit
   rejection. A long cue stays intact because no reliable intra-cue timing exists.
+- **Good:** a 321-code-point, one-stop English ASR sentence spans 14 seconds ->
+  keep one canonical translation owner -> cap only its nested display ranges.
 - **Base:** untimed ASR -> keep legacy event cues -> use validated DeepSeek E/C
   detection and the normal false-sentence safety limits.
 - **Good:** long complete sentence -> one canonical target -> validated code-point
@@ -321,6 +326,9 @@ Provider usage is decoded once at the HTTP boundary and propagated as
   Marker/viewers and prior-method/partial-painting remain source-owned.
 - A replay of the real `Ru7H092hFAI` JSON3 must preserve all 5,618 source
   characters and produce no complete sentence over 30 seconds.
+- Real `5zKyUcKU134` plan fixtures retain its 243- and 321-code-point single-stop
+  sentences as valid owners, while the synthetic minute-long multi-stop range
+  still throws `SegmentationError`.
 - Build remains one static-import IIFE with no SystemJS/dynamic import.
 
 ### 7. Wrong vs Correct
@@ -341,6 +349,11 @@ cues.push({ s: event.tStartMs, d: duration, o: text })
 ```ts
 // Packed sentences flash for 1 ms and leave the final line covering all audio.
 nextSentenceStart = tokenStart + 1
+```
+
+```ts
+// 240 is a display-scale guess, not a safe universal sentence-owner limit.
+if (codePoints > 240) throw new SegmentationError('false sentence')
 ```
 
 #### Correct
@@ -367,6 +380,13 @@ const flags = sourceCues.every(hasSentenceEnd)
 nextSentenceStart = tokenStart + Math.round(
   (tokenEnd - tokenStart) * (consumedCodePoints / tokenCodePoints),
 )
+```
+
+```ts
+// Preserve real long owners; retain independent corruption guards.
+if (duration > 30_000 || codePoints > 480 || sentenceMarks > 3) {
+  throw new SegmentationError('false sentence')
+}
 ```
 
 Always strip non-speech annotations before this flow (`[...]`/`【...】`, musical

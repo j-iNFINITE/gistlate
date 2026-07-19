@@ -28,6 +28,10 @@
       169 sentence plans, and has a 13.742s maximum sentence (zero over 30s).
 - [x] Follow-up automated gate passes: 20 test files / 159 tests, TypeScript
       compile, production build, one IIFE, and zero SystemJS/dynamic imports.
+- [x] Live `5zKyUcKU134` exposed a false-positive 240-code-point guard. The 520
+      observed English sentences include valid 243/284/300/321-character owners;
+      the emergency cap is now 480 with exact 243/321 regressions, while the
+      existing 30-second/3-stop false-paragraph rejection remains intact.
 
 ## Step 1 — Settings and backward-compatible metadata contracts
 
@@ -137,7 +141,8 @@ scheduling changes.
       retain legacy parsing for untimed/manual tracks.
 - [x] Skip the boundary API when every source Cue has a deterministic
       `sentenceEnd`; record boundary method/request count in generation metadata.
-- [x] Reject 30s/240-code-point/3-stop false sentence plans.
+- [x] Reject 30s/480-code-point/3-stop false sentence plans; treat the character
+      cap as an emergency collapsed-timing guard, not a display-size limit.
 - [x] Validate canonical target language, source echo/prefix, and completeness;
       retry with a cache-friendly correction tail.
 - [x] Reject Latin-token, Han/Han, and pre-punctuation alignment cuts.

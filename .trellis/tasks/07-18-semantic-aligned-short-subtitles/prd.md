@@ -46,6 +46,11 @@ valid Chinese cues progressively contain the following Japanese cue's meaning.
 - The cleaned JSON3 source and the pool artifact source are exactly equal at
   5,618 characters. Source capture, cleanup, ordering, and video identity are
   therefore not the cause of the `Ru7H092hFAI` drift.
+- Live `5zKyUcKU134` English ASR contains 520 punctuation-delimited sentences.
+  Four legitimate single-stop sentences exceed 240 code points and the longest
+  is 321; none exceeds 480. Sentence 21 is 243 code points in 9.760 seconds and
+  proves that the original 240-character independent guard rejects normal fast
+  narration rather than only failed boundary recovery.
 - Translation title/description context, force retranslation, abort behavior,
   full-success cache writes, and the compact stored cue schema `{s,d,o,t}` must
   continue to work.
@@ -160,7 +165,9 @@ valid Chinese cues progressively contain the following Japanese cue's meaning.
 - A malformed or unalignable display split must not be cached as a normal
   successful short-cue result.
 - Reject a boundary result that creates a likely false mega-sentence (over 30
-  seconds, over 240 source code points, or over three terminal sentence marks).
+  seconds, over 480 source code points, or over three terminal sentence marks).
+  The code-point guard is an emergency check for collapsed timing, not a normal
+  subtitle display-size limit; display capping handles valid long sentences.
 - Validate canonical targets before caching: reject source echo/prefixes,
   kana-heavy Simplified-Chinese output, common Traditional-only characters, and
   severe long-source omissions. Retry with a compact correction tail; never
@@ -302,6 +309,9 @@ valid Chinese cues progressively contain the following Japanese cue's meaning.
 - [ ] Word-timed `Ru7H092hFAI` parsing preserves the exact 5,618-character source,
       recovers deterministic sentence hints, produces no sentence over 30
       seconds, and performs zero boundary API requests.
+- [ ] The observed 243- and 321-code-point single-stop English sentences from
+      `5zKyUcKU134` remain complete translation owners, while a minute-long or
+      multi-stop false paragraph still fails before translation.
 - [ ] A long complete sentence can produce multiple ordered display cues without
       target content leaking into a neighbouring sentence.
 - [ ] Concatenating a sentence's target display chunks reproduces its complete
