@@ -32,6 +32,11 @@
       observed English sentences include valid 243/284/300/321-character owners;
       the emergency cap is now 480 with exact 243/321 regressions, while the
       existing 30-second/3-stop false-paragraph rejection remains intact.
+- [x] A `v0.2.17` retry reached canonical translation and exposed five
+      cross-script completeness false positives. Latin-dominant long source to
+      zh-Hans now uses a conservative target-code-points-per-source-word severe
+      omission guard; all five real sentences and an end-to-end pipeline case
+      pass, while first-clause-only output remains rejected.
 
 ## Step 1 — Settings and backward-compatible metadata contracts
 

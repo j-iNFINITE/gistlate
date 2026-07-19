@@ -51,6 +51,11 @@ valid Chinese cues progressively contain the following Japanese cue's meaning.
   is 321; none exceeds 480. Sentence 21 is 243 code points in 9.760 seconds and
   proves that the original 240-character independent guard rejects normal fast
   narration rather than only failed boundary recovery.
+- A `v0.2.17` live retry of `5zKyUcKU134` passed acquisition and sentence
+  planning but rejected five ordinary 5–14 second English-to-Simplified-Chinese
+  translations as too short. The previous raw code-point ratio assumed source
+  and target scripts had comparable information density; three complete natural
+  Chinese regression targets reproduce the false positive deterministically.
 - Translation title/description context, force retranslation, abort behavior,
   full-success cache writes, and the compact stored cue schema `{s,d,o,t}` must
   continue to work.
@@ -170,8 +175,10 @@ valid Chinese cues progressively contain the following Japanese cue's meaning.
   subtitle display-size limit; display capping handles valid long sentences.
 - Validate canonical targets before caching: reject source echo/prefixes,
   kana-heavy Simplified-Chinese output, common Traditional-only characters, and
-  severe long-source omissions. Retry with a compact correction tail; never
-  cache the rejected target.
+  severe long-source omissions. Completeness heuristics must be direction-aware:
+  a Latin-dominant long source translated to Simplified Chinese uses Latin word
+  count rather than a raw cross-script code-point ratio. Retry with a compact
+  correction tail; never cache the rejected target.
 - Abort and navigation staleness must still prevent all L1/L2 writes.
 - Existing fallback behavior may be revised when the current fallback can also
   produce semantic cross-line drift.
@@ -322,6 +329,9 @@ valid Chinese cues progressively contain the following Japanese cue's meaning.
 - [ ] Canonical source-copy/Japanese-heavy/Traditional/incomplete responses are
       rejected and retried with a correction tail; unsafe word-internal target
       cuts are rejected before cue assembly.
+- [ ] All five observed `5zKyUcKU134` English sentences accept complete,
+      naturally compressed Simplified-Chinese targets without retry, while a
+      target covering only the first clause still fails the completeness gate.
 - [ ] Every source fragment is covered exactly once, in order, by non-empty,
       non-overlapping display ranges derived from existing timing boundaries.
 - [ ] Invalid target splitting follows the approved safe fallback and writes no

@@ -2,6 +2,11 @@ import { countSentenceMarks } from '../subtitles/sentence-marks'
 
 const HIRAGANA_RE = /\p{Script=Hiragana}/gu
 const KATAKANA_RUN_RE = /[\p{Script=Katakana}ー]+/gu
+const LATIN_RE = /\p{Script=Latin}/gu
+const LATIN_WORD_RE = /[\p{Script=Latin}\p{N}]+(?:['’][\p{Script=Latin}\p{N}]+)*/gu
+
+const MIN_LATIN_SOURCE_SHARE = 0.7
+const MIN_ZH_HANS_CODE_POINTS_PER_LATIN_WORD = 0.4
 
 // High-signal characters whose zh-Hans forms differ. This intentionally is
 // not a general script converter; it catches a model returning an obviously
@@ -35,8 +40,8 @@ export function validateCanonicalTarget(
     throw new Error('Canonical target contains a long untranslated source prefix')
   }
 
-  if (sourceLength >= 80 && targetLength / sourceLength < 0.28) {
-    throw new Error('Canonical target is too short for complete source coverage')
+  if (sourceLength >= 80) {
+    validateLongSourceCoverage(source, sourceComparable, targetLength, targetLang)
   }
 
   const sourceStops = countSentenceMarks(source)
@@ -46,6 +51,36 @@ export function validateCanonicalTarget(
   }
 
   if (targetLang === 'zh-Hans') validateSimplifiedChineseTarget(source, target)
+}
+
+function validateLongSourceCoverage(
+  source: string,
+  sourceComparable: string,
+  targetLength: number,
+  targetLang: string,
+): void {
+  const sourceLength = Array.from(sourceComparable).length
+  const latinLength = sourceComparable.match(LATIN_RE)?.length ?? 0
+  const latinWords = source.match(LATIN_WORD_RE)?.length ?? 0
+
+  // Chinese normally expresses an English sentence with far fewer code points.
+  // Comparing raw character counts made ordinary complete translations fail.
+  // For a Latin-dominant source, word count is the more stable coverage scale;
+  // this remains only a severe-omission guard, not a translation-quality score.
+  if (targetLang === 'zh-Hans' && latinLength / sourceLength >= MIN_LATIN_SOURCE_SHARE) {
+    if (latinWords > 0 && targetLength / latinWords < MIN_ZH_HANS_CODE_POINTS_PER_LATIN_WORD) {
+      throw new Error(
+        `Canonical target is too short for complete source coverage (${targetLength} target code points for ${latinWords} Latin source words)`,
+      )
+    }
+    return
+  }
+
+  if (targetLength / sourceLength < 0.28) {
+    throw new Error(
+      `Canonical target is too short for complete source coverage (${targetLength}/${sourceLength} comparable code points)`,
+    )
+  }
 }
 
 function validateSimplifiedChineseTarget(source: string, target: string): void {

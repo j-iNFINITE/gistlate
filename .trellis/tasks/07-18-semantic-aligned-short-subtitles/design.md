@@ -197,6 +197,13 @@ missing punctuation coverage for a multi-sentence source. Treat validation as a
 retryable structured-response error. Append only the compact error at the
 changing prompt tail so the immutable transcript prefix remains cacheable.
 
+Completeness is a conservative omission signal, not a fluency score. For a long
+Latin-dominant source translated to `zh-Hans`, compare target content code points
+with Latin source word count and reject only below `0.4` target code points per
+source word. Raw source/target comparable-code-point ratio `0.28` remains the
+fallback for other directions. Include only bounded counts in the error so live
+logs expose the active scale without logging the rejected translation or prompt.
+
 ### 4.4 Target alignment response
 
 Prefer JSON output for official DeepSeek:
@@ -605,7 +612,8 @@ watch URL. Keep existing duplicate-track suppression after this guard.
   sparse-offset legacy fallback, exact source preservation, positive ordering;
 - global-ID translation parser: exact IDs, duplicate/missing/extra/empty;
 - canonical target validator: source echo/prefix, kana-heavy, Traditional-only,
-  severe omission, and valid Simplified Chinese;
+  severe omission, valid Simplified Chinese, naturally compressed Latin-to-Han
+  translations, and a first-clause-only English-to-Chinese target;
 - alignment parser: valid cuts, wrong count, unordered, non-integer, out of range,
   Unicode code points, exact target reconstruction, unsafe Latin/Han/punctuation
   cuts;
@@ -745,3 +753,44 @@ force retranslation overwrites it atomically through the existing path.
   distribution check before becoming independent fail-closed conditions.
 - Runtime guards should identify corrupted structure; ordinary large but valid
   units should flow into the layer already responsible for display refinement.
+
+## 16. Debug retrospective: cross-script completeness ratios
+
+### 16.1 Root-cause category
+
+- **E — Implicit assumption:** the canonical completeness gate compared raw
+  source and target code-point counts as though Latin text and Han text encoded
+  meaning at similar character density.
+- **D — Test coverage gap:** the validator had Japanese-to-Chinese and synthetic
+  severe-summary cases, but no real English-to-Chinese compression examples or
+  pipeline assertion that a complete concise target succeeds without retries.
+
+### 16.2 Why the earlier guard failed
+
+1. A universal `target/source >= 0.28` threshold translated average English
+   word length directly into a Chinese-output quota unrelated to semantic
+   completeness.
+2. Temperature-zero correction retries could not help: a valid concise target
+   remained below the same invalid threshold on every attempt.
+3. Removing the gate would permit genuine summaries and partial translations;
+   the defect was the measurement scale, not the fail-closed policy.
+
+### 16.3 Prevention mechanisms
+
+| Priority | Mechanism | Action | Status |
+|---|---|---|---|
+| P0 | Runtime validation | Use Latin source word count for Latin-dominant long source to zh-Hans | Done |
+| P0 | Test coverage | Preserve all five live sources, concise complete targets, and a first-clause-only rejection | Done |
+| P0 | Integration | Assert the real S092-shaped pipeline job succeeds in one translation request | Done |
+| P1 | Observability | Add bounded target-code-point/source-word counts to completeness failures | Done |
+| P1 | Documentation | Forbid universal raw-length ratios across scripts in the frontend quality contract | Done |
+
+### 16.4 Systematic expansion
+
+- Any heuristic comparing translated text length must identify the language
+  direction or script density before selecting units and thresholds.
+- Thresholds remain corruption detectors, not quality scores. New directions
+  need paired complete and deliberately incomplete real examples before gaining
+  a specialized branch.
+- Stable deterministic retries amplify validator false positives; retry prompts
+  cannot compensate for a local predicate that rejects valid output.

@@ -225,6 +225,12 @@ Provider usage is decoded once at the HTTP boundary and propagated as
   Traditional-only zh-Hans characters, and severe long-source omission. Retry
   with only a compact correction at the changing tail; do not cache a rejected
   canonical target. Requests keep the same whole-video reference prefix.
+- Canonical completeness is a severe-omission guard, not a fluency/verbosity
+  score. Never apply one raw source/target code-point ratio across scripts. For
+  an at-least-80-code-point, at-least-70%-Latin source targeting `zh-Hans`, count
+  Latin words and require at least `0.4` target content code points per word;
+  other directions retain the `0.28` comparable-code-point fallback. Failure
+  text may expose these bounded counts but must not log the target or prompt.
 - For zh-Hans, an exact Katakana product-name run already present in the source
   may remain inside an otherwise Chinese target. Hiragana and Katakana runs not
   owned by the source still count toward the Japanese-heavy rejection. This
@@ -272,6 +278,8 @@ Provider usage is decoded once at the HTTP boundary and propagated as
 | One range exceeds 30s/480 code points/3 stops | Reject as a false sentence before display capping |
 | Canonical ID missing/duplicate/extra/empty | Retry; split only contiguous multi-sentence groups; single sentence fails closed |
 | Canonical source echo/wrong zh-Hans script/severe omission | Retry with correction tail; then split/fail closed |
+| Complete concise Latin-to-zh-Hans target | Accept using the Latin-word scale; do not spend deterministic correction retries |
+| Latin-to-zh-Hans target covers only one clause | Reject below 0.4 target content code points per Latin source word |
 | Chinese target retains a source-owned Katakana product run | Accept that run; validate the remaining Japanese characters normally |
 | Alignment cut wrong count/type/order/range | Retry with compact validation error |
 | Alignment cut inside Latin/Han or before closing punctuation | Retry; safe full-sentence fallback after exhaustion |
@@ -312,6 +320,10 @@ Provider usage is decoded once at the HTTP boundary and propagated as
   cuts -> several timed cues whose targets rejoin exactly.
 - **Base:** one display range -> validated canonical target becomes that cue; no
   alignment request.
+- **Good:** a 29-word English sentence becomes a complete 13-code-point concise
+  Chinese sentence -> accept it in one translation attempt.
+- **Bad:** compare those 13 Han code points with roughly 101 Latin letters and
+  reject the translation for being below a universal `0.28` ratio.
 - **Bad:** `capSentenceRanges(...)` output is sent to the translator as separate
   IDs. The model can move the next clause forward while count/timing tests pass.
 - **Bad:** event segments are joined while `tOffsetMs` is discarded. Visible
@@ -331,8 +343,11 @@ Provider usage is decoded once at the HTTP boundary and propagated as
 - Plans prove complete and display ranges each cover source fragments exactly.
 - Canonical parser rejects missing, duplicate, extra, empty, and prose output.
 - Canonical validator covers source echo/prefix, kana-heavy output, Traditional
-  output, severe omission, source-owned Katakana terms, and a valid
-  Simplified-Chinese base case.
+  output, severe omission, source-owned Katakana terms, a valid
+  Simplified-Chinese base case, all five observed `5zKyUcKU134` English
+  sentences with complete concise Chinese, and a first-clause-only rejection.
+- Pipeline coverage asserts the compressed S092-shaped canonical response
+  completes with one provider request and no correction retry.
 - Cut parser covers Unicode supplementary characters, exact reconstruction, and
   unsafe Latin/Han/pre-punctuation cuts.
 - Alignment preflight asserts an all-Han target performs zero alignment calls
@@ -396,6 +411,11 @@ cue.d = nextFragment.s - cue.s
 if (codePoints > 240) throw new SegmentationError('false sentence')
 ```
 
+```ts
+// Cross-script raw length is not a semantic coverage unit.
+if (targetCodePoints / sourceCodePoints < 0.28) throw new Error('incomplete')
+```
+
 #### Correct
 
 ```ts
@@ -433,6 +453,14 @@ cue.d = Math.min(fragment.e, nextFragment?.s ?? Infinity) - fragment.s
 if (duration > 30_000 || codePoints > 480 || sentenceMarks > 3) {
   throw new SegmentationError('false sentence')
 }
+```
+
+```ts
+// Specialize only the evidenced language direction and retain a conservative
+// fallback for other directions.
+const incomplete = targetLang === 'zh-Hans' && latinShare >= 0.7
+  ? targetCodePoints / latinWordCount < 0.4
+  : targetCodePoints / sourceCodePoints < 0.28
 ```
 
 Always strip non-speech annotations before this flow (`[...]`/`【...】`, musical

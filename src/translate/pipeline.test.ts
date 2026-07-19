@@ -121,6 +121,27 @@ describe('complete-sentence translation pipeline', () => {
     expect(retryBody.messages[1].content).toContain('PREVIOUS RESPONSE ERROR')
   })
 
+  it('accepts a complete compressed English-to-Chinese sentence without retrying', async () => {
+    const source = 'I wanted to give it pink panel lines and yeah, I think it gave it such a great look and I thought it was very much worth the money.'
+    const target = '我想做粉色渗线，效果很棒，很值。'
+    mockGmFetch.mockResolvedValueOnce(chatOk(`[S001] ${target}`))
+
+    const result = await translateCues(
+      [{ s: 333_199, d: 5121, o: source, sentenceEnd: true }],
+      'zh-Hans',
+      CFG,
+      'key',
+      {
+        sourceKind: 'asr',
+        translation: { mode: 'sentence', batchSize: 8 },
+      },
+    )
+
+    expect(mockGmFetch).toHaveBeenCalledOnce()
+    expect(result.cues).toEqual([{ s: 333_199, d: 5121, o: source, t: target }])
+    expect(result.diagnostics.translationRequestCount).toBe(1)
+  })
+
   it('translates one complete sentence once, then aligns its immutable target to short cues', async () => {
     const cues = makeCues(20)
     mockGmFetch
